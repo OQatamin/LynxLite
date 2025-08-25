@@ -1,0 +1,2997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lynx Lite Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <style>
+    /* CSS Reset */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
+      overflow-x: hidden;
+    }
+    
+    /* Layout Structure */
+    #dashboard-container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    /* Sidebar */
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 18rem;
+      height: 100vh;
+      background: linear-gradient(180deg, #1e40af, #1e3a8a);
+      z-index: 20;
+      transition: transform 0.3s ease;
+    }
+    
+    /* Header */
+    header {
+      position: fixed;
+      top: 0;
+      left: 18rem;
+      right: 0;
+      height: 4rem;
+      background: linear-gradient(to right, #ffffff, #f8fafc);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      padding: 0 2rem;
+    }
+    
+    /* Main Content */
+    #main-content {
+      margin-left: 18rem;
+      padding-top: 4rem;
+      flex: 1;
+      min-height: calc(100vh - 4rem);
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      header {
+        left: 0;
+      }
+      
+      #sidebar {
+        transform: translateX(-100%);
+      }
+      
+      #sidebar.active {
+        transform: translateX(0);
+      }
+      
+      #main-content {
+        margin-left: 0;
+      }
+    }
+    
+    /* Component Styles */
+    .kpi-card {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.2s ease;
+    }
+    
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .nav-link:hover {
+      background: #2563eb !important;
+      transform: translateX(4px);
+      transition: all 0.2s ease;
+    }
+  </style>
+</head>
+<body>
+  <div id="dashboard-container">
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar">
+      <div class="p-6">
+        <!-- Logo -->
+        <div class="flex items-center space-x-3 mb-8">
+          <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+            <i class="fas fa-truck text-blue-600 text-xl"></i>
+          </div>
+          <h1 class="text-white font-bold text-xl">Lynx Lite</h1>
+        </div>
+        
+        <!-- Navigation Menu -->
+        <nav class="space-y-2">
+          <a href="#" class="nav-link active flex items-center space-x-3 px-4 py-3 text-white bg-blue-700 rounded-lg">
+            <i class="fas fa-tachometer-alt w-5"></i>
+            <span>Dashboard</span>
+          </a>
+          
+          <a href="vehicles.html" class="nav-link flex items-center space-x-3 px-4 py-3 text-blue-200 hover:text-white hover:bg-blue-700 rounded-lg transition-colors">
+            <i class="fas fa-truck w-5"></i>
+            <span>Vehicles</span>
+          </a>
+          
+          <a href="drivers.html" class="nav-link flex items-center space-x-3 px-4 py-3 text-blue-200 hover:text-white hover:bg-blue-700 rounded-lg transition-colors">
+            <i class="fas fa-user-tie w-5"></i>
+            <span>Drivers</span>
+          </a>
+          
+          <a href="devices.html" class="nav-link flex items-center space-x-3 px-4 py-3 text-blue-200 hover:text-white hover:bg-blue-700 rounded-lg transition-colors">
+            <i class="fas fa-satellite-dish w-5"></i>
+            <span>Devices</span>
+          </a>
+          
+          <a href="active-alerts.html" class="nav-link flex items-center space-x-3 px-4 py-3 text-blue-200 hover:text-white hover:bg-blue-700 rounded-lg transition-colors">
+            <i class="fas fa-exclamation-triangle w-5"></i>
+            <span>Active Alerts</span>
+          </a>
+          
+          <a href="closed-alerts.html" class="nav-link flex items-center space-x-3 px-4 py-3 text-blue-200 hover:text-white hover:bg-blue-700 rounded-lg transition-colors">
+            <i class="fas fa-check-circle w-5"></i>
+            <span>Closed Alerts</span>
+          </a>
+          
+          <a href="vehicle-activity.html" class="nav-link flex items-center space-x-3 px-4 py-3 text-blue-200 hover:text-white hover:bg-blue-700 rounded-lg transition-colors">
+            <i class="fas fa-chart-line w-5"></i>
+            <span>Vehicle Activity</span>
+          </a>
+          
+          <a href="driver-activity.html" class="nav-link flex items-center space-x-3 px-4 py-3 text-blue-200 hover:text-white hover:bg-blue-700 rounded-lg transition-colors">
+            <i class="fas fa-user-clock w-5"></i>
+            <span>Driver Activity</span>
+          </a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Header -->
+    <header>
+      <div class="flex items-center justify-between w-full">
+        <!-- Mobile menu button -->
+        <button id="mobile-menu-btn" class="lg:hidden p-2 rounded-lg hover:bg-gray-100">
+          <i class="fas fa-bars text-gray-600"></i>
+        </button>
+        
+        <h1 class="text-2xl font-extrabold text-blue-800">Lynx Lite Dashboard</h1>
+        
+        <!-- User Info -->
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-3">
+            <img src="https://ui-avatars.com/api/?name=Owner&background=3b82f6&color=fff&rounded=true&size=40" alt="User Avatar" class="w-10 h-10 rounded-full">
+            <span class="font-semibold text-blue-800">Welcome, Owner</span>
+          </div>
+          
+          <!-- Role Badges -->
+          <div class="flex items-center space-x-2">
+            <span class="px-3 py-1 rounded-full bg-blue-700 text-white text-xs font-bold">Admin</span>
+            <span class="px-3 py-1 rounded-full bg-green-600 text-white text-xs font-bold">Fleet Manager</span>
+          </div>
+          
+          <!-- Controls -->
+          <div class="flex items-center space-x-4">
+            <button id="dark-mode-toggle" class="text-gray-700 hover:text-gray-900">
+              <i class="fas fa-moon"></i>
+            </button>
+            <input type="text" placeholder="Search..." class="border border-gray-300 px-4 py-2 rounded-lg w-64 focus:ring-2 focus:ring-blue-500">
+            <button id="user-menu-button" class="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center">
+              <i class="fas fa-user"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content">
+      <div class="p-8">
+        <!-- Fleet Performance Dashboard -->
+        <div class="bg-gradient-to-br from-blue-50 via-white to-green-50 rounded-2xl shadow-2xl border border-blue-200 p-8 mb-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-extrabold text-blue-800 flex items-center gap-3">
+              <i class="fas fa-chart-line text-green-500 text-2xl"></i>
+              Fleet Performance Dashboard
+            </h2>
+          </div>
+
+          <!-- Time Filter Controls -->
+          <div class="flex gap-2 mb-8">
+            <button class="fleet-time-btn px-4 py-2 rounded-lg bg-blue-100 text-blue-800 font-semibold hover:bg-blue-200 transition-colors" data-range="day">Day</button>
+            <button class="fleet-time-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-800 font-semibold hover:bg-gray-200 transition-colors" data-range="week">Week</button>
+            <button class="fleet-time-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-800 font-semibold hover:bg-gray-200 transition-colors" data-range="month">Month</button>
+            <button class="fleet-time-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-800 font-semibold hover:bg-gray-200 transition-colors" data-range="custom">Custom</button>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
+            <div class="kpi-card bg-white shadow-lg rounded-xl p-6 flex flex-col items-center">
+              <div class="flex items-center space-x-2 mb-2">
+                <i class="fas fa-truck text-blue-600 text-xl"></i>
+                <span class="font-bold text-2xl">247</span>
+              </div>
+              <div class="text-sm text-gray-600 font-medium">Total Vehicles</div>
+            </div>
+            
+            <div class="kpi-card bg-white shadow-lg rounded-xl p-6 flex flex-col items-center">
+              <div class="flex items-center space-x-2 mb-2">
+                <i class="fas fa-bolt text-green-600 text-xl"></i>
+                <span class="font-bold text-2xl">189</span>
+              </div>
+              <div class="text-sm text-gray-600 font-medium">Active</div>
+            </div>
+            
+            <div class="kpi-card bg-white shadow-lg rounded-xl p-6 flex flex-col items-center">
+              <div class="flex items-center space-x-2 mb-2">
+                <i class="fas fa-user-tie text-purple-600 text-xl"></i>
+                <span class="font-bold text-2xl">156</span>
+              </div>
+              <div class="text-sm text-gray-600 font-medium">Total Drivers</div>
+            </div>
+            
+            <div class="kpi-card bg-white shadow-lg rounded-xl p-6 flex flex-col items-center">
+              <div class="flex items-center space-x-2 mb-2">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                <span class="font-bold text-2xl">23</span>
+              </div>
+              <div class="text-sm text-gray-600 font-medium">Active Alerts</div>
+            </div>
+            
+            <div class="kpi-card bg-white shadow-lg rounded-xl p-6 flex flex-col items-center">
+              <div class="flex items-center space-x-2 mb-2">
+                <i class="fas fa-gas-pump text-green-600 text-xl"></i>
+                <span class="font-bold text-2xl">8.2</span>
+              </div>
+              <div class="text-sm text-gray-600 font-medium">Avg Efficiency</div>
+            </div>
+            
+            <div class="kpi-card bg-white shadow-lg rounded-xl p-6 flex flex-col items-center">
+              <div class="flex items-center space-x-2 mb-2">
+                <i class="fas fa-road text-blue-600 text-xl"></i>
+                <span class="font-bold text-2xl">12,847</span>
+              </div>
+              <div class="text-sm text-gray-600 font-medium">Miles Today</div>
+            </div>
+          </div>
+
+          <!-- Fleet Analytics -->
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+            <div class="bg-white/90 rounded-xl p-5 shadow-lg flex flex-col items-center border border-blue-100">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-road text-blue-600 text-lg"></i>
+                <span class="text-sm text-gray-600 font-medium">Total Distance</span>
+              </div>
+              <div class="text-2xl font-bold text-blue-700">12,450 km</div>
+              <span class="text-xs text-gray-500">This month</span>
+            </div>
+            
+            <div class="bg-white/90 rounded-xl p-5 shadow-lg flex flex-col items-center border border-orange-100">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-shipping-fast text-orange-600 text-lg"></i>
+                <span class="text-sm text-gray-600 font-medium">Total Deliveries</span>
+              </div>
+              <div class="text-2xl font-bold text-orange-700">1,847</div>
+              <span class="text-xs text-gray-500">This month</span>
+            </div>
+            
+            <div class="bg-white/90 rounded-xl p-5 shadow-lg flex flex-col items-center border border-purple-100">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-clock text-purple-600 text-lg"></i>
+                <span class="text-sm text-gray-600 font-medium">Avg Trip Duration</span>
+              </div>
+              <div class="text-2xl font-bold text-purple-700">1h 15m</div>
+              <span class="text-xs text-gray-500">Per trip</span>
+            </div>
+            
+            <div class="bg-white/90 rounded-xl p-5 shadow-lg flex flex-col items-center border border-yellow-100">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-tachometer-alt text-yellow-500 text-lg"></i>
+                <span class="text-sm text-gray-600 font-medium">Avg Speed</span>
+              </div>
+              <div class="text-2xl font-bold text-yellow-700">62 km/h</div>
+              <span class="text-xs text-gray-500">Fleet-wide</span>
+            </div>
+            
+            <div class="bg-white/90 rounded-xl p-5 shadow-lg flex flex-col items-center border border-red-100">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-exclamation-triangle text-red-500 text-lg"></i>
+                <span class="text-sm font-medium text-red-600">Critical Alerts</span>
+              </div>
+              <div class="text-2xl font-bold text-red-600">39</div>
+              <span class="text-xs text-gray-500">Last 24h</span>
+            </div>
+            
+            <div class="bg-white/90 rounded-xl p-5 shadow-lg flex flex-col items-center border border-gray-100">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-tools text-gray-700 text-lg"></i>
+                <span class="text-sm text-gray-600 font-medium">Maintenance Due</span>
+              </div>
+              <div class="text-2xl font-bold text-gray-700">77</div>
+              <span class="text-xs text-gray-500">Vehicles</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Map Section -->
+        <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 p-8 mb-8">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-extrabold text-gray-800 flex items-center gap-3">
+              <i class="fas fa-map-marked-alt text-blue-600 text-2xl"></i>
+              Live Fleet Tracking
+            </h3>
+                         <div class="flex items-center space-x-4">
+               <!-- Map Mode Controls -->
+               <div class="flex flex-wrap gap-2 items-center">
+                 <button data-mode="live" class="map-mode-button active px-4 py-2 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2" title="Live vehicle positions">
+                   <i class="fas fa-satellite-dish"></i>Live
+                 </button>
+                 <button data-mode="replay" class="map-mode-button px-4 py-2 text-sm font-semibold rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center gap-2" title="Replay vehicle routes">
+                   <i class="fas fa-history"></i>Replay
+                 </button>
+                 <button data-mode="geofence" class="map-mode-button px-4 py-2 text-sm font-semibold rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 flex items-center gap-2" title="Draw and manage geofences">
+                   <i class="fas fa-draw-polygon"></i>Geofence
+                 </button>
+               </div>
+               
+               <!-- Map Layer Controls -->
+               <div class="flex flex-wrap gap-2 items-center">
+                 <label class="map-tool-toggle group flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-300 shadow hover:bg-blue-50 cursor-pointer" title="Show/hide traffic layer">
+                   <input type="checkbox" class="layer-toggle-checkbox" checked>
+                   <i class="fas fa-traffic-light text-blue-600"></i>
+                   <span class="text-sm text-gray-700">Traffic</span>
+                 </label>
+                 
+                 <label class="map-tool-toggle group flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-300 shadow hover:bg-blue-50 cursor-pointer" title="Show/hide satellite layer">
+                   <input type="checkbox" class="layer-toggle-checkbox">
+                   <i class="fas fa-satellite text-green-600"></i>
+                   <span class="text-sm text-gray-700">Satellite</span>
+                 </label>
+                 
+                 <label class="map-tool-toggle group flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-300 shadow hover:bg-blue-50 cursor-pointer" title="Show/hide heatmap">
+                   <input type="checkbox" class="layer-toggle-checkbox">
+                   <i class="fas fa-fire text-red-600"></i>
+                   <span class="text-sm text-gray-700">Heatmap</span>
+                 </label>
+                 
+                 <label class="map-tool-toggle group flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-300 shadow hover:bg-blue-50 cursor-pointer" title="Show/hide clusters">
+                   <input type="checkbox" class="layer-toggle-checkbox">
+                   <i class="fas fa-object-group text-purple-600"></i>
+                   <span class="text-sm text-gray-700">Clusters</span>
+                 </label>
+               </div>
+             </div>
+          </div>
+          
+          <div class="flex gap-6">
+            <!-- Map Sidebar -->
+            <div class="w-80 flex-shrink-0">
+              <div class="bg-gray-50 rounded-xl p-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">Fleet Overview</h4>
+                
+                <div class="space-y-4 mb-6">
+                  <div class="flex justify-between items-center p-3 bg-white rounded-lg">
+                    <div class="flex items-center">
+                      <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                      <span class="text-sm font-medium">Active Vehicles</span>
+                    </div>
+                    <span class="text-lg font-bold text-green-600">189</span>
+                  </div>
+                  
+                  <div class="flex justify-between items-center p-3 bg-white rounded-lg">
+                    <div class="flex items-center">
+                      <div class="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                      <span class="text-sm font-medium">Maintenance</span>
+                    </div>
+                    <span class="text-lg font-bold text-yellow-600">23</span>
+                  </div>
+                  
+                  <div class="flex justify-between items-center p-3 bg-white rounded-lg">
+                    <div class="flex items-center">
+                      <div class="w-3 h-3 bg-gray-400 rounded-full mr-3"></div>
+                      <span class="text-sm font-medium">Idle</span>
+                    </div>
+                    <span class="text-lg font-bold text-gray-600">28</span>
+                  </div>
+                  
+                  <div class="flex justify-between items-center p-3 bg-white rounded-lg">
+                    <div class="flex items-center">
+                      <div class="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                      <span class="text-sm font-medium">Offline</span>
+                    </div>
+                    <span class="text-lg font-bold text-red-600">7</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+                         <!-- Map Container -->
+             <div class="flex-1">
+               <div id="fleetMap" class="w-full h-96 rounded-xl border border-gray-300"></div>
+               
+               <!-- Replay Controls -->
+               <div id="replay-controls" class="hidden mt-4 flex items-center space-x-4 bg-gray-50 rounded-lg p-4">
+                 <button id="play-pause" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500">
+                   <i class="fas fa-play"></i>
+                 </button>
+                 <input type="range" id="replay-slider" min="0" max="100" value="0" class="flex-1 accent-blue-600">
+                 <span id="replay-time" class="text-sm text-gray-600">00:00 / 24:00</span>
+                 <button id="replay-speed" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">
+                   1x
+                 </button>
+               </div>
+               
+               <!-- Geofence Controls -->
+               <div id="geofence-controls" class="hidden mt-4 flex items-center space-x-4 bg-blue-50 rounded-lg p-4">
+                 <div class="flex items-center space-x-2">
+                   <button id="geofence-circle-btn" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                     <i class="fas fa-circle mr-1"></i>Circle
+                   </button>
+                   <button id="geofence-polygon-btn" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">
+                     <i class="fas fa-draw-polygon mr-1"></i>Polygon
+                   </button>
+                 </div>
+                 <button id="clear-geofence-btn" class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
+                   <i class="fas fa-trash mr-1"></i>Clear
+                 </button>
+                 <button id="geofence-settings-btn" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">
+                   <i class="fas fa-cog mr-1"></i>Settings
+                 </button>
+               </div>
+              
+              <!-- Map Stats -->
+              <div class="grid grid-cols-4 gap-4 mt-4">
+                <div class="bg-white rounded-lg p-4 text-center border border-gray-200">
+                  <div class="text-2xl font-bold text-blue-600">247</div>
+                  <div class="text-sm text-gray-600">Total Vehicles</div>
+                </div>
+                <div class="bg-white rounded-lg p-4 text-center border border-gray-200">
+                  <div class="text-2xl font-bold text-green-600">189</div>
+                  <div class="text-sm text-gray-600">Active</div>
+                </div>
+                <div class="bg-white rounded-lg p-4 text-center border border-gray-200">
+                  <div class="text-2xl font-bold text-yellow-600">23</div>
+                  <div class="text-sm text-gray-600">Alerts</div>
+                </div>
+                <div class="bg-white rounded-lg p-4 text-center border border-gray-200">
+                  <div class="text-2xl font-bold text-purple-600">12,847</div>
+                  <div class="text-sm text-gray-600">Miles Today</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alerts & Notifications -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Active Alerts -->
+          <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 p-8">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-2xl font-extrabold text-gray-800 flex items-center gap-3">
+                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                Active Alerts
+              </h3>
+              <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">23</span>
+            </div>
+            
+            <div class="space-y-4">
+              <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                      <i class="fas fa-exclamation-circle text-red-600"></i>
+                      <span class="font-semibold text-red-800">Engine Overheating</span>
+                      <span class="bg-red-600 text-white px-2 py-1 rounded text-xs">Critical</span>
+                    </div>
+                    <p class="text-sm text-red-700 mb-2">Truck-001 engine temperature exceeds normal operating range</p>
+                    <div class="flex items-center justify-between text-xs text-red-600">
+                      <span>Truck-001 • John Smith</span>
+                      <span>2 min ago</span>
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button class="alert-btn px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors">Acknowledge</button>
+                    <button class="alert-btn px-3 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700 transition-colors">Dismiss</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                      <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                      <span class="font-semibold text-yellow-800">Low Fuel Level</span>
+                      <span class="bg-yellow-600 text-white px-2 py-1 rounded text-xs">Warning</span>
+                    </div>
+                    <p class="text-sm text-yellow-700 mb-2">Truck-015 fuel level below 15% threshold</p>
+                    <div class="flex items-center justify-between text-xs text-yellow-600">
+                      <span>Truck-015 • Mike Johnson</span>
+                      <span>5 min ago</span>
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button class="alert-btn px-3 py-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700 transition-colors">Acknowledge</button>
+                    <button class="alert-btn px-3 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700 transition-colors">Dismiss</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Recent Notifications -->
+          <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 p-8">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-2xl font-extrabold text-gray-800 flex items-center gap-3">
+                <i class="fas fa-bell text-blue-600 text-2xl"></i>
+                Recent Notifications
+              </h3>
+              <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">12</span>
+            </div>
+            
+            <div class="space-y-4">
+              <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-route text-white text-sm"></i>
+                  </div>
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="font-semibold text-blue-800">Route Optimization Completed</span>
+                      <span class="bg-blue-600 text-white px-2 py-1 rounded text-xs">System</span>
+                    </div>
+                    <p class="text-sm text-blue-700 mb-2">Optimized route for 15 vehicles, saving 2.3 hours of travel time</p>
+                    <span class="text-xs text-blue-600">3 min ago</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
+                <div class="flex items-start gap-3">
+                  <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-user-plus text-white text-sm"></i>
+                  </div>
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="font-semibold text-green-800">New Driver Assignment</span>
+                      <span class="bg-green-600 text-white px-2 py-1 rounded text-xs">Driver</span>
+                    </div>
+                    <p class="text-sm text-green-700 mb-2">Driver Lisa Davis assigned to Truck-005 for delivery route</p>
+                    <span class="text-xs text-green-600">8 min ago</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+                 </div>
+         
+         <!-- Advanced Analytics & Charts Section -->
+         <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 p-8 mb-8">
+           <div class="flex justify-between items-center mb-6">
+             <h3 class="text-2xl font-extrabold text-gray-800 flex items-center gap-3">
+               <i class="fas fa-chart-bar text-purple-600 text-2xl"></i>
+               Advanced Analytics
+             </h3>
+             <div class="flex items-center space-x-4">
+               <button class="chart-control-btn px-4 py-2 rounded-lg bg-purple-100 text-purple-800 font-semibold hover:bg-purple-200 transition-colors">
+                 <i class="fas fa-chart-line mr-2"></i>Performance
+               </button>
+               <button class="chart-control-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-800 font-semibold hover:bg-gray-200 transition-colors">
+                 <i class="fas fa-chart-pie mr-2"></i>Distribution
+               </button>
+             </div>
+           </div>
+           
+           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+             <!-- Performance Chart -->
+             <div class="bg-gray-50 rounded-xl p-6">
+               <h4 class="text-lg font-bold text-gray-800 mb-4">Fleet Performance Trend</h4>
+               <div class="h-64">
+                 <canvas id="performanceChart"></canvas>
+               </div>
+             </div>
+             
+             <!-- Vehicle Status Distribution -->
+             <div class="bg-gray-50 rounded-xl p-6">
+               <h4 class="text-lg font-bold text-gray-800 mb-4">Vehicle Status Distribution</h4>
+               <div class="h-64">
+                 <canvas id="statusChart"></canvas>
+               </div>
+             </div>
+           </div>
+           
+           <!-- Analytics Summary -->
+           <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8">
+             <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+               <div class="flex items-center justify-between">
+                 <div>
+                   <p class="text-blue-100 text-sm">Fuel Efficiency</p>
+                   <p class="text-2xl font-bold">8.2 mpg</p>
+                   <p class="text-blue-200 text-xs">+2.3% vs last month</p>
+                 </div>
+                 <i class="fas fa-gas-pump text-3xl opacity-50"></i>
+               </div>
+             </div>
+             
+             <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
+               <div class="flex items-center justify-between">
+                 <div>
+                   <p class="text-green-100 text-sm">On-Time Delivery</p>
+                   <p class="text-2xl font-bold">94.7%</p>
+                   <p class="text-green-200 text-xs">+1.2% vs last month</p>
+                 </div>
+                 <i class="fas fa-clock text-3xl opacity-50"></i>
+               </div>
+             </div>
+             
+             <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+               <div class="flex items-center justify-between">
+                 <div>
+                   <p class="text-purple-100 text-sm">Driver Safety Score</p>
+                   <p class="text-2xl font-bold">8.9/10</p>
+                   <p class="text-purple-200 text-xs">+0.3 vs last month</p>
+                 </div>
+                 <i class="fas fa-shield-alt text-3xl opacity-50"></i>
+               </div>
+             </div>
+             
+             <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 text-white">
+               <div class="flex items-center justify-between">
+                 <div>
+                   <p class="text-orange-100 text-sm">Maintenance Cost</p>
+                   <p class="text-2xl font-bold">$2,847</p>
+                   <p class="text-orange-200 text-xs">-12% vs last month</p>
+                 </div>
+                 <i class="fas fa-tools text-3xl opacity-50"></i>
+               </div>
+             </div>
+           </div>
+         </div>
+         
+                   <!-- Enhanced Driver Performance Leaderboard Section -->
+          <div class="bg-white rounded-2xl shadow-2xl border border-gray-200 p-8 mb-8">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="text-2xl font-extrabold text-gray-800 flex items-center gap-3">
+                <i class="fas fa-trophy text-yellow-600 text-2xl"></i>
+                Driver Performance Leaderboard
+              </h3>
+                             <div class="flex items-center space-x-4">
+                 <button class="text-blue-600 hover:text-blue-800 font-semibold text-sm">View All Drivers →</button>
+                 <button id="anonymize-toggle" class="text-gray-600 hover:text-gray-800 font-semibold text-sm">
+                   <i class="fas fa-user-secret mr-1"></i>Anonymize
+                 </button>
+                 
+                 <!-- Action Buttons -->
+                 <div class="flex gap-2">
+                   <button id="assign-coaching-btn" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium flex items-center gap-2">
+                     <i class="fas fa-chalkboard-teacher"></i>
+                     <span>Assign Coaching</span>
+                   </button>
+                   <button id="grant-recognition-btn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium flex items-center gap-2">
+                     <i class="fas fa-medal"></i>
+                     <span>Grant Recognition</span>
+                   </button>
+                   <button id="reward-performer-btn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-2">
+                     <i class="fas fa-gift"></i>
+                     <span>Reward Top Performers</span>
+                   </button>
+                 </div>
+               </div>
+            </div>
+            
+            <!-- Leaderboard Controls -->
+            <div class="flex flex-wrap gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+              <!-- Time Period Filter -->
+              <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-gray-700">Period:</span>
+                <div class="flex space-x-1">
+                  <button class="leaderboard-time-btn active px-3 py-1 text-sm font-medium rounded-lg bg-blue-600 text-white" data-period="today">Today</button>
+                  <button class="leaderboard-time-btn px-3 py-1 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300" data-period="week">Week</button>
+                  <button class="leaderboard-time-btn px-3 py-1 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300" data-period="month">Month</button>
+                </div>
+              </div>
+              
+              <!-- Category Filter -->
+              <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-gray-700">Sort by:</span>
+                <select id="leaderboard-category" class="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option value="overall">Overall Score</option>
+                  <option value="safety">Safety</option>
+                  <option value="fuel">Fuel Efficiency</option>
+                  <option value="compliance">Compliance</option>
+                  <option value="productivity">Productivity</option>
+                  <option value="vehicle-health">Vehicle Health</option>
+                </select>
+              </div>
+              
+              <!-- Team Filter -->
+              <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-gray-700">Team:</span>
+                <select id="leaderboard-team" class="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option value="all">All Teams</option>
+                  <option value="delivery">Delivery</option>
+                  <option value="service">Service</option>
+                  <option value="logistics">Logistics</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- KPI Summary Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+              <div class="bg-blue-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600" id="avg-safety-score">94.2</div>
+                <div class="text-sm text-gray-600">Avg Safety Score</div>
+              </div>
+              <div class="bg-green-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-green-600" id="avg-fuel-efficiency">8.8 km/L</div>
+                <div class="text-sm text-gray-600">Avg Fuel Efficiency</div>
+              </div>
+              <div class="bg-purple-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-purple-600" id="avg-compliance">96.5%</div>
+                <div class="text-sm text-gray-600">Avg Compliance</div>
+              </div>
+              <div class="bg-orange-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-orange-600" id="avg-productivity">24.8</div>
+                <div class="text-sm text-gray-600">Avg Deliveries/Day</div>
+              </div>
+              <div class="bg-red-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-red-600" id="avg-vehicle-health">92.3%</div>
+                <div class="text-sm text-gray-600">Avg Vehicle Health</div>
+              </div>
+            </div>
+            
+            <!-- Enhanced Leaderboard Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr class="border-b border-gray-200">
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Rank</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Driver</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Overall Score</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Safety</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Fuel Efficiency</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Compliance</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Productivity</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Badges</th>
+                    <th class="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboard-table-body">
+                  <!-- Dynamic content will be populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+       </div>
+     </main>
+      </div>
+
+       <!-- Task Assignment Modal -->
+    <div id="task-assignment-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-gray-900">Assign Task to Driver</h3>
+          <button onclick="document.getElementById('task-assignment-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-700 text-xl">×</button>
+        </div>
+        
+        <div class="space-y-4">
+          <!-- Driver Info -->
+          <div class="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg" id="driver-initials">JS</div>
+            <div>
+              <div class="font-semibold text-gray-900" id="driver-name">John Smith</div>
+              <div class="text-sm text-gray-600" id="driver-current-status">Currently: Available</div>
+            </div>
+          </div>
+          
+          <!-- Task Assignment Form -->
+          <form id="task-assignment-form" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Task Type</label>
+              <div class="space-y-2">
+                <label class="flex items-center">
+                  <input type="radio" name="task-type" value="delivery" checked class="mr-2">
+                  <span class="text-sm">Delivery Route</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="radio" name="task-type" value="pickup" class="mr-2">
+                  <span class="text-sm">Pickup Route</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="radio" name="task-type" value="service" class="mr-2">
+                  <span class="text-sm">Service Call</span>
+                </label>
+              </div>
+            </div>
+            
+            <div>
+              <label for="start-time" class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+              <input type="datetime-local" id="start-time" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+              <label for="task-description" class="block text-sm font-medium text-gray-700 mb-1">Task Description</label>
+              <textarea id="task-description" rows="3" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500" placeholder="Enter task details..."></textarea>
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-4">
+              <button type="button" onclick="document.getElementById('task-assignment-modal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
+              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Assign Task</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+         <!-- Driver Details Modal -->
+     <div id="driver-details-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+       <div class="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+         <div class="flex justify-between items-center mb-4">
+           <h3 class="text-lg font-bold text-gray-900">Driver Performance Details</h3>
+           <button onclick="document.getElementById('driver-details-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-700 text-xl">×</button>
+         </div>
+         
+         <div id="driver-details-content" class="space-y-6">
+           <!-- Content will be populated by JavaScript -->
+         </div>
+       </div>
+     </div>
+
+     <!-- Coaching Assignment Modal -->
+     <div id="coaching-assignment-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+       <div class="bg-white rounded-xl shadow-2xl p-8 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+         <div class="flex items-center justify-between mb-6">
+           <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+             <i class="fas fa-chalkboard-teacher text-orange-600"></i>
+             Assign Coaching & Training
+           </h3>
+           <button id="close-coaching-modal" class="text-gray-400 hover:text-gray-600">
+             <i class="fas fa-times text-xl"></i>
+           </button>
+         </div>
+
+         <form id="coaching-assignment-form" class="space-y-6">
+           <!-- Driver Selection -->
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Select Driver(s)</label>
+               <div class="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
+                 <label class="flex items-center gap-2">
+                   <input type="checkbox" value="all" class="driver-checkbox text-orange-600">
+                   <span class="text-sm font-medium">All Drivers</span>
+                 </label>
+                 <label class="flex items-center gap-2">
+                   <input type="checkbox" value="low-performers" class="driver-checkbox text-orange-600">
+                   <span class="text-sm font-medium">Low Performers (Score < 85)</span>
+                 </label>
+                 <hr class="my-2">
+                 <label class="flex items-center gap-2">
+                   <input type="checkbox" value="driver1" class="driver-checkbox text-orange-600">
+                   <span class="text-sm">John Mitchell (Score: 96.5)</span>
+                 </label>
+                 <label class="flex items-center gap-2">
+                   <input type="checkbox" value="driver2" class="driver-checkbox text-orange-600">
+                   <span class="text-sm">Sarah Wilson (Score: 94.2)</span>
+                 </label>
+                 <label class="flex items-center gap-2">
+                   <input type="checkbox" value="driver3" class="driver-checkbox text-orange-600">
+                   <span class="text-sm">Mike Johnson (Score: 91.8)</span>
+                 </label>
+                 <label class="flex items-center gap-2">
+                   <input type="checkbox" value="driver4" class="driver-checkbox text-orange-600">
+                   <span class="text-sm">Emma Davis (Score: 98.1)</span>
+                 </label>
+                 <label class="flex items-center gap-2">
+                   <input type="checkbox" value="driver5" class="driver-checkbox text-orange-600">
+                   <span class="text-sm">Alex Rodriguez (Score: 89.5) - Needs Improvement</span>
+                 </label>
+               </div>
+             </div>
+
+             <!-- Course Selection -->
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Training Courses</label>
+               <div class="space-y-3">
+                 <div class="border border-gray-200 rounded-lg p-4">
+                   <label class="flex items-start gap-3">
+                     <input type="checkbox" value="defensive-driving" class="course-checkbox text-orange-600 mt-1">
+                     <div>
+                       <h4 class="font-medium text-gray-900">Defensive Driving</h4>
+                       <p class="text-sm text-gray-600">Advanced safety techniques and hazard awareness</p>
+                       <p class="text-xs text-gray-500">Duration: 4 hours | Online/In-person</p>
+                     </div>
+                   </label>
+                 </div>
+                 
+                 <div class="border border-gray-200 rounded-lg p-4">
+                   <label class="flex items-start gap-3">
+                     <input type="checkbox" value="eco-driving" class="course-checkbox text-orange-600 mt-1">
+                     <div>
+                       <h4 class="font-medium text-gray-900">Eco-Driving Techniques</h4>
+                       <p class="text-sm text-gray-600">Fuel-efficient driving and environmental awareness</p>
+                       <p class="text-xs text-gray-500">Duration: 3 hours | Online</p>
+                     </div>
+                   </label>
+                 </div>
+                 
+                 <div class="border border-gray-200 rounded-lg p-4">
+                   <label class="flex items-start gap-3">
+                     <input type="checkbox" value="compliance-training" class="course-checkbox text-orange-600 mt-1">
+                     <div>
+                       <h4 class="font-medium text-gray-900">Compliance & Regulations</h4>
+                       <p class="text-sm text-gray-600">DOT regulations, route adherence, and documentation</p>
+                       <p class="text-xs text-gray-500">Duration: 2 hours | Online</p>
+                     </div>
+                   </label>
+                 </div>
+                 
+                 <div class="border border-gray-200 rounded-lg p-4">
+                   <label class="flex items-start gap-3">
+                     <input type="checkbox" value="customer-service" class="course-checkbox text-orange-600 mt-1">
+                     <div>
+                       <h4 class="font-medium text-gray-900">Customer Service Excellence</h4>
+                       <p class="text-sm text-gray-600">Professional communication and service delivery</p>
+                       <p class="text-xs text-gray-500">Duration: 2.5 hours | In-person</p>
+                     </div>
+                   </label>
+                 </div>
+               </div>
+             </div>
+           </div>
+
+           <!-- Schedule and Priority -->
+           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Priority Level</label>
+               <select id="coaching-priority" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                 <option value="low">Low Priority</option>
+                 <option value="medium">Medium Priority</option>
+                 <option value="high">High Priority</option>
+                 <option value="urgent">Urgent</option>
+               </select>
+             </div>
+             
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Completion Deadline</label>
+               <input type="date" id="coaching-deadline" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+             </div>
+             
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Method</label>
+               <select id="coaching-method" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                 <option value="online">Online</option>
+                 <option value="in-person">In-Person</option>
+                 <option value="hybrid">Hybrid</option>
+                 <option value="self-paced">Self-Paced</option>
+               </select>
+             </div>
+           </div>
+
+           <!-- Additional Notes -->
+           <div>
+             <label class="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
+             <textarea id="coaching-notes" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" 
+                       placeholder="Any specific requirements or notes for the training assignment..."></textarea>
+           </div>
+
+           <!-- Action Buttons -->
+           <div class="flex justify-end gap-3 pt-6 border-t border-gray-200">
+             <button type="button" id="cancel-coaching" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+               Cancel
+             </button>
+             <button type="submit" class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
+               Assign Coaching
+             </button>
+           </div>
+         </form>
+       </div>
+     </div>
+
+     <!-- Recognition Grant Modal -->
+     <div id="recognition-grant-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+       <div class="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+         <div class="flex items-center justify-between mb-6">
+           <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+             <i class="fas fa-medal text-purple-600"></i>
+             Grant Recognition & Awards
+           </h3>
+           <button id="close-recognition-modal" class="text-gray-400 hover:text-gray-600">
+             <i class="fas fa-times text-xl"></i>
+           </button>
+         </div>
+
+         <form id="recognition-grant-form" class="space-y-6">
+           <!-- Driver Selection -->
+           <div>
+             <label class="block text-sm font-medium text-gray-700 mb-2">Select Driver</label>
+             <select id="recognition-driver" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+               <option value="">Choose a driver...</option>
+               <option value="driver1">John Mitchell (Safety Champion)</option>
+               <option value="driver2">Sarah Wilson (Reliable Performer)</option>
+               <option value="driver3">Mike Johnson (High Mileage)</option>
+               <option value="driver4">Emma Davis (Top Performer)</option>
+               <option value="driver5">Alex Rodriguez (Improvement Progress)</option>
+             </select>
+           </div>
+
+           <!-- Recognition Type -->
+           <div>
+             <label class="block text-sm font-medium text-gray-700 mb-2">Recognition Type</label>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="recognition-type" value="safety-champion" class="text-purple-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900 flex items-center gap-2">
+                       <i class="fas fa-shield-alt text-green-600"></i>
+                       Safety Champion
+                     </h4>
+                     <p class="text-sm text-gray-600">Outstanding safety record and practices</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="recognition-type" value="eco-driver" class="text-purple-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900 flex items-center gap-2">
+                       <i class="fas fa-leaf text-green-600"></i>
+                       Eco Driver Award
+                     </h4>
+                     <p class="text-sm text-gray-600">Exceptional fuel efficiency performance</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="recognition-type" value="reliability-award" class="text-purple-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900 flex items-center gap-2">
+                       <i class="fas fa-clock text-blue-600"></i>
+                       Reliability Award
+                     </h4>
+                     <p class="text-sm text-gray-600">Consistent on-time performance and compliance</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="recognition-type" value="customer-service" class="text-purple-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900 flex items-center gap-2">
+                       <i class="fas fa-handshake text-orange-600"></i>
+                       Customer Service Excellence
+                     </h4>
+                     <p class="text-sm text-gray-600">Outstanding customer feedback and service</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="recognition-type" value="improvement" class="text-purple-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900 flex items-center gap-2">
+                       <i class="fas fa-chart-line text-purple-600"></i>
+                       Most Improved
+                     </h4>
+                     <p class="text-sm text-gray-600">Significant performance improvement</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="recognition-type" value="custom" class="text-purple-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900 flex items-center gap-2">
+                       <i class="fas fa-star text-yellow-600"></i>
+                       Custom Recognition
+                     </h4>
+                     <p class="text-sm text-gray-600">Create a custom recognition</p>
+                   </div>
+                 </label>
+               </div>
+             </div>
+           </div>
+
+           <!-- Custom Recognition Details -->
+           <div id="custom-recognition-details" class="hidden space-y-4">
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-2">Custom Award Title</label>
+               <input type="text" id="custom-award-title" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
+                      placeholder="e.g., Innovation Champion, Team Leader">
+             </div>
+           </div>
+
+           <!-- Recognition Details -->
+           <div>
+             <label class="block text-sm font-medium text-gray-700 mb-2">Recognition Message</label>
+             <textarea id="recognition-message" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
+                       placeholder="Personalized message explaining the recognition and achievements..."></textarea>
+           </div>
+
+           <!-- Public Recognition Options -->
+           <div>
+             <label class="block text-sm font-medium text-gray-700 mb-3">Public Recognition Options</label>
+             <div class="space-y-2">
+               <label class="flex items-center gap-2">
+                 <input type="checkbox" id="recognition-dashboard" class="text-purple-600">
+                 <span class="text-sm">Display on company dashboard</span>
+               </label>
+               <label class="flex items-center gap-2">
+                 <input type="checkbox" id="recognition-email" class="text-purple-600">
+                 <span class="text-sm">Send congratulatory email to team</span>
+               </label>
+               <label class="flex items-center gap-2">
+                 <input type="checkbox" id="recognition-newsletter" class="text-purple-600">
+                 <span class="text-sm">Include in company newsletter</span>
+               </label>
+               <label class="flex items-center gap-2">
+                 <input type="checkbox" id="recognition-certificate" class="text-purple-600">
+                 <span class="text-sm">Generate printable certificate</span>
+               </label>
+             </div>
+           </div>
+
+           <!-- Action Buttons -->
+           <div class="flex justify-end gap-3 pt-6 border-t border-gray-200">
+             <button type="button" id="cancel-recognition" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+               Cancel
+             </button>
+             <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+               Grant Recognition
+             </button>
+           </div>
+         </form>
+       </div>
+     </div>
+
+     <!-- Reward Top Performers Modal -->
+     <div id="reward-performers-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+       <div class="bg-white rounded-xl shadow-2xl p-8 max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+         <div class="flex items-center justify-between mb-6">
+           <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+             <i class="fas fa-gift text-green-600"></i>
+             Reward Top Performers
+           </h3>
+           <button id="close-reward-modal" class="text-gray-400 hover:text-gray-600">
+             <i class="fas fa-times text-xl"></i>
+           </button>
+         </div>
+
+         <form id="reward-performers-form" class="space-y-6">
+           <!-- Top Performers Selection -->
+           <div>
+             <label class="block text-sm font-medium text-gray-700 mb-2">Automatic Selection Criteria</label>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="selection-criteria" value="top-overall" class="text-green-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900">Top Overall Performers</h4>
+                     <p class="text-sm text-gray-600">Top 3 drivers by overall score</p>
+                     <p class="text-xs text-gray-500">Current: Emma Davis (98.1), John Mitchell (96.5), Sarah Wilson (94.2)</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="selection-criteria" value="top-safety" class="text-green-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900">Safety Leaders</h4>
+                     <p class="text-sm text-gray-600">Highest safety scores</p>
+                     <p class="text-xs text-gray-500">Current: Emma Davis (98.1), John Mitchell (96.5), Sarah Wilson (94.2)</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="selection-criteria" value="top-efficiency" class="text-green-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900">Fuel Efficiency Champions</h4>
+                     <p class="text-sm text-gray-600">Best fuel efficiency ratings</p>
+                     <p class="text-xs text-gray-500">Current: Emma Davis (9.8), John Mitchell (9.2), Sarah Wilson (8.8)</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="selection-criteria" value="most-improved" class="text-green-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900">Most Improved</h4>
+                     <p class="text-sm text-gray-600">Biggest improvement over time period</p>
+                     <p class="text-xs text-gray-500">Based on trend analysis</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="selection-criteria" value="custom" class="text-green-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900">Custom Selection</h4>
+                     <p class="text-sm text-gray-600">Manually select drivers</p>
+                   </div>
+                 </label>
+               </div>
+             </div>
+           </div>
+
+           <!-- Custom Driver Selection -->
+           <div id="custom-driver-selection" class="hidden">
+             <label class="block text-sm font-medium text-gray-700 mb-2">Select Drivers Manually</label>
+             <div class="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3 space-y-2">
+               <label class="flex items-center gap-2">
+                 <input type="checkbox" value="driver1" class="reward-driver-checkbox text-green-600">
+                 <span class="text-sm">John Mitchell (Overall: 96.5)</span>
+               </label>
+               <label class="flex items-center gap-2">
+                 <input type="checkbox" value="driver2" class="reward-driver-checkbox text-green-600">
+                 <span class="text-sm">Sarah Wilson (Overall: 94.2)</span>
+               </label>
+               <label class="flex items-center gap-2">
+                 <input type="checkbox" value="driver3" class="reward-driver-checkbox text-green-600">
+                 <span class="text-sm">Mike Johnson (Overall: 91.8)</span>
+               </label>
+               <label class="flex items-center gap-2">
+                 <input type="checkbox" value="driver4" class="reward-driver-checkbox text-green-600">
+                 <span class="text-sm">Emma Davis (Overall: 98.1)</span>
+               </label>
+               <label class="flex items-center gap-2">
+                 <input type="checkbox" value="driver5" class="reward-driver-checkbox text-green-600">
+                 <span class="text-sm">Alex Rodriguez (Overall: 89.5)</span>
+               </label>
+             </div>
+           </div>
+
+           <!-- Reward Type Selection -->
+           <div>
+             <label class="block text-sm font-medium text-gray-700 mb-2">Reward Type</label>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="reward-type" value="monetary" class="text-green-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900 flex items-center gap-2">
+                       <i class="fas fa-dollar-sign text-green-600"></i>
+                       Monetary Bonus
+                     </h4>
+                     <p class="text-sm text-gray-600">Cash bonus or gift card</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="reward-type" value="time-off" class="text-green-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900 flex items-center gap-2">
+                       <i class="fas fa-calendar-alt text-blue-600"></i>
+                       Extra Time Off
+                     </h4>
+                     <p class="text-sm text-gray-600">Additional paid time off days</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="reward-type" value="parking" class="text-green-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900 flex items-center gap-2">
+                       <i class="fas fa-parking text-purple-600"></i>
+                       Prime Parking Spot
+                     </h4>
+                     <p class="text-sm text-gray-600">Reserved parking for one month</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="reward-type" value="equipment" class="text-green-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900 flex items-center gap-2">
+                       <i class="fas fa-tools text-orange-600"></i>
+                       Premium Equipment
+                     </h4>
+                     <p class="text-sm text-gray-600">Upgraded vehicle or equipment</p>
+                   </div>
+                 </label>
+               </div>
+               
+               <div class="border border-gray-200 rounded-lg p-4">
+                 <label class="flex items-start gap-3">
+                   <input type="radio" name="reward-type" value="custom" class="text-green-600 mt-1">
+                   <div>
+                     <h4 class="font-medium text-gray-900 flex items-center gap-2">
+                       <i class="fas fa-star text-yellow-600"></i>
+                       Custom Reward
+                     </h4>
+                     <p class="text-sm text-gray-600">Specify a custom reward</p>
+                   </div>
+                 </label>
+               </div>
+             </div>
+           </div>
+
+           <!-- Reward Details -->
+           <div>
+             <label class="block text-sm font-medium text-gray-700 mb-2">Reward Details</label>
+             <textarea id="reward-details" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" 
+                       placeholder="Specify reward amount, duration, or custom details..."></textarea>
+           </div>
+
+           <!-- Action Buttons -->
+           <div class="flex justify-end gap-3 pt-6 border-t border-gray-200">
+             <button type="button" id="cancel-reward" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+               Cancel
+             </button>
+             <button type="submit" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
+               Grant Rewards
+             </button>
+           </div>
+         </form>
+       </div>
+     </div>
+
+    <!-- Geofence Settings Modal -->
+    <div id="geofence-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+     <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+       <div class="flex justify-between items-center mb-4">
+         <h3 class="text-lg font-bold text-gray-900">Geofence Settings</h3>
+         <button id="close-geofence-modal" class="text-gray-400 hover:text-gray-700 text-xl">×</button>
+       </div>
+       
+       <div class="space-y-4">
+         <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+           <span class="text-sm text-blue-800">Tip: Click on the map to quickly set the geofence center, or enter coordinates manually below.</span>
+         </div>
+         
+         <div class="grid grid-cols-2 gap-4">
+           <div>
+             <label for="geofence-lat" class="block text-sm font-medium text-gray-700 mb-1">Center Latitude</label>
+             <input type="number" id="geofence-lat" value="40.7128" step="0.0001" min="-90" max="90" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500">
+           </div>
+           <div>
+             <label for="geofence-lng" class="block text-sm font-medium text-gray-700 mb-1">Center Longitude</label>
+             <input type="number" id="geofence-lng" value="-74.0060" step="0.0001" min="-180" max="180" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500">
+           </div>
+         </div>
+         
+         <div>
+           <label for="geofence-radius" class="block text-sm font-medium text-gray-700 mb-1">Radius (km)</label>
+           <div class="flex items-center space-x-2">
+             <input type="range" id="geofence-radius-slider" min="0.1" max="50" step="0.1" value="5" class="flex-1">
+             <input type="number" id="geofence-radius" value="5" step="0.1" min="0.1" max="50" class="w-20 border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500">
+           </div>
+           <div class="text-xs text-gray-500 mt-1">Area: <span id="geofence-area">78.54</span> km²</div>
+         </div>
+         
+         <div>
+           <label for="geofence-name" class="block text-sm font-medium text-gray-700 mb-1">Geofence Name (Optional)</label>
+           <input type="text" id="geofence-name" class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500" placeholder="e.g., Downtown Delivery Zone">
+         </div>
+         
+         <div class="space-y-2">
+           <label class="flex items-center">
+             <input type="checkbox" id="geofence-entry-alert" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+             <span class="ml-2 text-sm text-gray-700">Alert when vehicle enters geofence</span>
+           </label>
+           <label class="flex items-center">
+             <input type="checkbox" id="geofence-exit-alert" checked class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+             <span class="ml-2 text-sm text-gray-700">Alert when vehicle exits geofence</span>
+           </label>
+         </div>
+         
+         <div class="flex justify-end space-x-3 pt-4">
+           <button id="cancel-geofence" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
+           <button id="preview-geofence" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Preview on Map</button>
+           <button id="apply-geofence" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Apply Geofence</button>
+         </div>
+       </div>
+     </div>
+   </div>
+
+   <!-- JavaScript -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+              // Mobile menu toggle
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.getElementById('sidebar');
+        
+        mobileMenuBtn.addEventListener('click', function() {
+          sidebar.classList.toggle('active');
+        });
+        
+        // Dark mode toggle
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        darkModeToggle.addEventListener('click', function() {
+          document.body.classList.toggle('dark-mode');
+          const icon = this.querySelector('i');
+          if (document.body.classList.contains('dark-mode')) {
+            icon.classList.remove('fa-moon');
+            icon.classList.add('fa-sun');
+          } else {
+            icon.classList.remove('fa-sun');
+            icon.classList.add('fa-moon');
+          }
+        });
+      
+      // Time filter functionality
+      const timeButtons = document.querySelectorAll('.fleet-time-btn');
+      timeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          timeButtons.forEach(btn => {
+            btn.classList.remove('bg-blue-100', 'text-blue-800');
+            btn.classList.add('bg-gray-100', 'text-gray-800');
+          });
+          
+          this.classList.remove('bg-gray-100', 'text-gray-800');
+          this.classList.add('bg-blue-100', 'text-blue-800');
+        });
+      });
+      
+             // Advanced Map Management Variables
+       let currentMapMode = 'live';
+       let geofenceCircle = null;
+       let geofencePolygon = null;
+       let isGeofenceMode = false;
+       let geofenceType = 'circle';
+       let geofencePoints = [];
+       let isDrawingPolygon = false;
+       let replayData = [];
+       let isReplaying = false;
+       let replaySpeed = 1;
+       let currentReplayIndex = 0;
+       
+       // Initialize Fleet Map
+       const fleetMap = L.map('fleetMap').setView([40.7128, -74.0060], 10);
+       
+       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+         attribution: '© OpenStreetMap contributors'
+       }).addTo(fleetMap);
+       
+       // Add additional map layers
+       const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+         attribution: '© Esri'
+       });
+       
+       const trafficLayer = L.tileLayer('https://api.mapbox.com/v4/mapbox.mapbox-traffic-v1/{z}/{x}/{y}.png?access_token=YOUR_MAPBOX_TOKEN', {
+         attribution: '© Mapbox'
+       });
+      
+             // Generate 247 vehicles with realistic data
+       const vehicles = [];
+       const vehicleNames = ['Truck', 'Van', 'Car', 'SUV', 'Pickup'];
+       const driverNames = ['John Smith', 'Mike Johnson', 'Sarah Wilson', 'David Brown', 'Lisa Davis', 'Robert Taylor', 'Jennifer Garcia', 'Michael Martinez', 'Amanda Anderson', 'Christopher Lee'];
+       const statuses = ['active', 'active', 'active', 'maintenance', 'idle', 'offline'];
+       
+                       // Generate vehicles across NYC metro area (land boundaries only)
+         const baseLat = 40.7128;
+         const baseLng = -74.0060;
+         const latRange = 0.25; // ~27km radius (even smaller to stay well within land)
+         const lngRange = 0.25; // ~27km radius (even smaller to stay well within land)
+         
+         for (let i = 1; i <= 247; i++) {
+           const vehicleType = vehicleNames[Math.floor(Math.random() * vehicleNames.length)];
+           const driver = driverNames[Math.floor(Math.random() * driverNames.length)];
+           const status = statuses[Math.floor(Math.random() * statuses.length)];
+           const speed = status === 'active' ? Math.floor(Math.random() * 60) + 20 : 
+                       status === 'maintenance' ? 0 : 
+                       status === 'idle' ? Math.floor(Math.random() * 10) : 0;
+           
+           // Generate position within safer land boundaries (well away from water)
+           let lat, lng;
+           do {
+             lat = baseLat + (Math.random() - 0.5) * latRange;
+             lng = baseLng + (Math.random() - 0.5) * lngRange;
+           } while (lat < 40.5 || lat > 40.9 || lng < -74.2 || lng > -73.8);
+          
+          vehicles.push({
+            id: `V${i.toString().padStart(3, '0')}`,
+            name: `${vehicleType}-${i.toString().padStart(3, '0')}`,
+            lat: lat,
+            lng: lng,
+            status: status,
+            driver: driver,
+            speed: speed,
+            marker: null,
+            direction: Math.random() * 360, // Random direction in degrees
+            lastUpdate: Date.now()
+          });
+        }
+      
+             // Create vehicle markers with enhanced styling
+       vehicles.forEach(vehicle => {
+         const markerColor = vehicle.status === 'active' ? '#10B981' : 
+                           vehicle.status === 'maintenance' ? '#F59E0B' : 
+                           vehicle.status === 'idle' ? '#6B7280' : '#EF4444';
+         
+         const marker = L.circleMarker([vehicle.lat, vehicle.lng], {
+           radius: vehicle.status === 'active' ? 10 : 8,
+           fillColor: markerColor,
+           color: '#ffffff',
+           weight: 2,
+           opacity: 1,
+           fillOpacity: 0.8
+         }).addTo(fleetMap);
+         
+         // Store marker reference in vehicle object
+         vehicle.marker = marker;
+         
+         const popupContent = `
+           <div class="vehicle-popup p-2">
+             <h4 class="font-bold text-lg text-gray-800">${vehicle.name}</h4>
+             <p class="text-sm text-gray-600">Driver: ${vehicle.driver}</p>
+             <p class="text-sm text-gray-600">Status: <span class="font-semibold text-${vehicle.status === 'active' ? 'green' : vehicle.status === 'maintenance' ? 'yellow' : 'gray'}-600">${vehicle.status}</span></p>
+             <p class="text-sm text-gray-600">Speed: ${vehicle.speed} mph</p>
+             <p class="text-sm text-gray-600">Last Update: ${new Date(vehicle.lastUpdate).toLocaleTimeString()}</p>
+           </div>
+         `;
+         
+         marker.bindPopup(popupContent);
+       });
+       
+       // Map Mode Controls
+       const mapModeButtons = document.querySelectorAll('.map-mode-button');
+       mapModeButtons.forEach(button => {
+         button.addEventListener('click', function() {
+           const mode = this.getAttribute('data-mode');
+           
+           // Update button states
+           mapModeButtons.forEach(btn => {
+             btn.classList.remove('active', 'bg-blue-600', 'text-white');
+             btn.classList.add('bg-gray-200', 'text-gray-700');
+           });
+           this.classList.remove('bg-gray-200', 'text-gray-700');
+           this.classList.add('active', 'bg-blue-600', 'text-white');
+           
+           // Handle mode changes
+           switch(mode) {
+             case 'live':
+               currentMapMode = 'live';
+               document.getElementById('replay-controls').classList.add('hidden');
+               document.getElementById('geofence-controls').classList.add('hidden');
+               isGeofenceMode = false;
+               break;
+             case 'replay':
+               currentMapMode = 'replay';
+               document.getElementById('replay-controls').classList.remove('hidden');
+               document.getElementById('geofence-controls').classList.add('hidden');
+               isGeofenceMode = false;
+               initReplayMode();
+               break;
+             case 'geofence':
+               currentMapMode = 'geofence';
+               document.getElementById('replay-controls').classList.add('hidden');
+               document.getElementById('geofence-controls').classList.remove('hidden');
+               isGeofenceMode = true;
+               break;
+           }
+         });
+       });
+       
+       // Layer Toggle Controls
+       const layerToggles = document.querySelectorAll('.layer-toggle-checkbox');
+       layerToggles.forEach((toggle, index) => {
+         toggle.addEventListener('change', function() {
+           const isChecked = this.checked;
+           const toggleContainer = this.closest('.map-tool-toggle');
+           const icon = toggleContainer.querySelector('i');
+           
+           switch(index) {
+             case 0: // Traffic
+               if (isChecked) {
+                 trafficLayer.addTo(fleetMap);
+                 icon.style.color = '#2563eb';
+               } else {
+                 fleetMap.removeLayer(trafficLayer);
+                 icon.style.color = '#6b7280';
+               }
+               break;
+             case 1: // Satellite
+               if (isChecked) {
+                 satelliteLayer.addTo(fleetMap);
+                 icon.style.color = '#059669';
+               } else {
+                 fleetMap.removeLayer(satelliteLayer);
+                 icon.style.color = '#6b7280';
+               }
+               break;
+             case 2: // Heatmap
+               if (isChecked) {
+                 addHeatmapLayer();
+                 icon.style.color = '#dc2626';
+               } else {
+                 removeHeatmapLayer();
+                 icon.style.color = '#6b7280';
+               }
+               break;
+             case 3: // Clusters
+               if (isChecked) {
+                 enableMarkerClustering();
+                 icon.style.color = '#7c3aed';
+               } else {
+                 disableMarkerClustering();
+                 icon.style.color = '#6b7280';
+               }
+               break;
+           }
+         });
+       });
+       
+       // Geofence Controls
+       const geofenceCircleBtn = document.getElementById('geofence-circle-btn');
+       const geofencePolygonBtn = document.getElementById('geofence-polygon-btn');
+       const clearGeofenceBtn = document.getElementById('clear-geofence-btn');
+       const geofenceSettingsBtn = document.getElementById('geofence-settings-btn');
+       
+       geofenceCircleBtn.addEventListener('click', function() {
+         geofenceType = 'circle';
+         geofenceCircleBtn.classList.add('bg-blue-600', 'text-white');
+         geofenceCircleBtn.classList.remove('bg-gray-200', 'text-gray-700');
+         geofencePolygonBtn.classList.remove('bg-blue-600', 'text-white');
+         geofencePolygonBtn.classList.add('bg-gray-200', 'text-gray-700');
+         isDrawingPolygon = false;
+       });
+       
+       geofencePolygonBtn.addEventListener('click', function() {
+         geofenceType = 'polygon';
+         geofencePolygonBtn.classList.add('bg-blue-600', 'text-white');
+         geofencePolygonBtn.classList.remove('bg-gray-200', 'text-gray-700');
+         geofenceCircleBtn.classList.remove('bg-blue-600', 'text-white');
+         geofenceCircleBtn.classList.add('bg-gray-200', 'text-gray-700');
+         isDrawingPolygon = true;
+       });
+       
+       clearGeofenceBtn.addEventListener('click', function() {
+         if (geofenceCircle) {
+           fleetMap.removeLayer(geofenceCircle);
+           geofenceCircle = null;
+         }
+         if (geofencePolygon) {
+           fleetMap.removeLayer(geofencePolygon);
+           geofencePolygon = null;
+         }
+         geofencePoints = [];
+       });
+       
+       geofenceSettingsBtn.addEventListener('click', function() {
+         document.getElementById('geofence-modal').classList.remove('hidden');
+       });
+       
+       // Geofence Modal Controls
+       const closeGeofenceModal = document.getElementById('close-geofence-modal');
+       const cancelGeofence = document.getElementById('cancel-geofence');
+       const previewGeofence = document.getElementById('preview-geofence');
+       const applyGeofence = document.getElementById('apply-geofence');
+       
+       closeGeofenceModal.addEventListener('click', function() {
+         document.getElementById('geofence-modal').classList.add('hidden');
+       });
+       
+       cancelGeofence.addEventListener('click', function() {
+         document.getElementById('geofence-modal').classList.add('hidden');
+       });
+       
+       previewGeofence.addEventListener('click', function() {
+         const lat = parseFloat(document.getElementById('geofence-lat').value);
+         const lng = parseFloat(document.getElementById('geofence-lng').value);
+         const radius = parseFloat(document.getElementById('geofence-radius').value);
+         
+         if (geofenceCircle) {
+           fleetMap.removeLayer(geofenceCircle);
+         }
+         
+         geofenceCircle = L.circle([lat, lng], {
+           radius: radius * 1000, // Convert km to meters
+           color: '#3b82f6',
+           fillColor: '#3b82f6',
+           fillOpacity: 0.2,
+           weight: 2
+         }).addTo(fleetMap);
+         
+         fleetMap.setView([lat, lng], 12);
+       });
+       
+       applyGeofence.addEventListener('click', function() {
+         const name = document.getElementById('geofence-name').value || 'Geofence Zone';
+         const entryAlert = document.getElementById('geofence-entry-alert').checked;
+         const exitAlert = document.getElementById('geofence-exit-alert').checked;
+         
+         // Save geofence settings
+         const geofenceSettings = {
+           name: name,
+           entryAlert: entryAlert,
+           exitAlert: exitAlert,
+           active: true
+         };
+         
+         localStorage.setItem('geofence-settings', JSON.stringify(geofenceSettings));
+         
+         // Show success message
+         showToast('Geofence applied successfully!', 'success');
+         
+         document.getElementById('geofence-modal').classList.add('hidden');
+       });
+       
+       // Map click handler for geofence placement
+       fleetMap.on('click', function(e) {
+         if (isGeofenceMode && geofenceType === 'circle') {
+           const lat = e.latlng.lat;
+           const lng = e.latlng.lng;
+           
+           document.getElementById('geofence-lat').value = lat.toFixed(6);
+           document.getElementById('geofence-lng').value = lng.toFixed(6);
+           
+           if (geofenceCircle) {
+             fleetMap.removeLayer(geofenceCircle);
+           }
+           
+           const radius = parseFloat(document.getElementById('geofence-radius').value);
+           geofenceCircle = L.circle([lat, lng], {
+             radius: radius * 1000,
+             color: '#3b82f6',
+             fillColor: '#3b82f6',
+             fillOpacity: 0.2,
+             weight: 2
+           }).addTo(fleetMap);
+         }
+       });
+       
+       // Replay Controls
+       const playPauseBtn = document.getElementById('play-pause');
+       const replaySlider = document.getElementById('replay-slider');
+       const replayTime = document.getElementById('replay-time');
+       const replaySpeedBtn = document.getElementById('replay-speed');
+       
+       playPauseBtn.addEventListener('click', function() {
+         if (isReplaying) {
+           pauseReplay();
+         } else {
+           startReplay();
+         }
+       });
+       
+       replaySlider.addEventListener('input', function() {
+         const value = this.value;
+         const time = Math.floor((value / 100) * 24 * 60); // Convert to minutes
+         const hours = Math.floor(time / 60);
+         const minutes = time % 60;
+         replayTime.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} / 24:00`;
+         
+         if (isReplaying) {
+           currentReplayIndex = Math.floor((value / 100) * replayData.length);
+           updateReplayPosition();
+         }
+       });
+       
+       replaySpeedBtn.addEventListener('click', function() {
+         const speeds = [1, 2, 4, 8];
+         const currentIndex = speeds.indexOf(replaySpeed);
+         const nextIndex = (currentIndex + 1) % speeds.length;
+         replaySpeed = speeds[nextIndex];
+         this.textContent = `${replaySpeed}x`;
+       });
+       
+                       // Vehicle Movement Animation
+         function updateVehiclePositions() {
+           vehicles.forEach(vehicle => {
+             if (vehicle.status === 'active' && vehicle.speed > 0) {
+               // Calculate new position based on direction and speed
+               const speedInDegrees = vehicle.speed * 0.00005; // Reduced speed for more controlled movement
+               const directionRad = vehicle.direction * Math.PI / 180;
+               
+               // Calculate new position
+               const newLat = vehicle.lat + Math.cos(directionRad) * speedInDegrees;
+               const newLng = vehicle.lng + Math.sin(directionRad) * speedInDegrees;
+               
+               // Check if new position is within safer land boundaries
+               const isWithinBounds = newLat >= 40.5 && newLat <= 40.9 && 
+                                    newLng >= -74.2 && newLng <= -73.8;
+               
+               if (isWithinBounds) {
+                 // Update position
+                 vehicle.lat = newLat;
+                 vehicle.lng = newLng;
+               } else {
+                 // If out of bounds, calculate a safe direction back to center
+                 const centerLat = 40.7128;
+                 const centerLng = -74.0060;
+                 
+                 // Calculate direction to center
+                 const deltaLat = centerLat - vehicle.lat;
+                 const deltaLng = centerLng - vehicle.lng;
+                 const angleToCenter = Math.atan2(deltaLng, deltaLat) * 180 / Math.PI;
+                 
+                 // Set direction towards center
+                 vehicle.direction = angleToCenter;
+                 
+                 // Move towards center with reduced speed
+                 const newDirectionRad = vehicle.direction * Math.PI / 180;
+                 vehicle.lat += Math.cos(newDirectionRad) * speedInDegrees * 0.3;
+                 vehicle.lng += Math.sin(newDirectionRad) * speedInDegrees * 0.3;
+                 
+                 // Ensure we're back within safe bounds
+                 vehicle.lat = Math.max(40.5, Math.min(40.9, vehicle.lat));
+                 vehicle.lng = Math.max(-74.2, Math.min(-73.8, vehicle.lng));
+               }
+               
+               // More frequent but smaller direction changes (simulate road following)
+               if (Math.random() < 0.05) { // 5% chance per update
+                 vehicle.direction += (Math.random() - 0.5) * 30; // Smaller turns (15 degrees max)
+                 vehicle.direction = (vehicle.direction + 360) % 360; // Normalize to 0-360
+               }
+               
+               // Update marker position
+               if (vehicle.marker) {
+                 vehicle.marker.setLatLng([vehicle.lat, vehicle.lng]);
+               }
+               
+               // Update last update time
+               vehicle.lastUpdate = Date.now();
+             }
+           });
+         }
+        
+        // Start vehicle movement animation
+        setInterval(updateVehiclePositions, 1000); // Update every second
+        
+        // Helper Functions
+        function initReplayMode() {
+          // Generate sample replay data
+          replayData = [];
+          for (let i = 0; i < 1440; i++) { // 24 hours * 60 minutes
+            const time = new Date();
+            time.setHours(Math.floor(i / 60), i % 60, 0, 0);
+            
+            replayData.push({
+              time: time,
+              vehicles: vehicles.map(v => ({
+                ...v,
+                lat: v.lat + (Math.random() - 0.5) * 0.01,
+                lng: v.lng + (Math.random() - 0.5) * 0.01
+              }))
+            });
+          }
+        }
+       
+       function startReplay() {
+         isReplaying = true;
+         playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+         replayInterval = setInterval(() => {
+           currentReplayIndex = (currentReplayIndex + 1) % replayData.length;
+           updateReplayPosition();
+           replaySlider.value = (currentReplayIndex / replayData.length) * 100;
+         }, 1000 / replaySpeed);
+       }
+       
+       function pauseReplay() {
+         isReplaying = false;
+         playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+         clearInterval(replayInterval);
+       }
+       
+       function updateReplayPosition() {
+         if (replayData[currentReplayIndex]) {
+           const data = replayData[currentReplayIndex];
+           // Update vehicle positions on map
+           // This would update the existing markers
+         }
+       }
+       
+       function addHeatmapLayer() {
+         // Create heatmap data from vehicle positions
+         const heatmapData = vehicles.map(v => [v.lat, v.lng, 1]);
+         // Add heatmap layer to map
+       }
+       
+       function removeHeatmapLayer() {
+         // Remove heatmap layer from map
+       }
+       
+       function enableMarkerClustering() {
+         // Enable marker clustering
+       }
+       
+       function disableMarkerClustering() {
+         // Disable marker clustering
+       }
+       
+       function showToast(message, type = 'info') {
+         // Create and show toast notification
+         const toast = document.createElement('div');
+         toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white z-50 ${
+           type === 'success' ? 'bg-green-600' : 'bg-blue-600'
+         }`;
+         toast.textContent = message;
+         document.body.appendChild(toast);
+         
+         setTimeout(() => {
+           toast.remove();
+         }, 3000);
+       }
+       
+       // Alert functionality
+       const alertButtons = document.querySelectorAll('.alert-btn');
+       alertButtons.forEach(button => {
+         button.addEventListener('click', function() {
+           const alertItem = this.closest('.bg-red-50, .bg-yellow-50');
+           const action = this.textContent.toLowerCase();
+           
+           if (action.includes('acknowledge')) {
+             alertItem.style.opacity = '0.6';
+             this.textContent = 'Acknowledged';
+             this.disabled = true;
+             this.style.background = '#6b7280';
+           } else if (action.includes('dismiss')) {
+             alertItem.style.transform = 'translateX(100%)';
+             alertItem.style.opacity = '0';
+             setTimeout(() => {
+               alertItem.remove();
+             }, 300);
+           }
+         });
+       });
+       
+       // Chart control functionality
+       const chartControlButtons = document.querySelectorAll('.chart-control-btn');
+       chartControlButtons.forEach(button => {
+         button.addEventListener('click', function() {
+           chartControlButtons.forEach(btn => {
+             btn.classList.remove('bg-purple-100', 'text-purple-800');
+             btn.classList.add('bg-gray-100', 'text-gray-800');
+           });
+           
+           this.classList.remove('bg-gray-100', 'text-gray-800');
+           this.classList.add('bg-purple-100', 'text-purple-800');
+         });
+       });
+       
+       // Initialize Performance Chart
+       const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+       const performanceChart = new Chart(performanceCtx, {
+         type: 'line',
+         data: {
+           labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+           datasets: [{
+             label: 'Active Vehicles',
+             data: [165, 172, 189, 178, 185, 192, 189],
+             borderColor: '#3b82f6',
+             backgroundColor: 'rgba(59, 130, 246, 0.1)',
+             tension: 0.4,
+             fill: true
+           }, {
+             label: 'Miles Driven',
+             data: [8500, 9200, 10800, 9800, 11200, 12800, 12847],
+             borderColor: '#10b981',
+             backgroundColor: 'rgba(16, 185, 129, 0.1)',
+             tension: 0.4,
+             fill: true,
+             yAxisID: 'y1'
+           }]
+         },
+         options: {
+           responsive: true,
+           maintainAspectRatio: false,
+           plugins: {
+             legend: {
+               position: 'top',
+             }
+           },
+           scales: {
+             y: {
+               type: 'linear',
+               display: true,
+               position: 'left',
+               title: {
+                 display: true,
+                 text: 'Active Vehicles'
+               }
+             },
+             y1: {
+               type: 'linear',
+               display: true,
+               position: 'right',
+               title: {
+                 display: true,
+                 text: 'Miles Driven'
+               },
+               grid: {
+                 drawOnChartArea: false,
+               },
+             }
+           }
+         }
+       });
+       
+       // Initialize Status Distribution Chart
+       const statusCtx = document.getElementById('statusChart').getContext('2d');
+       const statusChart = new Chart(statusCtx, {
+         type: 'doughnut',
+         data: {
+           labels: ['Active', 'Maintenance', 'Idle', 'Offline'],
+           datasets: [{
+             data: [189, 23, 28, 7],
+             backgroundColor: [
+               '#10b981',
+               '#f59e0b',
+               '#6b7280',
+               '#ef4444'
+             ],
+             borderWidth: 2,
+             borderColor: '#ffffff'
+           }]
+         },
+         options: {
+           responsive: true,
+           maintainAspectRatio: false,
+           plugins: {
+             legend: {
+               position: 'bottom',
+             }
+           }
+         }
+       });
+       
+       // Table row hover effects
+       const tableRows = document.querySelectorAll('tbody tr');
+       tableRows.forEach(row => {
+         row.addEventListener('mouseenter', function() {
+           this.style.transform = 'scale(1.01)';
+           this.style.transition = 'transform 0.2s ease';
+         });
+         
+         row.addEventListener('mouseleave', function() {
+           this.style.transform = 'scale(1)';
+         });
+       });
+       
+               // Analytics cards hover effects
+        const analyticsCards = document.querySelectorAll('.bg-gradient-to-r');
+        analyticsCards.forEach(card => {
+          card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px)';
+            this.style.transition = 'transform 0.3s ease';
+          });
+          
+          card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+          });
+        });
+        
+        // Real-time vehicle status updates
+        function updateVehicleStatuses() {
+          vehicles.forEach(vehicle => {
+            // Randomly change some vehicle statuses to simulate real-world scenarios
+            if (Math.random() < 0.001) { // 0.1% chance per update
+              const newStatus = statuses[Math.floor(Math.random() * statuses.length)];
+              if (newStatus !== vehicle.status) {
+                vehicle.status = newStatus;
+                
+                // Update marker appearance
+                if (vehicle.marker) {
+                  const markerColor = vehicle.status === 'active' ? '#10B981' : 
+                                    vehicle.status === 'maintenance' ? '#F59E0B' : 
+                                    vehicle.status === 'idle' ? '#6B7280' : '#EF4444';
+                  
+                  vehicle.marker.setStyle({
+                    fillColor: markerColor,
+                    radius: vehicle.status === 'active' ? 10 : 8
+                  });
+                }
+                
+                // Update speed based on new status
+                vehicle.speed = vehicle.status === 'active' ? Math.floor(Math.random() * 60) + 20 : 
+                              vehicle.status === 'maintenance' ? 0 : 
+                              vehicle.status === 'idle' ? Math.floor(Math.random() * 10) : 0;
+              }
+            }
+          });
+        }
+        
+                 // Start status updates
+         setInterval(updateVehicleStatuses, 5000); // Update every 5 seconds
+         
+         // --- Enhanced Driver Performance Leaderboard Logic ---
+         
+         // Sample driver data with comprehensive KPIs
+         const driverData = [
+           {
+             id: 'driver1',
+             name: 'John Mitchell',
+             team: 'delivery',
+             vehicle: 'TRK-001',
+             status: 'assigned',
+             eta: '2:45 PM',
+             currentTrip: 'Delivery to Downtown Store #12',
+             metrics: {
+               safety: { score: 96.5, harshBraking: 2, rapidAccel: 1, sharpTurns: 0, speeding: 5, distractedDriving: 0 },
+               fuel: { efficiency: 9.2, idleTime: 12, consumption: 45.3 },
+               compliance: { routeAdherence: 98.5, onTime: 96.0, geofenceViolations: 0, restBreaks: 100 },
+               productivity: { distance: 285, hours: 8.5, deliveries: 28, avgTimePerStop: 18 },
+               vehicleHealth: { alerts: 1, ignored: 0, criticalAlerts: 0 }
+             },
+             trends: [94, 95, 96, 95, 97, 96, 96.5],
+             badges: ['safety-champion', 'eco-driver', 'perfect-attendance'],
+             goals: { safety: 95, fuel: 9.0, compliance: 95, productivity: 25 },
+             rankChange: 1
+           },
+           {
+             id: 'driver2',
+             name: 'Sarah Wilson',
+             team: 'service',
+             vehicle: 'VAN-002',
+             status: 'available',
+             eta: null,
+             currentTrip: null,
+             metrics: {
+               safety: { score: 94.2, harshBraking: 3, rapidAccel: 2, sharpTurns: 1, speeding: 8, distractedDriving: 1 },
+               fuel: { efficiency: 8.8, idleTime: 15, consumption: 52.1 },
+               compliance: { routeAdherence: 97.2, onTime: 94.5, geofenceViolations: 1, restBreaks: 98 },
+               productivity: { distance: 245, hours: 8.0, deliveries: 22, avgTimePerStop: 22 },
+               vehicleHealth: { alerts: 2, ignored: 1, criticalAlerts: 0 }
+             },
+             trends: [92, 93, 94, 95, 94, 93, 94.2],
+             badges: ['reliable-driver', 'team-player'],
+             goals: { safety: 95, fuel: 9.0, compliance: 95, productivity: 25 },
+             rankChange: -1
+           },
+           {
+             id: 'driver3',
+             name: 'Mike Johnson',
+             team: 'delivery',
+             vehicle: 'TRK-003',
+             status: 'assigned',
+             eta: '4:15 PM',
+             currentTrip: 'Multi-stop route (5 locations)',
+             metrics: {
+               safety: { score: 91.8, harshBraking: 5, rapidAccel: 4, sharpTurns: 2, speeding: 12, distractedDriving: 2 },
+               fuel: { efficiency: 8.1, idleTime: 22, consumption: 58.7 },
+               compliance: { routeAdherence: 93.5, onTime: 91.2, geofenceViolations: 3, restBreaks: 95 },
+               productivity: { distance: 310, hours: 9.2, deliveries: 32, avgTimePerStop: 17 },
+               vehicleHealth: { alerts: 4, ignored: 2, criticalAlerts: 1 }
+             },
+             trends: [89, 90, 92, 91, 92, 91, 91.8],
+             badges: ['high-mileage'],
+             goals: { safety: 93, fuel: 8.5, compliance: 95, productivity: 30 },
+             rankChange: 0
+           },
+           {
+             id: 'driver4',
+             name: 'Emma Davis',
+             team: 'logistics',
+             vehicle: 'VAN-004',
+             status: 'available',
+             eta: null,
+             currentTrip: null,
+             metrics: {
+               safety: { score: 98.1, harshBraking: 0, rapidAccel: 0, sharpTurns: 0, speeding: 1, distractedDriving: 0 },
+               fuel: { efficiency: 9.8, idleTime: 8, consumption: 41.2 },
+               compliance: { routeAdherence: 99.2, onTime: 98.5, geofenceViolations: 0, restBreaks: 100 },
+               productivity: { distance: 195, hours: 7.5, deliveries: 18, avgTimePerStop: 25 },
+               vehicleHealth: { alerts: 0, ignored: 0, criticalAlerts: 0 }
+             },
+             trends: [97, 98, 98, 97, 99, 98, 98.1],
+             badges: ['safety-champion', 'eco-driver', 'perfect-record', 'top-performer'],
+             goals: { safety: 98, fuel: 9.5, compliance: 98, productivity: 20 },
+             rankChange: 2
+           },
+           {
+             id: 'driver5',
+             name: 'Alex Rodriguez',
+             team: 'service',
+             vehicle: 'VAN-005',
+             status: 'available',
+             eta: null,
+             currentTrip: null,
+             metrics: {
+               safety: { score: 89.5, harshBraking: 8, rapidAccel: 6, sharpTurns: 4, speeding: 15, distractedDriving: 3 },
+               fuel: { efficiency: 7.9, idleTime: 28, consumption: 62.8 },
+               compliance: { routeAdherence: 91.8, onTime: 88.5, geofenceViolations: 5, restBreaks: 92 },
+               productivity: { distance: 268, hours: 8.8, deliveries: 24, avgTimePerStop: 20 },
+               vehicleHealth: { alerts: 6, ignored: 3, criticalAlerts: 2 }
+             },
+             trends: [87, 88, 90, 89, 90, 88, 89.5],
+             badges: ['improvement-needed'],
+             goals: { safety: 92, fuel: 8.2, compliance: 93, productivity: 26 },
+             rankChange: -2
+           }
+         ];
+         
+         // Calculate overall score for each driver
+         function calculateOverallScore(metrics) {
+           const weights = {
+             safety: 0.3,
+             fuel: 0.2,
+             compliance: 0.25,
+             productivity: 0.15,
+             vehicleHealth: 0.1
+           };
+           
+           const safetyScore = metrics.safety.score;
+           const fuelScore = Math.min(100, (metrics.fuel.efficiency / 10) * 100);
+           const complianceScore = (metrics.compliance.routeAdherence + metrics.compliance.onTime) / 2;
+           const productivityScore = Math.min(100, (metrics.productivity.deliveries / 30) * 100);
+           const vehicleHealthScore = Math.max(0, 100 - (metrics.vehicleHealth.alerts * 5));
+           
+           return (
+             safetyScore * weights.safety +
+             fuelScore * weights.fuel +
+             complianceScore * weights.compliance +
+             productivityScore * weights.productivity +
+             vehicleHealthScore * weights.vehicleHealth
+           ).toFixed(1);
+         }
+         
+         // Add overall scores to driver data
+         driverData.forEach(driver => {
+           driver.overallScore = parseFloat(calculateOverallScore(driver.metrics));
+         });
+         
+         // Badge definitions
+         const badges = {
+           'safety-champion': { icon: 'fas fa-shield-alt', color: 'bg-green-100 text-green-800', name: 'Safety Champion' },
+           'eco-driver': { icon: 'fas fa-leaf', color: 'bg-green-100 text-green-800', name: 'Eco Driver' },
+           'perfect-attendance': { icon: 'fas fa-calendar-check', color: 'bg-blue-100 text-blue-800', name: 'Perfect Attendance' },
+           'reliable-driver': { icon: 'fas fa-handshake', color: 'bg-blue-100 text-blue-800', name: 'Reliable Driver' },
+           'team-player': { icon: 'fas fa-users', color: 'bg-purple-100 text-purple-800', name: 'Team Player' },
+           'high-mileage': { icon: 'fas fa-road', color: 'bg-orange-100 text-orange-800', name: 'High Mileage' },
+           'perfect-record': { icon: 'fas fa-star', color: 'bg-yellow-100 text-yellow-800', name: 'Perfect Record' },
+           'top-performer': { icon: 'fas fa-trophy', color: 'bg-yellow-100 text-yellow-800', name: 'Top Performer' },
+           'improvement-needed': { icon: 'fas fa-exclamation-triangle', color: 'bg-red-100 text-red-800', name: 'Needs Improvement' }
+         };
+         
+         // Current leaderboard state
+         let currentPeriod = 'today';
+         let currentCategory = 'overall';
+         let currentTeam = 'all';
+         let isAnonymized = false;
+         
+         // Render leaderboard table
+         function renderLeaderboard() {
+           const tbody = document.getElementById('leaderboard-table-body');
+           let filteredData = [...driverData];
+           
+           // Apply team filter
+           if (currentTeam !== 'all') {
+             filteredData = filteredData.filter(driver => driver.team === currentTeam);
+           }
+           
+           // Sort by category
+           filteredData.sort((a, b) => {
+             switch (currentCategory) {
+               case 'safety':
+                 return b.metrics.safety.score - a.metrics.safety.score;
+               case 'fuel':
+                 return b.metrics.fuel.efficiency - a.metrics.fuel.efficiency;
+               case 'compliance':
+                 return ((b.metrics.compliance.routeAdherence + b.metrics.compliance.onTime) / 2) - 
+                        ((a.metrics.compliance.routeAdherence + a.metrics.compliance.onTime) / 2);
+               case 'productivity':
+                 return b.metrics.productivity.deliveries - a.metrics.productivity.deliveries;
+               case 'vehicle-health':
+                 return a.metrics.vehicleHealth.alerts - b.metrics.vehicleHealth.alerts;
+               default:
+                 return b.overallScore - a.overallScore;
+             }
+           });
+           
+           tbody.innerHTML = '';
+           
+           filteredData.forEach((driver, index) => {
+             const rank = index + 1;
+             const displayName = isAnonymized ? `Driver ${driver.id.slice(-1)}` : driver.name;
+             
+             const row = document.createElement('tr');
+             row.className = 'hover:bg-gray-50 cursor-pointer transition-colors';
+             row.onclick = () => showDriverDetails(driver);
+             
+             // Rank with change indicator
+             const rankChange = driver.rankChange;
+             const rankIcon = rankChange > 0 ? '↗️' : rankChange < 0 ? '↘️' : '➡️';
+             const rankColor = rankChange > 0 ? 'text-green-600' : rankChange < 0 ? 'text-red-600' : 'text-gray-500';
+             
+             // Render badges
+             const badgeElements = driver.badges.map(badgeKey => {
+               const badge = badges[badgeKey];
+               return `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${badge.color} mr-1">
+                         <i class="${badge.icon} mr-1"></i>${badge.name}
+                       </span>`;
+             }).join('');
+             
+             row.innerHTML = `
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <div class="flex items-center">
+                   <span class="text-lg font-bold text-gray-900">${rank}</span>
+                   <span class="ml-2 ${rankColor}">${rankIcon}</span>
+                 </div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <div class="flex items-center">
+                   <div class="flex-shrink-0 h-10 w-10">
+                     <img class="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random" alt="">
+                   </div>
+                   <div class="ml-4">
+                     <div class="text-sm font-medium text-gray-900">${displayName}</div>
+                     <div class="text-sm text-gray-500">${driver.vehicle} • ${driver.team.charAt(0).toUpperCase() + driver.team.slice(1)} Team</div>
+                   </div>
+                 </div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <div class="flex items-center gap-2">
+                   ${driver.status === 'assigned' ? 
+                     `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                       <i class="fas fa-truck mr-1"></i>On Trip
+                     </span>
+                     <div class="text-xs text-gray-500">ETA: ${driver.eta || 'N/A'}</div>` :
+                     `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                       <i class="fas fa-check-circle mr-1"></i>Available
+                     </span>
+                     <div class="text-xs text-gray-500">Ready for assignment</div>`
+                   }
+                 </div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <div class="text-sm font-bold text-gray-900">${driver.overallScore}</div>
+                 <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                   <div class="bg-blue-600 h-2 rounded-full" style="width: ${driver.overallScore}%"></div>
+                 </div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <span class="text-sm font-medium text-gray-900">${driver.metrics.safety.score}</span>
+                 <div class="text-xs text-gray-500">${driver.metrics.safety.harshBraking} harsh braking</div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <span class="text-sm font-medium text-gray-900">${driver.metrics.fuel.efficiency} km/L</span>
+                 <div class="text-xs text-gray-500">${driver.metrics.fuel.idleTime}% idle time</div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <span class="text-sm font-medium text-gray-900">${((driver.metrics.compliance.routeAdherence + driver.metrics.compliance.onTime) / 2).toFixed(1)}%</span>
+                 <div class="text-xs text-gray-500">${driver.metrics.compliance.geofenceViolations} violations</div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <span class="text-sm font-medium text-gray-900">${driver.metrics.productivity.deliveries} deliveries</span>
+                 <div class="text-xs text-gray-500">${driver.metrics.productivity.distance} km driven</div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <div class="flex flex-wrap gap-1">
+                   ${badgeElements}
+                 </div>
+               </td>
+               <td class="px-6 py-4 whitespace-nowrap">
+                 <div class="flex gap-2">
+                   ${driver.status === 'available' ? 
+                     `<button onclick="openTaskAssignment('${driver.id}', '${driver.name}')" class="inline-flex items-center px-3 py-1 border border-blue-300 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                         <i class="fas fa-plus mr-1"></i>Assign Task
+                       </button>` :
+                     `<button onclick="viewCurrentTrip('${driver.id}')" class="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                         <i class="fas fa-eye mr-1"></i>View Trip
+                       </button>`
+                   }
+                 </div>
+               </td>
+             `;
+             
+             tbody.appendChild(row);
+           });
+           
+           updateKPISummary(filteredData);
+         }
+         
+         // Update KPI summary cards
+         function updateKPISummary(data) {
+           if (data.length === 0) return;
+           
+           const avgSafety = (data.reduce((sum, d) => sum + d.metrics.safety.score, 0) / data.length).toFixed(1);
+           const avgFuel = (data.reduce((sum, d) => sum + d.metrics.fuel.efficiency, 0) / data.length).toFixed(1);
+           const avgCompliance = (data.reduce((sum, d) => sum + ((d.metrics.compliance.routeAdherence + d.metrics.compliance.onTime) / 2), 0) / data.length).toFixed(1);
+           const avgProductivity = (data.reduce((sum, d) => sum + d.metrics.productivity.deliveries, 0) / data.length).toFixed(1);
+           const avgVehicleHealth = (data.reduce((sum, d) => sum + Math.max(0, 100 - (d.metrics.vehicleHealth.alerts * 5)), 0) / data.length).toFixed(1);
+           
+           document.getElementById('avg-safety-score').textContent = avgSafety;
+           document.getElementById('avg-fuel-efficiency').textContent = `${avgFuel} km/L`;
+           document.getElementById('avg-compliance').textContent = `${avgCompliance}%`;
+           document.getElementById('avg-productivity').textContent = `${avgProductivity} trips/day`;
+           document.getElementById('avg-vehicle-health').textContent = `${avgVehicleHealth}%`;
+         }
+         
+         // Show driver details modal
+         function showDriverDetails(driver) {
+           const content = document.getElementById('driver-details-content');
+           const displayName = isAnonymized ? `Driver ${driver.id.slice(-1)}` : driver.name;
+           
+           content.innerHTML = `
+             <div class="flex items-center space-x-4">
+               <img class="h-16 w-16 rounded-full" src="https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random&size=64" alt="">
+               <div>
+                 <h4 class="text-xl font-bold text-gray-900">${displayName}</h4>
+                 <p class="text-gray-600">${driver.vehicle} • ${driver.team.charAt(0).toUpperCase() + driver.team.slice(1)} Team</p>
+                 <div class="flex items-center space-x-2 mt-2">
+                   ${driver.badges.map(badgeKey => {
+                     const badge = badges[badgeKey];
+                     return `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${badge.color}">
+                               <i class="${badge.icon} mr-1"></i>${badge.name}
+                             </span>`;
+                   }).join('')}
+                 </div>
+               </div>
+             </div>
+             
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div class="space-y-4">
+                 <h5 class="font-semibold text-gray-900">Performance Metrics</h5>
+                 <div class="space-y-3">
+                   <div class="flex justify-between">
+                     <span class="text-sm text-gray-600">Overall Score:</span>
+                     <span class="font-semibold">${driver.overallScore}</span>
+                   </div>
+                   <div class="flex justify-between">
+                     <span class="text-sm text-gray-600">Safety Score:</span>
+                     <span class="font-semibold">${driver.metrics.safety.score}</span>
+                   </div>
+                   <div class="flex justify-between">
+                     <span class="text-sm text-gray-600">Fuel Efficiency:</span>
+                     <span class="font-semibold">${driver.metrics.fuel.efficiency} km/L</span>
+                   </div>
+                   <div class="flex justify-between">
+                     <span class="text-sm text-gray-600">Compliance:</span>
+                     <span class="font-semibold">${((driver.metrics.compliance.routeAdherence + driver.metrics.compliance.onTime) / 2).toFixed(1)}%</span>
+                   </div>
+                   <div class="flex justify-between">
+                     <span class="text-sm text-gray-600">Productivity:</span>
+                     <span class="font-semibold">${driver.metrics.productivity.deliveries} deliveries</span>
+                   </div>
+                 </div>
+               </div>
+               
+               <div class="space-y-4">
+                 <h5 class="font-semibold text-gray-900">Current Status</h5>
+                 <div class="space-y-3">
+                   <div class="flex justify-between">
+                     <span class="text-sm text-gray-600">Status:</span>
+                     <span class="font-semibold ${driver.status === 'assigned' ? 'text-orange-600' : 'text-green-600'}">
+                       ${driver.status === 'assigned' ? 'On Trip' : 'Available'}
+                     </span>
+                   </div>
+                   ${driver.status === 'assigned' ? `
+                     <div class="flex justify-between">
+                       <span class="text-sm text-gray-600">Current Trip:</span>
+                       <span class="font-semibold">${driver.currentTrip}</span>
+                     </div>
+                     <div class="flex justify-between">
+                       <span class="text-sm text-gray-600">ETA:</span>
+                       <span class="font-semibold">${driver.eta}</span>
+                     </div>
+                   ` : ''}
+                   <div class="flex justify-between">
+                     <span class="text-sm text-gray-600">Vehicle:</span>
+                     <span class="font-semibold">${driver.vehicle}</span>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           `;
+           
+           document.getElementById('driver-details-modal').classList.remove('hidden');
+         }
+         
+         // Open task assignment modal
+         function openTaskAssignment(driverId, driverName) {
+           const driver = driverData.find(d => d.id === driverId);
+           if (!driver || driver.status === 'assigned') {
+             alert('Driver is not available for assignment');
+             return;
+           }
+           
+           // Update modal with driver information
+           document.getElementById('driver-initials').textContent = driverName.split(' ').map(n => n[0]).join('');
+           document.getElementById('driver-name').textContent = driverName;
+           document.getElementById('driver-current-status').textContent = 'Currently: Available';
+           
+           // Set default values
+           const now = new Date();
+           now.setMinutes(now.getMinutes() + 30);
+           document.getElementById('start-time').value = now.toISOString().slice(0, 16);
+           
+           // Show modal
+           document.getElementById('task-assignment-modal').classList.remove('hidden');
+           
+           // Store current driver ID for form submission
+           document.getElementById('task-assignment-form').dataset.driverId = driverId;
+         }
+         
+         // View current trip details
+         function viewCurrentTrip(driverId) {
+           const driver = driverData.find(d => d.id === driverId);
+           if (!driver || driver.status !== 'assigned') {
+             alert('Driver is not currently on a trip');
+             return;
+           }
+           
+           alert(`Current Trip Details for ${driver.name}\n\nTrip: ${driver.currentTrip}\nExpected Return: ${driver.eta}\nVehicle: ${driver.vehicle}\nStatus: In Progress`);
+         }
+         
+         // Handle task assignment form submission
+         function handleTaskAssignment(event) {
+           event.preventDefault();
+           
+           const form = event.target;
+           const driverId = form.dataset.driverId;
+           const driver = driverData.find(d => d.id === driverId);
+           
+           if (!driver) {
+             alert('Driver not found');
+             return;
+           }
+           
+           // Get form data
+           const taskType = form.querySelector('input[name="task-type"]:checked')?.value;
+           const startTime = document.getElementById('start-time').value;
+           const description = document.getElementById('task-description').value;
+           
+           if (!taskType || !startTime || !description) {
+             alert('Please fill in all required fields');
+             return;
+           }
+           
+           // Update driver status
+           driver.status = 'assigned';
+           driver.currentTrip = description;
+           driver.eta = new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+           
+           // Close modal and refresh leaderboard
+           document.getElementById('task-assignment-modal').classList.add('hidden');
+           renderLeaderboard();
+           
+           // Show success message
+           showToast(`Task assigned to ${driver.name} successfully!`, 'success');
+         }
+         
+         // Initialize leaderboard controls
+         function initializeLeaderboardControls() {
+           // Time period buttons
+           document.querySelectorAll('.leaderboard-time-btn').forEach(btn => {
+             btn.addEventListener('click', function() {
+               document.querySelectorAll('.leaderboard-time-btn').forEach(b => {
+                 b.classList.remove('active', 'bg-blue-600', 'text-white');
+                 b.classList.add('bg-gray-200', 'text-gray-700');
+               });
+               this.classList.remove('bg-gray-200', 'text-gray-700');
+               this.classList.add('active', 'bg-blue-600', 'text-white');
+               currentPeriod = this.dataset.period;
+               renderLeaderboard();
+             });
+           });
+           
+           // Category filter
+           document.getElementById('leaderboard-category').addEventListener('change', function() {
+             currentCategory = this.value;
+             renderLeaderboard();
+           });
+           
+           // Team filter
+           document.getElementById('leaderboard-team').addEventListener('change', function() {
+             currentTeam = this.value;
+             renderLeaderboard();
+           });
+           
+           // Anonymize toggle
+           document.getElementById('anonymize-toggle').addEventListener('click', function() {
+             isAnonymized = !isAnonymized;
+             this.innerHTML = isAnonymized ? 
+               '<i class="fas fa-user mr-1"></i>Show Names' : 
+               '<i class="fas fa-user-secret mr-1"></i>Anonymize';
+             renderLeaderboard();
+           });
+           
+           // Task assignment form
+           document.getElementById('task-assignment-form').addEventListener('submit', handleTaskAssignment);
+         }
+         
+         // Initialize the leaderboard
+         function initializeLeaderboard() {
+           initializeLeaderboardControls();
+           renderLeaderboard();
+         }
+         
+         // Start real-time updates for leaderboard
+         setInterval(() => {
+           // Simulate real-time metric changes
+           driverData.forEach(driver => {
+             // Randomly adjust safety score
+             if (Math.random() < 0.1) {
+               driver.metrics.safety.score = Math.max(0, driver.metrics.safety.score - 0.5);
+             }
+             
+             // Randomly adjust fuel efficiency
+             if (Math.random() < 0.05) {
+               driver.metrics.fuel.efficiency = Math.max(0, driver.metrics.fuel.efficiency - 0.1);
+             }
+             
+             // Recalculate overall score
+             driver.overallScore = parseFloat(calculateOverallScore(driver.metrics));
+           });
+           
+           // Update leaderboard since it's always visible
+           renderLeaderboard();
+         }, 10000); // Update every 10 seconds
+         
+                   // Initialize leaderboard
+          initializeLeaderboard();
+          
+          // --- Action Button Event Listeners ---
+          
+          // Assign Coaching Button
+          document.getElementById('assign-coaching-btn').addEventListener('click', function() {
+            document.getElementById('coaching-assignment-modal').classList.remove('hidden');
+          });
+          
+          // Grant Recognition Button
+          document.getElementById('grant-recognition-btn').addEventListener('click', function() {
+            document.getElementById('recognition-grant-modal').classList.remove('hidden');
+          });
+          
+          // Reward Top Performers Button
+          document.getElementById('reward-performer-btn').addEventListener('click', function() {
+            document.getElementById('reward-performers-modal').classList.remove('hidden');
+          });
+          
+          // --- Coaching Assignment Modal Controls ---
+          
+          // Close coaching modal
+          document.getElementById('close-coaching-modal').addEventListener('click', function() {
+            document.getElementById('coaching-assignment-modal').classList.add('hidden');
+          });
+          
+          // Cancel coaching
+          document.getElementById('cancel-coaching').addEventListener('click', function() {
+            document.getElementById('coaching-assignment-modal').classList.add('hidden');
+          });
+          
+          // Coaching assignment form submission
+          document.getElementById('coaching-assignment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const selectedDrivers = Array.from(document.querySelectorAll('.driver-checkbox:checked')).map(cb => cb.value);
+            const selectedCourses = Array.from(document.querySelectorAll('.course-checkbox:checked')).map(cb => cb.value);
+            const priority = document.getElementById('coaching-priority').value;
+            const deadline = document.getElementById('coaching-deadline').value;
+            const method = document.getElementById('coaching-method').value;
+            const notes = document.getElementById('coaching-notes').value;
+            
+            if (selectedDrivers.length === 0) {
+              alert('Please select at least one driver.');
+              return;
+            }
+            
+            if (selectedCourses.length === 0) {
+              alert('Please select at least one training course.');
+              return;
+            }
+            
+            // Process coaching assignment
+            processCoachingAssignment({
+              drivers: selectedDrivers,
+              courses: selectedCourses,
+              priority: priority,
+              deadline: deadline,
+              method: method,
+              notes: notes
+            });
+            
+            // Close modal and reset form
+            document.getElementById('coaching-assignment-modal').classList.add('hidden');
+            resetCoachingForm();
+          });
+          
+          // --- Recognition Grant Modal Controls ---
+          
+          // Close recognition modal
+          document.getElementById('close-recognition-modal').addEventListener('click', function() {
+            document.getElementById('recognition-grant-modal').classList.add('hidden');
+          });
+          
+          // Cancel recognition
+          document.getElementById('cancel-recognition').addEventListener('click', function() {
+            document.getElementById('recognition-grant-modal').classList.add('hidden');
+          });
+          
+          // Show/hide custom recognition details
+          document.querySelectorAll('input[name="recognition-type"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+              const customDetails = document.getElementById('custom-recognition-details');
+              if (this.value === 'custom') {
+                customDetails.classList.remove('hidden');
+              } else {
+                customDetails.classList.add('hidden');
+              }
+            });
+          });
+          
+          // Recognition grant form submission
+          document.getElementById('recognition-grant-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const driverId = document.getElementById('recognition-driver').value;
+            const recognitionType = document.querySelector('input[name="recognition-type"]:checked')?.value;
+            const customTitle = document.getElementById('custom-award-title').value;
+            const message = document.getElementById('recognition-message').value;
+            const publicOptions = {
+              dashboard: document.getElementById('recognition-dashboard').checked,
+              email: document.getElementById('recognition-email').checked,
+              newsletter: document.getElementById('recognition-newsletter').checked,
+              certificate: document.getElementById('recognition-certificate').checked
+            };
+            
+            if (!driverId) {
+              alert('Please select a driver.');
+              return;
+            }
+            
+            if (!recognitionType) {
+              alert('Please select a recognition type.');
+              return;
+            }
+            
+            if (recognitionType === 'custom' && !customTitle) {
+              alert('Please enter a custom award title.');
+              return;
+            }
+            
+            // Process recognition grant
+            processRecognitionGrant({
+              driverId: driverId,
+              type: recognitionType,
+              customTitle: customTitle,
+              message: message,
+              publicOptions: publicOptions
+            });
+            
+            // Close modal and reset form
+            document.getElementById('recognition-grant-modal').classList.add('hidden');
+            resetRecognitionForm();
+          });
+          
+          // --- Reward Top Performers Modal Controls ---
+          
+          // Close reward modal
+          document.getElementById('close-reward-modal').addEventListener('click', function() {
+            document.getElementById('reward-performers-modal').classList.add('hidden');
+          });
+          
+          // Cancel reward
+          document.getElementById('cancel-reward').addEventListener('click', function() {
+            document.getElementById('reward-performers-modal').classList.add('hidden');
+          });
+          
+          // Show/hide custom driver selection
+          document.querySelectorAll('input[name="selection-criteria"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+              const customSelection = document.getElementById('custom-driver-selection');
+              if (this.value === 'custom') {
+                customSelection.classList.remove('hidden');
+              } else {
+                customSelection.classList.add('hidden');
+              }
+            });
+          });
+          
+          // Reward performers form submission
+          document.getElementById('reward-performers-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const selectionCriteria = document.querySelector('input[name="selection-criteria"]:checked')?.value;
+            const selectedDrivers = Array.from(document.querySelectorAll('.reward-driver-checkbox:checked')).map(cb => cb.value);
+            const rewardType = document.querySelector('input[name="reward-type"]:checked')?.value;
+            const rewardDetails = document.getElementById('reward-details').value;
+            
+            if (!selectionCriteria) {
+              alert('Please select a selection criteria.');
+              return;
+            }
+            
+            if (selectionCriteria === 'custom' && selectedDrivers.length === 0) {
+              alert('Please select at least one driver.');
+              return;
+            }
+            
+            if (!rewardType) {
+              alert('Please select a reward type.');
+              return;
+            }
+            
+            // Process reward grant
+            processRewardGrant({
+              selectionCriteria: selectionCriteria,
+              drivers: selectedDrivers,
+              rewardType: rewardType,
+              details: rewardDetails
+            });
+            
+            // Close modal and reset form
+            document.getElementById('reward-performers-modal').classList.add('hidden');
+            resetRewardForm();
+          });
+          
+          // --- Processing Functions ---
+          
+          // Process coaching assignment
+          function processCoachingAssignment(data) {
+            console.log('Processing coaching assignment:', data);
+            
+            // Simulate API call
+            setTimeout(() => {
+              const driverNames = data.drivers.includes('all') ? 'All Drivers' : 
+                                data.drivers.includes('low-performers') ? 'Low Performers' :
+                                data.drivers.map(d => driverData.find(driver => driver.id === d)?.name).filter(Boolean).join(', ');
+              
+              const courseNames = data.courses.map(course => {
+                const courseMap = {
+                  'defensive-driving': 'Defensive Driving',
+                  'eco-driving': 'Eco-Driving Techniques',
+                  'compliance-training': 'Compliance & Regulations',
+                  'customer-service': 'Customer Service Excellence'
+                };
+                return courseMap[course] || course;
+              }).join(', ');
+              
+              // Show success notification
+              showToast(
+                'Coaching Assigned Successfully!',
+                'success'
+              );
+              
+              // Update driver data (simulate)
+              data.drivers.forEach(driverId => {
+                const driver = driverData.find(d => d.id === driverId);
+                if (driver) {
+                  // Add coaching badge
+                  if (!driver.badges.includes('coaching-assigned')) {
+                    driver.badges.push('coaching-assigned');
+                  }
+                }
+              });
+              
+              // Refresh leaderboard
+              renderLeaderboard();
+            }, 1000);
+          }
+          
+          // Process recognition grant
+          function processRecognitionGrant(data) {
+            console.log('Processing recognition grant:', data);
+            
+            // Simulate API call
+            setTimeout(() => {
+              const driver = driverData.find(d => d.id === data.driverId);
+              const driverName = driver ? driver.name : 'Unknown Driver';
+              
+              const recognitionMap = {
+                'safety-champion': 'Safety Champion',
+                'eco-driver': 'Eco Driver Award',
+                'reliability-award': 'Reliability Award',
+                'customer-service': 'Customer Service Excellence',
+                'improvement': 'Most Improved',
+                'custom': data.customTitle || 'Custom Recognition'
+              };
+              
+              const recognitionName = recognitionMap[data.type] || data.type;
+              
+              // Show success notification
+              showToast(
+                'Recognition Granted!',
+                'success'
+              );
+              
+              // Update driver data (simulate)
+              if (driver) {
+                // Add recognition badge
+                if (!driver.badges.includes(data.type)) {
+                  driver.badges.push(data.type);
+                }
+              }
+              
+              // Refresh leaderboard
+              renderLeaderboard();
+            }, 1000);
+          }
+          
+          // Process reward grant
+          function processRewardGrant(data) {
+            console.log('Processing reward grant:', data);
+            
+            // Simulate API call
+            setTimeout(() => {
+              const rewardMap = {
+                'monetary': 'Monetary Bonus',
+                'time-off': 'Extra Time Off',
+                'parking': 'Prime Parking Spot',
+                'equipment': 'Premium Equipment',
+                'custom': 'Custom Reward'
+              };
+              
+              const rewardName = rewardMap[data.rewardType] || data.rewardType;
+              
+              // Show success notification
+              showToast(
+                'Rewards Granted Successfully!',
+                'success'
+              );
+              
+              // Update driver data (simulate)
+              data.drivers.forEach(driverId => {
+                const driver = driverData.find(d => d.id === driverId);
+                if (driver) {
+                  // Add reward badge
+                  if (!driver.badges.includes('rewarded')) {
+                    driver.badges.push('rewarded');
+                  }
+                }
+              });
+              
+              // Refresh leaderboard
+              renderLeaderboard();
+            }, 1000);
+          }
+          
+          // --- Form Reset Functions ---
+          
+          function resetCoachingForm() {
+            document.querySelectorAll('.driver-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.course-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('coaching-priority').value = 'low';
+            document.getElementById('coaching-deadline').value = '';
+            document.getElementById('coaching-method').value = 'online';
+            document.getElementById('coaching-notes').value = '';
+          }
+          
+          function resetRecognitionForm() {
+            document.getElementById('recognition-driver').value = '';
+            document.querySelectorAll('input[name="recognition-type"]').forEach(radio => radio.checked = false);
+            document.getElementById('custom-award-title').value = '';
+            document.getElementById('recognition-message').value = '';
+            document.querySelectorAll('#recognition-grant-form input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.getElementById('custom-recognition-details').classList.add('hidden');
+          }
+          
+          function resetRewardForm() {
+            document.querySelectorAll('input[name="selection-criteria"]').forEach(radio => radio.checked = false);
+            document.querySelectorAll('.reward-driver-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('input[name="reward-type"]').forEach(radio => radio.checked = false);
+            document.getElementById('reward-details').value = '';
+            document.getElementById('custom-driver-selection').classList.add('hidden');
+          }
+        });
+      </script>
+</body>
+</html>
+
