@@ -1,0 +1,1843 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Active Alerts - Lynx Lite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.2/babel.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .dark body {
+      background: linear-gradient(to bottom, #1f2937, #111827);
+      color: #f3f4f6;
+    }
+    .alert-card {
+      background: linear-gradient(145deg, #fff, #f8fafc);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-radius: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border-left: 8px solid #2563eb;
+    }
+    .dark .alert-card {
+      background: linear-gradient(145deg, #374151, #1f2937);
+    }
+    .alert-card.critical { border-left-color: #DC2626; }
+    .alert-card.warning { border-left-color: #EAB308; }
+    .alert-card.info { border-left-color: #2563eb; }
+    .alert-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(37,99,235,0.2);
+    }
+    .alert-type-chip {
+      font-size: 0.85rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      margin-right: 0.5rem;
+      display: inline-block;
+    }
+    .chip-critical { background: #fee2e2; color: #DC2626; }
+    .chip-warning { background: #fef9c3; color: #EAB308; }
+    .chip-info { background: #dbeafe; color: #2563eb; }
+    .chip-system { background: #e0e7ff; color: #6366f1; }
+    .dark .chip-critical { background: #7f1d1d; color: #fee2e2; }
+    .dark .chip-warning { background: #854d0e; color: #fef9c3; }
+    .dark .chip-info { background: #1e40af; color: #dbeafe; }
+    .dark .chip-system { background: #3730a3; color: #e0e7ff; }
+    .alert-actions button {
+      font-size: 0.95rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 500;
+      margin-right: 0.5rem;
+      transition: background 0.2s;
+    }
+    .alert-actions .resolve-btn { background: #16A34A; color: #fff; }
+    .alert-actions .resolve-btn:hover { background: #15803d; }
+    .alert-actions .details-btn { background: #2563eb; color: #fff; }
+    .alert-actions .details-btn:hover { background: #1e40af; }
+    .alert-actions .snooze-btn { background: #EAB308; color: #fff; }
+    .alert-actions .snooze-btn:hover { background: #ca8a04; }
+    .alert-actions .archive-btn { background: #64748b; color: #fff; }
+    .alert-actions .archive-btn:hover { background: #334155; }
+    .alert-actions .evidence-btn { 
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+      color: #fff; 
+      border: 2px solid transparent;
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    }
+    .alert-actions .evidence-btn:hover { 
+      background: linear-gradient(135deg, #1d4ed8, #1e40af); 
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+    }
+    .alert-timestamp { font-size: 0.85rem; color: #64748b; }
+    .dark .alert-timestamp { color: #9ca3af; }
+    .financial-impact {
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      border: 1px solid #f87171;
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .dark .financial-impact {
+      background: linear-gradient(135deg, #7f1d1d, #991b1b);
+      border-color: #dc2626;
+    }
+    .financial-impact .cost-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+    .financial-impact .cost-item:last-child {
+      margin-bottom: 0;
+      padding-top: 0.25rem;
+      border-top: 1px solid rgba(248, 113, 113, 0.3);
+      font-weight: 600;
+    }
+    .dark .financial-impact .cost-item:last-child {
+      border-top-color: rgba(220, 38, 38, 0.3);
+    }
+    .cost-amount {
+      color: #dc2626;
+      font-weight: 700;
+    }
+    .dark .cost-amount {
+      color: #fca5a5;
+    }
+    .savings-indicator {
+      background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+      border: 1px solid #10b981;
+      color: #065f46;
+    }
+    .dark .savings-indicator {
+      background: linear-gradient(135deg, #064e3b, #065f46);
+      border-color: #10b981;
+      color: #34d399;
+    }
+    .alert-list { max-height: 60vh; overflow-y: auto; }
+    .modal {
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .dark .modal-content {
+      background: #1f2937;
+      color: #f3f4f6;
+    }
+    .evidence-map {
+      height: 200px;
+      width: 100%;
+      border-radius: 8px;
+      border: 2px solid #e5e7eb;
+    }
+    .dark .evidence-map {
+      border-color: #4b5563;
+    }
+    .bulk-selection-bar {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border-radius: 12px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .bulk-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: #3b82f6;
+    }
+    .alert-card.selected {
+      border: 2px solid #3b82f6;
+      background: linear-gradient(145deg, #eff6ff, #dbeafe);
+      transform: scale(1.02);
+    }
+    .dark .alert-card.selected {
+      background: linear-gradient(145deg, #1e40af, #1d4ed8);
+      border-color: #60a5fa;
+    }
+    .quick-filter-btn {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #374151;
+      transition: all 0.2s;
+    }
+    .quick-filter-btn:hover {
+      background: #e5e7eb;
+      border-color: #9ca3af;
+    }
+    .dark .quick-filter-btn {
+      background: #374151;
+      border-color: #4b5563;
+      color: #d1d5db;
+    }
+    .dark .quick-filter-btn:hover {
+      background: #4b5563;
+      border-color: #6b7280;
+    }
+    @media (max-width: 768px) {
+      .alert-list { max-height: 50vh; }
+      .alert-actions { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Regional fuel price data (could be fetched from API in real implementation)
+    const REGIONAL_FUEL_PRICES = {
+      'NY': 3.75,
+      'CA': 4.20,
+      'TX': 3.25,
+      'FL': 3.45,
+      'default': 3.60
+    };
+
+    // Vehicle efficiency data (gallons per hour while idling)
+    const VEHICLE_IDLING_RATES = {
+      'truck': 0.8,
+      'van': 0.6,
+      'sedan': 0.4,
+      'suv': 0.7,
+      'default': 0.6
+    };
+
+    // Utility function to calculate financial impact for idling
+    const calculateIdlingCost = (idlingMinutes, vehicleType = 'default', region = 'default') => {
+      const idlingHours = idlingMinutes / 60;
+      const fuelRate = VEHICLE_IDLING_RATES[vehicleType] || VEHICLE_IDLING_RATES.default;
+      const fuelPrice = REGIONAL_FUEL_PRICES[region] || REGIONAL_FUEL_PRICES.default;
+      
+      const fuelWasted = idlingHours * fuelRate;
+      const cost = fuelWasted * fuelPrice;
+      
+      return {
+        fuelWasted: fuelWasted.toFixed(1),
+        cost: cost.toFixed(2),
+        fuelPrice: fuelPrice.toFixed(2)
+      };
+    };
+
+    // Extract idling duration from alert message
+    const extractIdlingDuration = (message) => {
+      const match = message.match(/(\d+)\s*min/i);
+      return match ? parseInt(match[1]) : 0;
+    };
+
+    // Check if alert is an idling alert
+    const isIdlingAlert = (message) => {
+      return message.toLowerCase().includes('idling') || message.toLowerCase().includes('idle');
+    };
+
+    // Format duration for display
+    const formatDuration = (seconds) => {
+      if (seconds < 60) {
+        return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+      } else if (seconds < 3600) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        if (remainingSeconds === 0) {
+          return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+        }
+        return `${minutes} minute${minutes !== 1 ? 's' : ''} ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
+      } else {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        if (minutes === 0) {
+          return `${hours} hour${hours !== 1 ? 's' : ''}`;
+        }
+        return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+      }
+    };
+
+    // Get duration badge color based on alert type and duration
+    const getDurationBadgeClass = (type, duration) => {
+      const thresholds = {
+        'critical': { warning: 30, urgent: 120 }, // 30s warning, 2min urgent
+        'warning': { warning: 60, urgent: 300 },  // 1min warning, 5min urgent
+        'info': { warning: 120, urgent: 600 }     // 2min warning, 10min urgent
+      };
+      
+      const threshold = thresholds[type] || thresholds['warning'];
+      
+      if (duration >= threshold.urgent) {
+        return 'bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-100 border-red-300 dark:border-red-600';
+      } else if (duration >= threshold.warning) {
+        return 'bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-100 border-yellow-300 dark:border-yellow-600';
+      } else {
+        return 'bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 border-blue-300 dark:border-blue-600';
+      }
+    };
+
+    // Financial Impact Component
+    const FinancialImpact = ({ alert }) => {
+      if (!isIdlingAlert(alert.message)) return null;
+      
+      const idlingMinutes = extractIdlingDuration(alert.message);
+      if (idlingMinutes < 10) return null; // Only show for alerts over 10 minutes
+      
+      const vehicleType = alert.vehicleId.includes('TRUCK') ? 'truck' : 
+                          alert.vehicleId.includes('VAN') ? 'van' : 'default';
+      const region = 'NY'; // Could be dynamic based on location
+      
+      const impact = calculateIdlingCost(idlingMinutes, vehicleType, region);
+      
+      return (
+        <div className="financial-impact">
+          <div className="flex items-center mb-2">
+            <i className="fas fa-dollar-sign text-red-500 mr-2"></i>
+            <span className="font-semibold text-gray-800 dark:text-gray-200">Financial Impact</span>
+          </div>
+          <div className="cost-item">
+            <span>Fuel Wasted:</span>
+            <span className="cost-amount">~{impact.fuelWasted} gal</span>
+          </div>
+          <div className="cost-item">
+            <span>Fuel Rate:</span>
+            <span>${impact.fuelPrice}/gal</span>
+          </div>
+          <div className="cost-item">
+            <span>Estimated Cost:</span>
+            <span className="cost-amount">${impact.cost}</span>
+          </div>
+          {idlingMinutes >= 30 && (
+            <div className="mt-2 p-2 bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700 rounded text-xs">
+              <i className="fas fa-exclamation-triangle mr-1"></i>
+              <strong>High Impact Alert:</strong> Extended idling detected. Immediate action required.
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // Evidence Map Component
+    const EvidenceMap = ({ location, evidenceType }) => {
+      const mapRef = useRef(null);
+      const mapInstanceRef = useRef(null);
+
+      useEffect(() => {
+        if (!location || !mapRef.current) return;
+
+        // Initialize map
+        const map = L.map(mapRef.current).setView([location.lat, location.lng], 15);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add marker with custom icon based on evidence type
+        const getMarkerIcon = (type) => {
+          const iconClass = type === 'dashcam_video' ? 'fa-video' : 
+                           type === 'cabin_camera' ? 'fa-camera' : 
+                           'fa-exclamation-triangle';
+          const iconColor = type === 'dashcam_video' ? '#dc2626' :
+                           type === 'cabin_camera' ? '#2563eb' :
+                           '#f59e0b';
+          
+          return L.divIcon({
+            html: `<div style="background: ${iconColor}; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas ${iconClass} text-sm"></i></div>`,
+            className: 'custom-div-icon',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+          });
+        };
+
+        const marker = L.marker([location.lat, location.lng], {
+          icon: getMarkerIcon(evidenceType)
+        }).addTo(map);
+
+        marker.bindPopup(`
+          <div style="font-family: Inter, sans-serif;">
+            <strong>Alert Location</strong><br/>
+            ${location.address}<br/>
+            <small>Lat: ${location.lat.toFixed(6)}, Lng: ${location.lng.toFixed(6)}</small>
+          </div>
+        `).openPopup();
+
+        mapInstanceRef.current = map;
+
+        // Cleanup
+        return () => {
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.remove();
+            mapInstanceRef.current = null;
+          }
+        };
+      }, [location, evidenceType]);
+
+      return <div ref={mapRef} className="evidence-map"></div>;
+    };
+
+    // Driver names for realistic data
+    const driverNames = [
+      'John Smith', 'Maria Garcia', 'David Johnson', 'Sarah Wilson', 'Michael Brown',
+      'Jennifer Davis', 'Robert Miller', 'Lisa Anderson', 'James Taylor', 'Patricia Martinez',
+      'Christopher Lee', 'Linda White', 'Matthew Harris', 'Susan Clark', 'Daniel Lewis',
+      'Karen Robinson', 'Paul Walker', 'Nancy Hall', 'Mark Allen', 'Betty Young'
+    ];
+
+    // Technician names for assignment
+    const technicians = [
+      { id: 'TECH-001', name: 'Alex Rodriguez', role: 'Senior Technician', workload: 3 },
+      { id: 'TECH-002', name: 'Emma Thompson', role: 'Fleet Specialist', workload: 1 },
+      { id: 'TECH-003', name: 'Marcus Johnson', role: 'Maintenance Lead', workload: 5 },
+      { id: 'TECH-004', name: 'Sofia Chen', role: 'Field Technician', workload: 2 },
+      { id: 'TECH-005', name: 'Jake Wilson', role: 'Senior Mechanic', workload: 4 }
+    ];
+
+    // Fleet managers for email/SMS notifications
+    const fleetManagers = [
+      { 
+        id: 'MGR-001', 
+        name: 'Sarah Martinez', 
+        role: 'Fleet Operations Manager',
+        email: 'sarah.martinez@company.com',
+        phone: '+1-555-0123',
+        alertTypes: ['critical', 'warning'],
+        departments: ['operations', 'maintenance'],
+        notificationPreferences: {
+          email: true,
+          sms: true,
+          emailImmediate: ['critical'],
+          smsImmediate: ['critical'],
+          dailyDigest: true,
+          weeklyReport: true
+        }
+      },
+      { 
+        id: 'MGR-002', 
+        name: 'Michael Chen', 
+        role: 'Safety & Compliance Director',
+        email: 'michael.chen@company.com',
+        phone: '+1-555-0456',
+        alertTypes: ['critical', 'warning', 'system'],
+        departments: ['safety', 'compliance'],
+        notificationPreferences: {
+          email: true,
+          sms: true,
+          emailImmediate: ['critical', 'warning'],
+          smsImmediate: ['critical'],
+          dailyDigest: true,
+          weeklyReport: false
+        }
+      },
+      { 
+        id: 'MGR-003', 
+        name: 'Jennifer Walsh', 
+        role: 'Regional Fleet Supervisor',
+        email: 'jennifer.walsh@company.com',
+        phone: '+1-555-0789',
+        alertTypes: ['critical', 'warning', 'info'],
+        departments: ['regional', 'operations'],
+        notificationPreferences: {
+          email: true,
+          sms: false,
+          emailImmediate: ['critical'],
+          smsImmediate: [],
+          dailyDigest: true,
+          weeklyReport: true
+        }
+      },
+      { 
+        id: 'MGR-004', 
+        name: 'David Kim', 
+        role: 'Maintenance Supervisor',
+        email: 'david.kim@company.com',
+        phone: '+1-555-0321',
+        alertTypes: ['critical', 'warning', 'system'],
+        departments: ['maintenance', 'technical'],
+        notificationPreferences: {
+          email: true,
+          sms: true,
+          emailImmediate: ['critical', 'warning'],
+          smsImmediate: ['critical'],
+          dailyDigest: false,
+          weeklyReport: true
+        }
+      }
+    ];
+
+    // Notification service simulation
+    const NotificationService = {
+      // Send immediate email notification
+      sendEmail: async (recipient, subject, body, priority = 'normal') => {
+        console.log(`📧 EMAIL SENT`);
+        console.log(`To: ${recipient.email}`);
+        console.log(`Subject: ${subject}`);
+        console.log(`Priority: ${priority}`);
+        console.log(`Body: ${body}`);
+        
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return { success: true, messageId: `email_${Date.now()}` };
+      },
+
+      // Send SMS notification
+      sendSMS: async (recipient, message) => {
+        console.log(`📱 SMS SENT`);
+        console.log(`To: ${recipient.phone}`);
+        console.log(`Message: ${message}`);
+        
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return { success: true, messageId: `sms_${Date.now()}` };
+      },
+
+      // Send notifications to relevant managers based on alert
+      notifyManagers: async (alert, action = 'created') => {
+        const relevantManagers = fleetManagers.filter(manager => 
+          manager.alertTypes.includes(alert.type) ||
+          (alert.type === 'critical' && manager.notificationPreferences.emailImmediate.includes('critical'))
+        );
+
+        const notifications = [];
+
+        for (const manager of relevantManagers) {
+          const { notificationPreferences } = manager;
+          
+          // Determine if immediate notification is needed
+          const needsImmediateEmail = notificationPreferences.email && 
+            notificationPreferences.emailImmediate.includes(alert.type);
+          const needsImmediateSMS = notificationPreferences.sms && 
+            notificationPreferences.smsImmediate.includes(alert.type);
+
+          // Send immediate email
+          if (needsImmediateEmail) {
+            const subject = `🚨 ${alert.type.toUpperCase()} Alert: ${alert.vehicleId}`;
+            const body = `
+Fleet Alert Notification
+
+Alert ID: ${alert.id}
+Vehicle: ${alert.vehicleId}
+${alert.driverName ? `Driver: ${alert.driverName} (${alert.driverId})` : ''}
+Type: ${alert.type.toUpperCase()}
+Message: ${alert.message}
+Time: ${alert.timestamp.toLocaleString()}
+${alert.duration ? `Duration: ${formatDuration(alert.duration)}` : ''}
+
+Details: ${alert.details}
+
+Action Required: Please review and assign appropriate personnel.
+
+View in dashboard: http://localhost:8000/active-alerts.html
+
+Best regards,
+Fleet Management System
+            `;
+            
+            try {
+              const emailResult = await this.sendEmail(manager, subject, body, alert.type);
+              notifications.push({
+                type: 'email',
+                recipient: manager,
+                success: emailResult.success,
+                messageId: emailResult.messageId
+              });
+            } catch (error) {
+              notifications.push({
+                type: 'email',
+                recipient: manager,
+                success: false,
+                error: error.message
+              });
+            }
+          }
+
+          // Send immediate SMS
+          if (needsImmediateSMS) {
+            const smsMessage = `🚨 FLEET ALERT: ${alert.type.toUpperCase()} - ${alert.vehicleId} - ${alert.message.substring(0, 100)}${alert.message.length > 100 ? '...' : ''} - Check dashboard for details`;
+            
+            try {
+              const smsResult = await this.sendSMS(manager, smsMessage);
+              notifications.push({
+                type: 'sms',
+                recipient: manager,
+                success: smsResult.success,
+                messageId: smsResult.messageId
+              });
+            } catch (error) {
+              notifications.push({
+                type: 'sms',
+                recipient: manager,
+                success: false,
+                error: error.message
+              });
+            }
+          }
+        }
+
+        return notifications;
+      },
+
+      // Send daily digest email
+      sendDailyDigest: async () => {
+        const today = new Date();
+        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        
+        // Get alerts from last 24 hours
+        const recentAlerts = initialAlerts.filter(alert => 
+          alert.timestamp >= yesterday && alert.timestamp <= today
+        );
+
+        const managersWantingDigest = fleetManagers.filter(m => m.notificationPreferences.dailyDigest);
+
+        for (const manager of managersWantingDigest) {
+          const relevantAlerts = recentAlerts.filter(alert => 
+            manager.alertTypes.includes(alert.type)
+          );
+
+          if (relevantAlerts.length === 0) continue;
+
+          const subject = `📊 Daily Fleet Alert Summary - ${today.toLocaleDateString()}`;
+          const body = `
+Daily Fleet Alert Summary
+${today.toLocaleDateString()}
+
+Summary:
+- Total Alerts: ${relevantAlerts.length}
+- Critical: ${relevantAlerts.filter(a => a.type === 'critical').length}
+- Warning: ${relevantAlerts.filter(a => a.type === 'warning').length}
+- Info: ${relevantAlerts.filter(a => a.type === 'info').length}
+- System: ${relevantAlerts.filter(a => a.type === 'system').length}
+
+Recent Critical Alerts:
+${relevantAlerts.filter(a => a.type === 'critical').map(alert => 
+  `• ${alert.vehicleId} - ${alert.message} (${alert.timestamp.toLocaleTimeString()})`
+).join('\n') || 'None'}
+
+Fleet Status Dashboard: http://localhost:8000/active-alerts.html
+
+Best regards,
+Fleet Management System
+          `;
+
+          await this.sendEmail(manager, subject, body, 'normal');
+        }
+      }
+    };
+
+    // Simulated alert data with additional fields including smart idling alerts
+    const initialAlerts = Array.from({ length: 50 }, (_, i) => {
+      const driverIndex = i % driverNames.length;
+      const driverName = driverNames[driverIndex];
+      const driverId = `DRV-${String(driverIndex + 1).padStart(3, '0')}`;
+      const vehicleId = `VEHICLE-${String(i % 15 + 1).padStart(3, '0')}`;
+
+      // Alternate between idling and speeding alerts, with some other types mixed in.
+      const alertTypeIndex = i % 10;
+
+      switch (alertTypeIndex) {
+        case 0:
+        case 2:
+        case 4:
+        case 6: // 40% idling
+          const idlingDuration = 10 + Math.floor(Math.random() * 50); // 10-60 minutes
+          return {
+            id: `ALERT-${i+1}`,
+            vehicleId: i % 3 === 0 ? `TRUCK-${String(i % 5 + 1).padStart(3, '0')}` : vehicleId,
+            driverName,
+            driverId,
+            type: 'warning',
+            message: `Excessive Idling: ${idlingDuration} mins`,
+            timestamp: new Date(Date.now() - Math.random() * 86400000 * 2), // within last 2 days
+            duration: idlingDuration * 60,
+            resolved: false,
+            snoozed: false,
+            snoozeUntil: null,
+            details: `Vehicle has been idling for ${idlingDuration} minutes. Location: Customer site. Driver: ${driverName} (${driverId}). This is a common alert type.`,
+            evidence: [
+              {
+                id: `ev-${i}-idle`,
+                type: 'sensor_data',
+                name: 'Engine_Idle_Analysis.json',
+                url: '#sensor-data',
+                capturedAt: new Date(Date.now() - Math.random()*1800000),
+                deviceId: `ENGINE-MONITOR-${i % 10 + 1}`,
+                deviceType: 'Engine Monitoring System',
+                triggerEvent: 'Extended Idle Period Detected',
+                dataPoints: idlingDuration * 60,
+                avgRPM: '750 RPM',
+                fuelConsumption: `${(idlingDuration * 0.01).toFixed(2)} gal/hr`,
+                location: {
+                  lat: 40.7505 + (Math.random() - 0.5) * 0.1,
+                  lng: -73.9934 + (Math.random() - 0.5) * 0.1,
+                  address: `Customer Site ${Math.floor(Math.random() * 99) + 1}, Industrial District, NY`
+                }
+              }
+            ]
+          };
+        case 1:
+        case 3:
+        case 5:
+        case 7: // 40% speeding
+          const speedLimit = [45, 55, 65][Math.floor(Math.random() * 3)];
+          const actualSpeed = speedLimit + 10 + Math.floor(Math.random() * 15);
+          return {
+            id: `ALERT-${i+1}`,
+            vehicleId,
+            driverName,
+            driverId,
+            type: 'critical',
+            message: `Speed Violation: ${actualSpeed} mph in ${speedLimit} mph zone`,
+            timestamp: new Date(Date.now() - Math.random() * 86400000 * 2), // within last 2 days
+            duration: 30 + Math.floor(Math.random() * 120),
+            resolved: false,
+            snoozed: false,
+            snoozeUntil: null,
+            details: `Driver exceeded speed limit by ${actualSpeed - speedLimit} mph. Location: Highway I-95. This is a common and critical alert.`,
+            evidence: [{
+              id: `ev-${i}-speed`,
+              type: 'dashcam_video',
+              name: 'Speed_Violation_Recording.mp4',
+              url: '#video-placeholder',
+              capturedAt: new Date(Date.now() - Math.random()*1800000),
+              deviceId: 'DASHCAM-FRONT-001',
+              deviceType: 'Front Dash Camera',
+              triggerEvent: 'Speed Limit Violation',
+              duration: '2m 20s',
+              location: {
+                lat: 40.7505 + (Math.random() - 0.5) * 0.1,
+                lng: -73.9934 + (Math.random() - 0.5) * 0.1,
+                address: `Highway I-95, Mile ${Math.floor(Math.random() * 50) + 10}, NY`
+              }
+            }]
+          };
+        case 8: // 10% harsh braking
+            return {
+                id: `ALERT-${i+1}`,
+                vehicleId,
+                driverName,
+                driverId,
+                type: 'warning',
+                message: 'Harsh Braking Event Detected',
+                timestamp: new Date(Date.now() - Math.random() * 86400000),
+                duration: 3 + Math.floor(Math.random() * 12),
+                resolved: false,
+                snoozed: false,
+                snoozeUntil: null,
+                details: 'Sudden deceleration detected: -0.8g force. Possible near-miss or emergency stop.',
+                evidence: []
+            };
+        default: // 10% geofence
+            return {
+                id: `ALERT-${i+1}`,
+                vehicleId,
+                driverName,
+                driverId,
+                type: 'warning',
+                message: 'Geofence Violation: Unauthorized area entry',
+                timestamp: new Date(Date.now() - Math.random() * 86400000),
+                duration: 180 + Math.floor(Math.random() * 420),
+                resolved: false,
+                snoozed: false,
+                snoozeUntil: null,
+                details: 'Vehicle entered restricted zone without authorization. Area: Downtown Financial District.',
+                evidence: []
+            };
+      }
+    });
+
+    const AlertCard = ({ alert, onResolve, onSnooze, onArchive, onDetails, isSelected, onSelect }) => (
+      <div className={`alert-card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${alert.type} ${isSelected ? 'selected' : ''}`}>
+        <div className="flex items-start gap-3 flex-1">
+          <input
+            type="checkbox"
+            className="bulk-checkbox mt-1"
+            checked={isSelected}
+            onChange={(e) => onSelect(alert.id, e.target.checked)}
+            aria-label={`Select ${alert.id}`}
+          />
+          <div className="flex-1">
+            <div className="mb-2 flex items-center gap-2 flex-wrap">
+              <span className={`alert-type-chip chip-${alert.type}`}>
+                {alert.type === 'critical' && <i className="fas fa-exclamation-triangle mr-1"></i>}
+                {alert.type === 'warning' && <i className="fas fa-exclamation-circle mr-1"></i>}
+                {alert.type === 'info' && <i className="fas fa-info-circle mr-1"></i>}
+                {alert.type === 'system' && <i className="fas fa-cog mr-1"></i>}
+                {alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}
+              </span>
+              <span className="font-bold text-gray-900 dark:text-gray-100">{alert.vehicleId}</span>
+              {alert.driverName && (
+                <span className="inline-flex items-center px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 text-xs font-medium rounded-full">
+                  <i className="fas fa-user mr-1"></i>
+                  {alert.driverName} ({alert.driverId})
+                </span>
+              )}
+              <span className="alert-timestamp">
+                {alert.timestamp.toLocaleString()}
+              </span>
+              {alert.duration && (
+                <span className={`inline-flex items-center px-3 py-1 text-sm font-bold rounded-full border-2 ${getDurationBadgeClass(alert.type, alert.duration)}`}>
+                  <i className="fas fa-stopwatch mr-2"></i>
+                  {formatDuration(alert.duration)}
+                </span>
+              )}
+              {alert.evidence && alert.evidence.length > 0 && (
+                <span className="inline-flex items-center px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 text-xs font-medium rounded-full">
+                  <i className="fas fa-camera mr-1"></i>
+                  {alert.evidence.length} Auto-Captured
+                </span>
+              )}
+              {isIdlingAlert(alert.message) && extractIdlingDuration(alert.message) >= 10 && (
+                <span className="inline-flex items-center px-2 py-1 bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-100 text-xs font-medium rounded-full">
+                  <i className="fas fa-dollar-sign mr-1"></i>
+                  Cost Impact
+                </span>
+              )}
+            </div>
+            <div className="text-lg text-gray-700 dark:text-gray-300">{alert.message}</div>
+            <FinancialImpact alert={alert} />
+          </div>
+        </div>
+        <div className="alert-actions flex flex-wrap gap-2">
+          <button className="resolve-btn" title="Resolve Alert" onClick={() => onResolve(alert.id)}>
+            <i className="fas fa-check mr-1"></i>Resolve
+          </button>
+          <button className="details-btn" title="View Details" onClick={() => onDetails(alert)}>
+            <i className="fas fa-info-circle mr-1"></i>Details
+          </button>
+          {alert.evidence && alert.evidence.length > 0 && (
+            <button 
+              className="evidence-btn" 
+              title="View Auto-Captured Evidence" 
+              onClick={() => onDetails(alert)}
+            >
+              <i className="fas fa-video mr-1"></i>Evidence ({alert.evidence.length})
+            </button>
+          )}
+          <button className="snooze-btn" title="Snooze Alert" onClick={() => onSnooze(alert.id)}>
+            <i className="fas fa-clock mr-1"></i>Snooze
+          </button>
+          <button className="archive-btn" title="Archive Alert" onClick={() => onArchive(alert.id)}>
+            <i className="fas fa-archive mr-1"></i>Archive
+          </button>
+        </div>
+      </div>
+    );
+
+    const AlertModal = ({ alert, onClose }) => (
+      <div className="modal fixed inset-0 flex items-center justify-center z-50">
+        <div className="modal-content p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Alert Details</h2>
+            <button 
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <i className="fas fa-times text-xl"></i>
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold mb-3">Basic Information</h3>
+              <div className="space-y-2">
+                <p><strong>Alert ID:</strong> {alert.id}</p>
+                <p><strong>Vehicle ID:</strong> {alert.vehicleId}</p>
+                {alert.driverName && (
+                  <>
+                    <p><strong>Driver:</strong> {alert.driverName}</p>
+                    <p><strong>Driver ID:</strong> {alert.driverId}</p>
+                  </>
+                )}
+                <p><strong>Type:</strong> 
+                  <span className={`alert-type-chip chip-${alert.type} ml-2`}>
+                    {alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}
+                  </span>
+                </p>
+                <p><strong>Message:</strong> {alert.message}</p>
+                <p><strong>Timestamp:</strong> {alert.timestamp.toLocaleString()}</p>
+                {alert.duration && (
+                  <p><strong>Alert Duration:</strong> 
+                    <span className={`px-3 py-2 rounded-lg text-sm font-bold ml-2 border-2 ${getDurationBadgeClass(alert.type, alert.duration)}`}>
+                      <i className="fas fa-stopwatch mr-2"></i>
+                      {formatDuration(alert.duration)}
+                    </span>
+                  </p>
+                )}
+                <p><strong>Status:</strong> 
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ml-2 ${
+                    alert.resolved ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 
+                    alert.snoozed ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100' : 
+                    'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                  }`}>
+                    {alert.resolved ? 'Resolved' : alert.snoozed ? 'Snoozed' : 'Active'}
+                  </span>
+                </p>
+                <p><strong>Details:</strong> {alert.details}</p>
+                {isIdlingAlert(alert.message) && (
+                  <div className="mt-4 p-4 bg-red-50 dark:bg-red-900 rounded-lg border border-red-200 dark:border-red-700">
+                    <h4 className="font-semibold text-red-800 dark:text-red-200 mb-3 flex items-center">
+                      <i className="fas fa-calculator mr-2"></i>
+                      Financial Impact Analysis
+                    </h4>
+                    <FinancialImpact alert={alert} />
+                    <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border">
+                      <div className="text-sm">
+                        <p className="font-medium mb-2">💡 Cost Reduction Tips:</p>
+                        <ul className="text-xs space-y-1 text-gray-600 dark:text-gray-400">
+                          <li>• Turn off engine during extended stops (&gt;5 min)</li>
+                          <li>• Use auxiliary power units for climate control</li>
+                          <li>• Optimize delivery schedules to reduce wait times</li>
+                          <li>• Train drivers on efficient idling practices</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-3 flex items-center">
+                <i className="fas fa-camera mr-2 text-blue-500"></i>
+                Auto-Captured Evidence ({alert.evidence ? alert.evidence.length : 0})
+              </h3>
+              {alert.evidence && alert.evidence.length > 0 ? (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {alert.evidence.map(evidence => (
+                    <div key={evidence.id} className="border dark:border-gray-600 rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0">
+                            <i className={`fas text-lg ${
+                              evidence.type === 'dashcam_video' ? 'fa-video text-red-500' :
+                              evidence.type === 'cabin_camera' ? 'fa-camera text-blue-500' :
+                              evidence.type === 'sensor_data' ? 'fa-microchip text-green-500' :
+                              'fa-file-alt text-gray-500'
+                            }`}></i>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{evidence.name}</span>
+                            <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                              {evidence.deviceType} ({evidence.deviceId})
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {evidence.capturedAt.toLocaleString()}
+                          </div>
+                          <div className="text-xs bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 px-2 py-1 rounded mt-1">
+                            Auto-Captured
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mb-3 p-3 bg-white dark:bg-gray-800 rounded border-l-4 border-orange-400">
+                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Trigger Event: {evidence.triggerEvent}
+                        </div>
+                        {evidence.aiAnalysis && (
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            AI Analysis: {evidence.aiAnalysis}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {evidence.type === 'dashcam_video' && (
+                        <div className="mb-3">
+                          <div className="bg-gray-900 rounded-lg p-4 text-white text-center">
+                            <i className="fas fa-play-circle text-4xl mb-2"></i>
+                            <p className="text-sm">Dashcam Recording</p>
+                            <p className="text-xs text-gray-300">Duration: {evidence.duration}</p>
+                            <button className="mt-2 bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm">
+                              <i className="fas fa-play mr-1"></i>Play Video
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {evidence.type === 'cabin_camera' && (
+                        <div className="mb-3">
+                          <img 
+                            src={evidence.url} 
+                            alt={evidence.name}
+                            className="w-full h-32 object-cover rounded cursor-pointer hover:opacity-80 border"
+                            onClick={() => window.open(evidence.url, '_blank')}
+                          />
+                        </div>
+                      )}
+                      
+                      {evidence.type === 'sensor_data' && (
+                        <div className="mb-3 bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="font-medium">Data Points:</span> {evidence.dataPoints}
+                            </div>
+                            <div>
+                              <span className="font-medium">Peak Value:</span> 
+                              <span className="text-red-600 dark:text-red-400 font-bold ml-1">{evidence.peakValue}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="font-medium">Threshold:</span> {evidence.thresholdValue}
+                            </div>
+                          </div>
+                          <button className="mt-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                            <i className="fas fa-download mr-1"></i>Download Raw Data
+                          </button>
+                        </div>
+                      )}
+                      
+                      {evidence.location && (
+                        <div className="mt-3">
+                          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                            <i className="fas fa-map-marker-alt mr-2 text-red-500"></i>
+                            Incident Location
+                          </div>
+                          <EvidenceMap location={evidence.location} evidenceType={evidence.type} />
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <strong>{evidence.location.address}</strong><br/>
+                            Coordinates: {evidence.location.lat.toFixed(6)}, {evidence.location.lng.toFixed(6)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                  <i className="fas fa-camera-retro text-3xl mb-3"></i>
+                  <p>No telematic evidence captured for this alert</p>
+                  <p className="text-sm">Evidence is automatically captured when incidents occur</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex justify-end mt-6">
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              onClick={onClose}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+
+    // Notification Settings Modal Component
+    const NotificationSettingsModal = ({ onClose }) => {
+      const [settings, setSettings] = useState(() => {
+        const saved = localStorage.getItem('notificationSettings');
+        return saved ? JSON.parse(saved) : {
+          enableNotifications: true,
+          criticalAlertManagers: ['MGR-001', 'MGR-002'],
+          warningAlertManagers: ['MGR-001'],
+          autoNotifyOnCritical: true,
+          autoNotifyOnWarning: false,
+          dailyDigestEnabled: true,
+          weeklyReportEnabled: true
+        };
+      });
+
+      const saveSettings = () => {
+        localStorage.setItem('notificationSettings', JSON.stringify(settings));
+        onClose();
+      };
+
+      return (
+        <div className="modal fixed inset-0 flex items-center justify-center z-50">
+          <div className="modal-content p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold flex items-center">
+                <i className="fas fa-bell mr-2 text-blue-500"></i>
+                Notification Settings
+              </h2>
+              <button 
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* General Settings */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h3 className="font-semibold mb-3">General Settings</h3>
+                <label className="flex items-center gap-3 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={settings.enableNotifications}
+                    onChange={(e) => setSettings({...settings, enableNotifications: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <span>Enable email/SMS notifications for managers</span>
+                </label>
+                <label className="flex items-center gap-3 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={settings.autoNotifyOnCritical}
+                    onChange={(e) => setSettings({...settings, autoNotifyOnCritical: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <span>Auto-notify managers on critical alerts</span>
+                </label>
+                <label className="flex items-center gap-3 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={settings.autoNotifyOnWarning}
+                    onChange={(e) => setSettings({...settings, autoNotifyOnWarning: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <span>Auto-notify managers on warning alerts</span>
+                </label>
+              </div>
+
+              {/* Manager Assignment */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h3 className="font-semibold mb-3">Critical Alert Notifications</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Select managers to notify for critical alerts:</p>
+                {fleetManagers.map(manager => (
+                  <label key={manager.id} className="flex items-center gap-3 mb-2">
+                    <input
+                      type="checkbox"
+                      checked={settings.criticalAlertManagers.includes(manager.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSettings({
+                            ...settings,
+                            criticalAlertManagers: [...settings.criticalAlertManagers, manager.id]
+                          });
+                        } else {
+                          setSettings({
+                            ...settings,
+                            criticalAlertManagers: settings.criticalAlertManagers.filter(id => id !== manager.id)
+                          });
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <span className="font-medium">{manager.name}</span>
+                      <div className="text-sm text-gray-500">{manager.role} • {manager.email}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              {/* Reports Settings */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h3 className="font-semibold mb-3">Automated Reports</h3>
+                <label className="flex items-center gap-3 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={settings.dailyDigestEnabled}
+                    onChange={(e) => setSettings({...settings, dailyDigestEnabled: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <span>Send daily alert digest emails</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={settings.weeklyReportEnabled}
+                    onChange={(e) => setSettings({...settings, weeklyReportEnabled: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <span>Send weekly fleet reports</span>
+                </label>
+              </div>
+
+              {/* Test Notifications */}
+              <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg border border-blue-200 dark:border-blue-700">
+                <h3 className="font-semibold mb-3 text-blue-800 dark:text-blue-200">Test Notifications</h3>
+                <div className="flex gap-2">
+                  <button
+                    className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                    onClick={() => {
+                      NotificationService.sendEmail(
+                        fleetManagers[0],
+                        'Test Email Notification',
+                        'This is a test email from the Fleet Management System.',
+                        'normal'
+                      );
+                      alert('Test email sent! Check console for details.');
+                    }}
+                  >
+                    <i className="fas fa-envelope mr-1"></i>Test Email
+                  </button>
+                  <button
+                    className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                    onClick={() => {
+                      NotificationService.sendSMS(
+                        fleetManagers[0],
+                        'Test SMS from Fleet Management System'
+                      );
+                      alert('Test SMS sent! Check console for details.');
+                    }}
+                  >
+                    <i className="fas fa-sms mr-1"></i>Test SMS
+                  </button>
+                  <button
+                    className="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm"
+                    onClick={() => {
+                      NotificationService.sendDailyDigest();
+                      alert('Daily digest sent! Check console for details.');
+                    }}
+                  >
+                    <i className="fas fa-chart-bar mr-1"></i>Test Daily Digest
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                onClick={onClose}
+              >
+                Cancel
+              </button>
+              <button
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                onClick={saveSettings}
+              >
+                <i className="fas fa-save mr-1"></i>Save Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [alerts, setAlerts] = useState(() => {
+        // Clear localStorage to ensure we get new alerts with duration data
+        localStorage.removeItem('alerts');
+        return initialAlerts;
+      });
+      const [search, setSearch] = useState('');
+      const [debouncedSearch, setDebouncedSearch] = useState('');
+      const [typeFilter, setTypeFilter] = useState('');
+      const [sortBy, setSortBy] = useState('smart'); // Default to smart auto-sort
+      const [sortOrder, setSortOrder] = useState('desc');
+      const [currentPage, setCurrentPage] = useState(1);
+      const [darkMode, setDarkMode] = useState(false);
+      const [selectedAlert, setSelectedAlert] = useState(null);
+      const [isLoading, setIsLoading] = useState(true);
+      
+      // New bulk operations state
+      const [selectedAlerts, setSelectedAlerts] = useState(new Set());
+      const [showBulkBar, setShowBulkBar] = useState(false);
+      const [bulkAction, setBulkAction] = useState('');
+      
+      // Notification state
+      const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+      const [notificationHistory, setNotificationHistory] = useState([]);
+      
+      const alertsPerPage = 10;
+
+      useEffect(() => {
+        localStorage.setItem('alerts', JSON.stringify(alerts));
+        setIsLoading(false);
+      }, [alerts]);
+
+      useEffect(() => {
+        setShowBulkBar(selectedAlerts.size > 0);
+      }, [selectedAlerts]);
+
+      // Handle individual alert selection
+      const handleAlertSelect = (alertId, isSelected) => {
+        const newSelected = new Set(selectedAlerts);
+        if (isSelected) {
+          newSelected.add(alertId);
+        } else {
+          newSelected.delete(alertId);
+        }
+        setSelectedAlerts(newSelected);
+      };
+
+      // Handle master select all
+      const handleSelectAll = (isSelected) => {
+        if (isSelected) {
+          const allVisibleIds = new Set(filteredAlerts.map(alert => alert.id));
+          setSelectedAlerts(allVisibleIds);
+        } else {
+          setSelectedAlerts(new Set());
+        }
+      };
+
+      // Quick filter functions
+      const selectAllCritical = () => {
+        const criticalIds = new Set(
+          filteredAlerts
+            .filter(alert => alert.type === 'critical')
+            .map(alert => alert.id)
+        );
+        setSelectedAlerts(criticalIds);
+      };
+
+      const selectAllWarning = () => {
+        const warningIds = new Set(
+          filteredAlerts
+            .filter(alert => alert.type === 'warning')
+            .map(alert => alert.id)
+        );
+        setSelectedAlerts(warningIds);
+      };
+
+      const selectAllInfo = () => {
+        const infoIds = new Set(
+          filteredAlerts
+            .filter(alert => alert.type === 'info')
+            .map(alert => alert.id)
+        );
+        setSelectedAlerts(infoIds);
+      };
+
+      const selectAllSystem = () => {
+        const systemIds = new Set(
+          filteredAlerts
+            .filter(alert => alert.type === 'system')
+            .map(alert => alert.id)
+        );
+        setSelectedAlerts(systemIds);
+      };
+
+      const selectAllByVehicle = (vehicleId) => {
+        const vehicleIds = new Set(
+          filteredAlerts
+            .filter(alert => alert.vehicleId === vehicleId)
+            .map(alert => alert.id)
+        );
+        setSelectedAlerts(vehicleIds);
+      };
+
+      // Bulk action handlers
+      const handleBulkResolve = async () => {
+        const alertsToResolve = alerts.filter(alert => selectedAlerts.has(alert.id));
+        setAlerts(alerts.map(alert => 
+          selectedAlerts.has(alert.id) ? { ...alert, resolved: true } : alert
+        ));
+        
+        // Send notifications for critical/warning alerts
+        for (const alert of alertsToResolve) {
+          if (alert.type === 'critical' || alert.type === 'warning') {
+            await sendAlertNotifications({...alert, resolved: true}, 'bulk_resolved');
+          }
+        }
+        
+        setSelectedAlerts(new Set());
+        setBulkAction('');
+      };
+
+      const handleBulkSnooze = () => {
+        const duration = prompt('Enter snooze duration in minutes for selected alerts:', '60');
+        if (duration && !isNaN(duration)) {
+          const snoozeUntil = new Date(Date.now() + parseInt(duration) * 60000);
+          setAlerts(alerts.map(alert => 
+            selectedAlerts.has(alert.id) ? { ...alert, snoozed: true, snoozeUntil } : alert
+          ));
+        }
+        setSelectedAlerts(new Set());
+        setBulkAction('');
+      };
+
+      const handleBulkArchive = () => {
+        setAlerts(alerts.map(alert => 
+          selectedAlerts.has(alert.id) ? { ...alert, resolved: true } : alert
+        ));
+        setSelectedAlerts(new Set());
+        setBulkAction('');
+      };
+
+      const handleBulkAssign = (technicianId) => {
+        // In a real app, this would assign alerts to technician
+        console.log('Assigning alerts to technician:', technicianId, Array.from(selectedAlerts));
+        setSelectedAlerts(new Set());
+        setBulkAction('');
+      };
+
+      const handleBulkNotify = async () => {
+        const alertsToNotify = alerts.filter(alert => selectedAlerts.has(alert.id));
+        let notificationCount = 0;
+        
+        for (const alert of alertsToNotify) {
+          const notifications = await NotificationService.notifyManagers(alert, 'manual_notification');
+          notificationCount += notifications.length;
+        }
+        
+        alert(`Sent ${notificationCount} notifications for ${alertsToNotify.length} selected alerts.`);
+        setSelectedAlerts(new Set());
+        setBulkAction('');
+      };
+
+      // Debounced search effect
+      useEffect(() => {
+        const timer = setTimeout(() => {
+          setDebouncedSearch(search);
+          setCurrentPage(1); // Reset to first page when search changes
+        }, 300); // 300ms delay
+
+        return () => clearTimeout(timer);
+      }, [search]);
+
+      useEffect(() => {
+        document.body.classList.toggle('dark', darkMode);
+      }, [darkMode]);
+
+      // Automatic notification function
+      const sendAlertNotifications = async (alert, action = 'created') => {
+        const settings = JSON.parse(localStorage.getItem('notificationSettings') || '{}');
+        
+        if (!settings.enableNotifications) return;
+        
+        // Check if we should auto-notify for this alert type
+        const shouldNotify = (alert.type === 'critical' && settings.autoNotifyOnCritical) ||
+                           (alert.type === 'warning' && settings.autoNotifyOnWarning);
+        
+        if (shouldNotify) {
+          try {
+            const notifications = await NotificationService.notifyManagers(alert, action);
+            setNotificationHistory(prev => [...prev, {
+              timestamp: new Date(),
+              alertId: alert.id,
+              action,
+              notifications: notifications.length,
+              success: notifications.every(n => n.success)
+            }]);
+          } catch (error) {
+            console.error('Failed to send notifications:', error);
+          }
+        }
+      };
+
+      const handleResolve = async (id) => {
+        const alert = alerts.find(a => a.id === id);
+        setAlerts(alerts.map(a => a.id === id ? { ...a, resolved: true } : a));
+        
+        // Send notification about resolution
+        if (alert && (alert.type === 'critical' || alert.type === 'warning')) {
+          await sendAlertNotifications({...alert, resolved: true}, 'resolved');
+        }
+      };
+
+      const handleSnooze = (id) => {
+        const duration = prompt('Enter snooze duration in minutes:', '60');
+        if (duration && !isNaN(duration)) {
+          const snoozeUntil = new Date(Date.now() + parseInt(duration) * 60000);
+          setAlerts(alerts.map(a => a.id === id ? { ...a, snoozed: true, snoozeUntil } : a));
+        }
+      };
+
+      const handleArchive = (id) => {
+        setAlerts(alerts.map(a => a.id === id ? { ...a, resolved: true } : a));
+      };
+
+      const handleArchiveAll = () => {
+        setAlerts(alerts.map(a => ({ ...a, resolved: true })));
+      };
+
+      const filteredAlerts = alerts
+        .filter(a => {
+          const searchTerm = debouncedSearch.toLowerCase().trim();
+          const matchesSearch = searchTerm === '' ||
+            a.message.toLowerCase().includes(searchTerm) ||
+            a.vehicleId.toLowerCase().includes(searchTerm) ||
+            a.id.toLowerCase().includes(searchTerm) ||
+            (a.driverName && a.driverName.toLowerCase().includes(searchTerm)) ||
+            (a.driverId && a.driverId.toLowerCase().includes(searchTerm)) ||
+            a.type.toLowerCase().includes(searchTerm) ||
+            (a.details && a.details.toLowerCase().includes(searchTerm));
+          
+          const matchesType = typeFilter === '' || 
+            a.type === typeFilter || 
+            (typeFilter === 'idling' && isIdlingAlert(a.message) && extractIdlingDuration(a.message) >= 10);
+          
+          const isActive = !a.resolved && (!a.snoozed || (a.snoozeUntil && a.snoozeUntil > new Date()));
+          
+          return matchesSearch && matchesType && isActive;
+        })
+        .sort((a, b) => {
+          // Priority order: Critical → Warning → Info → System
+          const priorityOrder = { 'critical': 0, 'warning': 1, 'info': 2, 'system': 3 };
+          
+          if (sortBy === 'priority') {
+            const priorityDiff = (priorityOrder[a.type] || 99) - (priorityOrder[b.type] || 99);
+            if (priorityDiff !== 0) return priorityDiff;
+            // If same priority, sort by timestamp (newest first)
+            return b.timestamp - a.timestamp;
+          } else if (sortBy === 'smart') {
+            // Smart Auto-sort: Keep critical alerts at top, then sort by time
+            const priorityDiff = (priorityOrder[a.type] || 99) - (priorityOrder[b.type] || 99);
+            if (priorityDiff !== 0) return priorityDiff;
+            // Within same priority, sort by timestamp (newest first)
+            return b.timestamp - a.timestamp;
+          } else if (sortBy === 'timestamp') {
+            const multiplier = sortOrder === 'asc' ? 1 : -1;
+            return multiplier * (a.timestamp - b.timestamp);
+          } else if (sortBy === 'vehicleId') {
+            const multiplier = sortOrder === 'asc' ? 1 : -1;
+            return multiplier * a.vehicleId.localeCompare(b.vehicleId);
+          } else if (sortBy === 'duration') {
+            const multiplier = sortOrder === 'asc' ? 1 : -1;
+            // Sort by alert age (oldest first when desc, newest first when asc)
+            return multiplier * (a.timestamp - b.timestamp);
+          } else if (sortBy === 'type') {
+            const multiplier = sortOrder === 'asc' ? 1 : -1;
+            return multiplier * a.type.localeCompare(b.type);
+          }
+          return 0;
+        });
+
+      const totalPages = Math.ceil(filteredAlerts.length / alertsPerPage);
+      const paginatedAlerts = filteredAlerts.slice(
+        (currentPage - 1) * alertsPerPage,
+        currentPage * alertsPerPage
+      );
+
+      return (
+        <div className={darkMode ? 'dark' : ''}>
+          <header className="bg-white dark:bg-gray-800 shadow flex flex-col md:flex-row justify-between items-center px-6 py-4 z-30 fixed top-0 left-0 w-full">
+            <div className="flex items-center space-x-4 mb-4 md:mb-0">
+              <a href="Main Dashboard.html" className="text-blue-600 hover:text-blue-800 font-bold text-xl">
+                <i className="fas fa-arrow-left mr-2"></i>Back to Dashboard
+              </a>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Active Alerts</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i className="fas fa-search text-gray-400"></i>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search by vehicle ID, alert code, driver name, or keywords..."
+                  className="border border-gray-300 dark:border-gray-600 pl-10 pr-4 py-2 rounded-lg w-80 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:bg-gray-700 dark:text-gray-100"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Search Alerts"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                )}
+                {debouncedSearch !== search && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  </div>
+                )}
+              </div>
+              <select
+                className="border border-gray-300 dark:border-gray-600 px-2 py-1 rounded-lg text-sm dark:bg-gray-700 dark:text-gray-100"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="">All Types</option>
+                <option value="critical">Critical</option>
+                <option value="warning">Warning</option>
+                <option value="info">Info</option>
+                <option value="system">System</option>
+                <option value="idling">Cost Impact (Idling)</option>
+              </select>
+              <select
+                className="border border-gray-300 dark:border-gray-600 px-2 py-1 rounded-lg text-sm dark:bg-gray-700 dark:text-gray-100"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="priority">Sort by Priority</option>
+                <option value="timestamp">Sort by Time</option>
+                <option value="vehicleId">Sort by Vehicle ID</option>
+                <option value="smart">Smart Auto-sort</option>
+                <option value="duration">Sort by Alert Age</option>
+                <option value="type">Sort by Type</option>
+              </select>
+              <button
+                className={`text-white px-4 py-2 rounded-lg transition-colors ${
+                  ['priority', 'smart'].includes(sortBy) 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-gray-600 hover:bg-gray-700'
+                }`}
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                disabled={['priority', 'smart'].includes(sortBy)}
+                title={['priority', 'smart'].includes(sortBy) ? 'Sort order fixed for this option' : 'Toggle sort direction'}
+              >
+                <i className={`fas fa-sort-${sortOrder === 'asc' ? 'up' : 'down'} mr-1`}></i>
+                {['priority', 'smart'].includes(sortBy) ? 'Fixed Order' : (sortOrder === 'asc' ? 'Ascending' : 'Descending')}
+              </button>
+              <button
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                onClick={handleArchiveAll}
+              >
+                <i className="fas fa-archive mr-1"></i>Archive All
+              </button>
+              <button
+                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
+                onClick={() => setShowNotificationSettings(true)}
+                title="Configure Email/SMS Notifications"
+              >
+                <i className="fas fa-bell mr-1"></i>Notifications
+                {notificationHistory.length > 0 && (
+                  <span className="ml-2 bg-orange-800 text-xs px-2 py-1 rounded-full">
+                    {notificationHistory.length}
+                  </span>
+                )}
+              </button>
+              <button
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                onClick={() => setDarkMode(!darkMode)}
+              >
+                <i className={`fas fa-${darkMode ? 'sun' : 'moon'} mr-1`}></i>
+                {darkMode ? 'Light' : 'Dark'} Mode
+              </button>
+            </div>
+          </header>
+          <main className="pt-24 px-6">
+            {/* Priority Sorting Indicator */}
+            {(sortBy === 'priority' || sortBy === 'smart') && (
+              <div className="mb-4 p-3 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg">
+                <div className="flex items-center">
+                  <div className="text-sm text-green-800 dark:text-green-200">
+                    <i className="fas fa-sort-amount-down mr-2"></i>
+                    <strong>
+                      {sortBy === 'smart' ? 'Smart Auto-sort Active' : 'Priority Sorting Active'}
+                    </strong>
+                    : Alerts ordered by Critical → Warning → Info → System
+                    {sortBy === 'smart' && ' with newest alerts first within each priority'}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Filters */}
+            <div className="mb-4 flex flex-wrap gap-2">
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  className="bulk-checkbox"
+                  checked={selectedAlerts.size === filteredAlerts.length && filteredAlerts.length > 0}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                />
+                Select All ({filteredAlerts.length})
+              </label>
+              
+              {/* Alert Type Quick Filters */}
+              <button
+                className="quick-filter-btn px-3 py-1 text-xs bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-100 rounded-full hover:bg-red-200 dark:hover:bg-red-700"
+                onClick={selectAllCritical}
+              >
+                <i className="fas fa-exclamation-triangle mr-1"></i>
+                Critical ({filteredAlerts.filter(a => a.type === 'critical').length})
+              </button>
+              
+              <button
+                className="quick-filter-btn px-3 py-1 text-xs bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-100 rounded-full hover:bg-yellow-200 dark:hover:bg-yellow-700"
+                onClick={selectAllWarning}
+              >
+                <i className="fas fa-exclamation-circle mr-1"></i>
+                Warning ({filteredAlerts.filter(a => a.type === 'warning').length})
+              </button>
+              
+              <button
+                className="quick-filter-btn px-3 py-1 text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700"
+                onClick={selectAllInfo}
+              >
+                <i className="fas fa-info-circle mr-1"></i>
+                Info ({filteredAlerts.filter(a => a.type === 'info').length})
+              </button>
+              
+              <button
+                className="quick-filter-btn px-3 py-1 text-xs bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-100 rounded-full hover:bg-purple-200 dark:hover:bg-purple-700"
+                onClick={selectAllSystem}
+              >
+                <i className="fas fa-cog mr-1"></i>
+                System ({filteredAlerts.filter(a => a.type === 'system').length})
+              </button>
+              
+              {/* Vehicle Quick Filters */}
+              {Array.from(new Set(filteredAlerts.map(a => a.vehicleId))).slice(0, 3).map(vehicleId => (
+                <button
+                  key={vehicleId}
+                  className="quick-filter-btn px-3 py-1 text-xs bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 rounded-full hover:bg-green-200 dark:hover:bg-green-700"
+                  onClick={() => selectAllByVehicle(vehicleId)}
+                >
+                  <i className="fas fa-truck mr-1"></i>
+                  {vehicleId} ({filteredAlerts.filter(a => a.vehicleId === vehicleId).length})
+                </button>
+              ))}
+              
+              {selectedAlerts.size > 0 && (
+                <button
+                  className="quick-filter-btn px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                  onClick={() => setSelectedAlerts(new Set())}
+                >
+                  <i className="fas fa-times mr-1"></i>
+                  Clear Selection
+                </button>
+              )}
+            </div>
+
+            {/* Bulk Operations Bar */}
+            {showBulkBar && (
+              <div className="bulk-selection-bar fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 min-w-96">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <i className="fas fa-check-circle text-blue-600"></i>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {selectedAlerts.size} alert{selectedAlerts.size !== 1 ? 's' : ''} selected
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors"
+                      onClick={handleBulkResolve}
+                    >
+                      <i className="fas fa-check mr-1"></i>Resolve
+                    </button>
+                    <button
+                      className="px-3 py-1 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors"
+                      onClick={handleBulkSnooze}
+                    >
+                      <i className="fas fa-clock mr-1"></i>Snooze
+                    </button>
+                    <button
+                      className="px-3 py-1 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700 transition-colors"
+                      onClick={handleBulkArchive}
+                    >
+                      <i className="fas fa-archive mr-1"></i>Archive
+                    </button>
+                    <select
+                      className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100"
+                      value=""
+                      onChange={(e) => e.target.value && handleBulkAssign(e.target.value)}
+                    >
+                      <option value="">Assign to...</option>
+                      {technicians.map(tech => (
+                        <option key={tech.id} value={tech.id}>
+                          {tech.name} ({tech.workload} alerts)
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className="px-3 py-1 bg-orange-600 text-white text-sm rounded-md hover:bg-orange-700 transition-colors"
+                      onClick={handleBulkNotify}
+                      title="Send notifications to managers for selected alerts"
+                    >
+                      <i className="fas fa-bell mr-1"></i>Notify
+                    </button>
+                    <button
+                      className="px-2 py-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      onClick={() => setSelectedAlerts(new Set())}
+                    >
+                      <i className="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Search Results Summary */}
+            {(debouncedSearch || typeFilter) && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-blue-800 dark:text-blue-200">
+                    <i className="fas fa-search mr-2"></i>
+                    Found <strong>{filteredAlerts.length}</strong> alert{filteredAlerts.length !== 1 ? 's' : ''}
+                    {debouncedSearch && (
+                      <span> matching "<strong>{debouncedSearch}</strong>"</span>
+                    )}
+                    {typeFilter && (
+                      <span> of type "<strong>{typeFilter}</strong>"</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSearch('');
+                      setTypeFilter('');
+                    }}
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-sm"
+                  >
+                    <i className="fas fa-times mr-1"></i>Clear filters
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {isLoading ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 mt-12">
+                Loading alerts...
+              </div>
+            ) : paginatedAlerts.length === 0 ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 mt-12">
+                No active alerts found.
+              </div>
+            ) : (
+              <div className="alert-list space-y-4">
+                {paginatedAlerts.map(alert => (
+                  <AlertCard
+                    key={alert.id}
+                    alert={alert}
+                    onResolve={handleResolve}
+                    onSnooze={handleSnooze}
+                    onArchive={handleArchive}
+                    onDetails={setSelectedAlert}
+                    isSelected={selectedAlerts.has(alert.id)}
+                    onSelect={handleAlertSelect}
+                  />
+                ))}
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-6 space-x-2">
+                <button
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:bg-gray-400"
+                  onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span className="px-4 py-2 text-gray-900 dark:text-gray-100">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:bg-gray-400"
+                  onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+            {selectedAlert && (
+              <AlertModal alert={selectedAlert} onClose={() => setSelectedAlert(null)} />
+            )}
+            {showNotificationSettings && (
+              <NotificationSettingsModal onClose={() => setShowNotificationSettings(false)} />
+            )}
+          </main>
+        </div>
+      );
+    };
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>

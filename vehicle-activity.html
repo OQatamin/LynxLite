@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vehicle Activity Report - Lynx Lite Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    /* Font Imports */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    /* Base Styles */
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
+      color: #1f2937;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    /* Header */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s ease;
+    }
+
+    /* Dark Mode Styles */
+    body.dark-mode {
+      background: linear-gradient(to bottom, #111827, #1f2937);
+      color: #d1d5db;
+    }
+    body.dark-mode header {
+      background: #1f2937;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    }
+    body.dark-mode .widget-card {
+      background: linear-gradient(145deg, #1f2937, #111827);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      color: #d1d5db;
+    }
+    body.dark-mode .report-table th {
+      background: #374151;
+      color: #d1d5db;
+    }
+    body.dark-mode .report-table td {
+      border-color: #374151;
+    }
+    body.dark-mode .report-table tr:hover {
+      background: #4b5563;
+    }
+    body.dark-mode .bg-gray-100 {
+      background: #1f2937 !important;
+    }
+    body.dark-mode .text-gray-500 {
+      color: #9ca3af !important;
+    }
+    body.dark-mode .text-gray-900 {
+      color: #d1d5db !important;
+    }
+    body.dark-mode .border-gray-300 {
+      border-color: #374151 !important;
+    }
+    body.dark-mode .bg-blue-600 {
+      background: #3b82f6 !important;
+    }
+    body.dark-mode .bg-gray-200 {
+      background: #374151 !important;
+    }
+
+    /* Widget Card */
+    .widget-card {
+      background: linear-gradient(145deg, #ffffff, #f9fafb);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+      border-radius: 12px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .widget-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Report Table */
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2rem;
+    }
+    .report-table th, .report-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+    .report-table th {
+      background: #f3f4f6;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .report-table th:hover {
+      background: #e5e7eb;
+    }
+    .report-table th.sort-asc::after {
+      content: ' ↑';
+    }
+    .report-table th.sort-desc::after {
+      content: ' ↓';
+    }
+    .report-table tr:hover {
+      background: #f1f5f9;
+      transition: background 0.2s ease;
+    }
+
+    /* Filter Modal */
+    .filter-modal {
+      transition: opacity 0.3s ease;
+    }
+    .filter-modal .bg-white {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      main {
+        padding: 1.5rem;
+      }
+      .widget-card {
+        padding: 1.5rem;
+      }
+      .report-table th, .report-table td {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+      }
+      .text-2xl {
+        font-size: 1.5rem;
+      }
+      .max-w-7xl {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+  <header class="bg-white shadow flex justify-between items-center px-6 py-4 z-30 fixed top-0 left-0 w-full" aria-label="Vehicle Activity Header">
+    <div class="flex items-center space-x-4">
+      <a href="Main Dashboard.html" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Back to Dashboard">
+        <i class="fas fa-arrow-left text-xl"></i>
+      </a>
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Vehicle Activity Report</h1>
+    </div>
+    <div class="flex items-center space-x-4">
+      <button id="filter-toggle" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Toggle Filter" tabindex="0">
+        <i class="fas fa-filter text-xl"></i>
+      </button>
+      <div class="relative">
+        <select id="export-format" class="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" aria-label="Export Format">
+          <option value="csv">Export as CSV</option>
+          <option value="pdf">Export as PDF</option>
+        </select>
+      </div>
+      <button id="export-activity" class="text-blue-600 hover:text-blue-700 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Export Activity" tabindex="0">
+        <i class="fas fa-download mr-2"></i>Export
+      </button>
+      <button id="dark-mode-toggle" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Toggle Dark Mode" tabindex="0">
+        <i class="fas fa-moon text-xl"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Filter Modal -->
+  <div id="filter-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 filter-modal" role="dialog" aria-label="Filter Activity Modal">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-96">
+      <h3 class="text-2xl font-bold text-gray-900 mb-6">Filter Activity</h3>
+      <div class="space-y-6">
+        <div>
+          <label for="vehicle-filter" class="block text-sm font-semibold text-gray-700 mb-2">Vehicle</label>
+          <select id="vehicle-filter" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" aria-label="Filter by Vehicle">
+            <option value="all">All</option>
+          </select>
+        </div>
+        <div>
+          <label for="driver-filter" class="block text-sm font-semibold text-gray-700 mb-2">Driver</label>
+          <select id="driver-filter" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" aria-label="Filter by Driver">
+            <option value="all">All</option>
+          </select>
+        </div>
+        <div>
+          <label for="status-filter" class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+          <select id="status-filter" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" aria-label="Filter by Status">
+            <option value="all">All</option>
+            <option value="Driving">Driving</option>
+            <option value="Idling">Idling</option>
+            <option value="Parked">Parked</option>
+            <option value="Offline">Offline</option>
+          </select>
+        </div>
+        <div>
+          <label for="group-filter" class="block text-sm font-semibold text-gray-700 mb-2">Vehicle Group</label>
+          <select id="group-filter" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" aria-label="Filter by Group">
+            <option value="all">All</option>
+            <option value="Delivery">Delivery Trucks</option>
+            <option value="Service">Service Vans</option>
+          </select>
+        </div>
+        <div>
+          <label for="date-range" class="block text-sm font-semibold text-gray-700 mb-2">Date Range</label>
+          <select id="date-range" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300" aria-label="Filter by Date Range">
+            <option value="all">All Time</option>
+            <option value="24h">Last 24 Hours</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+          </select>
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button id="filter-apply" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-all duration-300" tabindex="0">Apply</button>
+          <button id="filter-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:ring-2 focus:ring-gray-500 transition-all duration-300" tabindex="0">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="pt-24 px-6 max-w-7xl mx-auto">
+    <div class="widget-card p-8">
+      <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+        <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+          <i class="fas fa-chart-bar text-blue-600 mr-2"></i>Vehicle Activity Overview
+        </h2>
+        <div class="flex items-center gap-2">
+          <label for="quick-date-range" class="text-sm font-semibold text-gray-700 mr-2">Period:</label>
+          <select id="quick-date-range" class="border border-gray-300 px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+            <option value="all">All Time</option>
+            <option value="24h">Last 24 Hours</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-gray-100 p-4 rounded-lg">
+          <h3 class="text-sm font-semibold text-gray-700">Total Distance</h3>
+          <p id="total-distance" class="text-2xl font-bold text-blue-600">0 km</p>
+        </div>
+        <div class="bg-gray-100 p-4 rounded-lg">
+          <h3 class="text-sm font-semibold text-gray-700">Avg Fuel Efficiency</h3>
+          <p id="avg-efficiency" class="text-2xl font-bold text-green-600">0 km/L</p>
+        </div>
+        <div class="bg-gray-100 p-4 rounded-lg">
+          <h3 class="text-sm font-semibold text-gray-700">Active Vehicles</h3>
+          <p id="active-vehicles" class="text-2xl font-bold text-purple-600">0</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div class="col-span-1 md:col-span-2 flex justify-end mb-2">
+          <label for="chart-period" class="text-sm font-semibold text-gray-700 mr-2">Chart Period:</label>
+          <select id="chart-period" class="border border-gray-300 px-2 py-1 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+            <option value="24h">Last 24 Hours</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+          </select>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Total Distance (km)</h3>
+          <canvas id="distanceChart" height="120"></canvas>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Fuel Efficiency (km/L)</h3>
+          <canvas id="efficiencyChart" height="120"></canvas>
+        </div>
+      </div>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Vehicle Activity</h3>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th data-sort="vehicleId">Vehicle ID</th>
+            <th data-sort="driver">Driver</th>
+            <th data-sort="status">Status</th>
+            <th data-sort="distance">Distance (km)</th>
+            <th data-sort="efficiency">Fuel Efficiency (km/L)</th>
+            <th data-sort="lastUpdated">Last Updated</th>
+          </tr>
+        </thead>
+        <tbody id="activity-table-body"></tbody>
+      </table>
+      <div class="flex justify-between mt-6">
+        <button id="prev-page" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-300" disabled>Previous</button>
+        <span id="page-info" class="text-sm text-gray-600">Page 1</span>
+        <button id="next-page" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-300">Next</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Period selector logic
+    document.addEventListener('DOMContentLoaded', function() {
+      const quickDateRange = document.getElementById('quick-date-range');
+      if (quickDateRange) {
+        quickDateRange.value = filters.dateRange;
+        quickDateRange.addEventListener('change', function() {
+          filters.dateRange = this.value;
+          currentPage = 1;
+          renderActivityTable(currentPage);
+          renderCharts();
+        });
+      }
+    });
+    // Simulated vehicle activity data (replace with backend integration)
+    let vehicleActivity = Array.from({ length: 50 }, (_, i) => ({
+      vehicleId: `VEHICLE-${String(i + 1).padStart(3, '0')}`,
+      driver: `Driver ${i + 1}`,
+      status: ['Driving', 'Idling', 'Parked', 'Offline'][Math.floor(Math.random() * 4)],
+      distance: Math.floor(Math.random() * 200) + 50,
+      efficiency: (7 + Math.random() * 3).toFixed(1),
+      lastUpdated: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
+      group: i < 25 ? 'Delivery' : 'Service'
+    }));
+
+    // Pagination and sorting variables
+    const activitiesPerPage = 10;
+    let currentPage = 1;
+    let sortColumn = 'vehicleId';
+    let sortDirection = 'asc';
+    let filters = { vehicle: 'all', driver: 'all', status: 'all', group: 'all', dateRange: 'all' };
+
+    // Update summary metrics
+    function updateSummaryMetrics(filteredActivities) {
+      const totalDistance = filteredActivities.reduce((sum, a) => sum + a.distance, 0);
+      const avgEfficiency = filteredActivities.length ? (filteredActivities.reduce((sum, a) => sum + parseFloat(a.efficiency), 0) / filteredActivities.length).toFixed(1) : 0;
+      const activeVehicles = filteredActivities.length;
+      document.getElementById('total-distance').textContent = `${totalDistance} km`;
+      document.getElementById('avg-efficiency').textContent = `${avgEfficiency} km/L`;
+      document.getElementById('active-vehicles').textContent = activeVehicles;
+    }
+
+    // Render table rows with pagination
+    function renderActivityTable(page = 1) {
+      const tbody = document.getElementById('activity-table-body');
+      tbody.innerHTML = '';
+
+      // Apply filters
+      const filteredActivities = vehicleActivity.filter(activity => {
+        const matchesVehicle = filters.vehicle === 'all' || activity.vehicleId === filters.vehicle;
+        const matchesDriver = filters.driver === 'all' || activity.driver === filters.driver;
+        const matchesStatus = filters.status === 'all' || activity.status === filters.status;
+        const matchesGroup = filters.group === 'all' || activity.group === filters.group;
+        const now = new Date();
+        let dateMatch = true;
+        if (filters.dateRange === '24h') {
+          dateMatch = (now - new Date(activity.lastUpdated)) <= 24 * 60 * 60 * 1000;
+        } else if (filters.dateRange === '7d') {
+          dateMatch = (now - new Date(activity.lastUpdated)) <= 7 * 24 * 60 * 60 * 1000;
+        } else if (filters.dateRange === '30d') {
+          dateMatch = (now - new Date(activity.lastUpdated)) <= 30 * 24 * 60 * 60 * 1000;
+        }
+        return matchesVehicle && matchesDriver && matchesStatus && matchesGroup && dateMatch;
+      });
+
+      // Sort activities
+      filteredActivities.sort((a, b) => {
+        let valA = a[sortColumn];
+        let valB = b[sortColumn];
+        if (sortColumn === 'distance' || sortColumn === 'efficiency') {
+          valA = parseFloat(valA);
+          valB = parseFloat(valB);
+        } else if (sortColumn === 'lastUpdated') {
+          valA = new Date(valA);
+          valB = new Date(valB);
+        }
+        if (sortDirection === 'asc') {
+          return valA > valB ? 1 : -1;
+        } else {
+          return valA < valB ? 1 : -1;
+        }
+      });
+
+      // Update summary metrics
+      updateSummaryMetrics(filteredActivities);
+
+      // Paginate activities
+      const start = (page - 1) * activitiesPerPage;
+      const end = start + activitiesPerPage;
+      const paginatedActivities = filteredActivities.slice(start, end);
+
+      // Render table rows
+      paginatedActivities.forEach(activity => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${activity.vehicleId}</td>
+          <td>${activity.driver}</td>
+          <td class="${activity.status === 'Driving' ? 'text-green-600' : activity.status === 'Idling' ? 'text-yellow-500' : activity.status === 'Parked' ? 'text-blue-600' : 'text-gray-500'}">${activity.status}</td>
+          <td>${activity.distance}</td>
+          <td>${activity.efficiency}</td>
+          <td>${new Date(activity.lastUpdated).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Update pagination controls
+      document.getElementById('page-info').textContent = `Page ${page}`;
+      document.getElementById('prev-page').disabled = page === 1;
+      document.getElementById('next-page').disabled = end >= filteredActivities.length;
+    }
+
+    // Render charts
+    let chartPeriod = '7d';
+    function renderCharts() {
+      const now = new Date();
+      // Determine period in ms
+      let periodMs = 7 * 24 * 60 * 60 * 1000;
+      if (chartPeriod === '24h') periodMs = 24 * 60 * 60 * 1000;
+      else if (chartPeriod === '30d') periodMs = 30 * 24 * 60 * 60 * 1000;
+
+      const filteredActivities = vehicleActivity.filter(activity => {
+        const matchesVehicle = filters.vehicle === 'all' || activity.vehicleId === filters.vehicle;
+        const matchesDriver = filters.driver === 'all' || activity.driver === filters.driver;
+        const matchesStatus = filters.status === 'all' || activity.status === filters.status;
+        const matchesGroup = filters.group === 'all' || activity.group === filters.group;
+        let dateMatch = (now - new Date(activity.lastUpdated)) <= periodMs;
+        return matchesVehicle && matchesDriver && matchesStatus && matchesGroup && dateMatch;
+      });
+
+      // Aggregate by day for line chart
+      const dayMap = {};
+      filteredActivities.forEach(a => {
+        const d = new Date(a.lastUpdated);
+        const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        if (!dayMap[key]) dayMap[key] = { totalDistance: 0, totalEfficiency: 0, count: 0 };
+        dayMap[key].totalDistance += a.distance;
+        dayMap[key].totalEfficiency += parseFloat(a.efficiency);
+        dayMap[key].count++;
+      });
+      const sortedDays = Object.keys(dayMap).sort();
+      const distanceData = sortedDays.map(day => dayMap[day].totalDistance);
+      const efficiencyData = sortedDays.map(day => dayMap[day].count ? (dayMap[day].totalEfficiency / dayMap[day].count).toFixed(2) : 0);
+
+      // Destroy previous charts if any
+      if (window._distanceChart) window._distanceChart.destroy();
+      if (window._efficiencyChart) window._efficiencyChart.destroy();
+
+      window._distanceChart = new Chart(document.getElementById('distanceChart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: sortedDays,
+          datasets: [{
+            label: 'Total Distance (km)',
+            data: distanceData,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37,99,235,0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true },
+            tooltip: { enabled: true }
+          },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Distance (km)' } },
+            x: { title: { display: true, text: 'Date' }, ticks: { maxTicksLimit: 10, autoSkip: true } }
+          }
+        }
+      });
+      window._efficiencyChart = new Chart(document.getElementById('efficiencyChart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: sortedDays,
+          datasets: [{
+            label: 'Avg Fuel Efficiency (km/L)',
+            data: efficiencyData,
+            borderColor: '#059669',
+            backgroundColor: 'rgba(16,185,129,0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true },
+            tooltip: { enabled: true }
+          },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Fuel Efficiency (km/L)' } },
+            x: { title: { display: true, text: 'Date' }, ticks: { maxTicksLimit: 10, autoSkip: true } }
+          }
+        }
+      });
+    }
+    // Chart period selector event
+    document.addEventListener('DOMContentLoaded', function() {
+      const chartPeriodSel = document.getElementById('chart-period');
+      if (chartPeriodSel) {
+        chartPeriodSel.value = chartPeriod;
+        chartPeriodSel.addEventListener('change', function() {
+          chartPeriod = this.value;
+          renderCharts();
+        });
+      }
+    });
+
+    // Populate filter dropdowns
+    function populateFilters() {
+      const vehicleFilter = document.getElementById('vehicle-filter');
+      const driverFilter = document.getElementById('driver-filter');
+      const vehicles = [...new Set(vehicleActivity.map(a => a.vehicleId))];
+      const drivers = [...new Set(vehicleActivity.map(a => a.driver))];
+      vehicles.forEach(vehicle => {
+        const option = document.createElement('option');
+        option.value = vehicle;
+        option.textContent = vehicle;
+        vehicleFilter.appendChild(option);
+      });
+      drivers.forEach(driver => {
+        const option = document.createElement('option');
+        option.value = driver;
+        option.textContent = driver;
+        driverFilter.appendChild(option);
+      });
+    }
+
+    // Filter controls
+    const filterModal = document.getElementById('filter-modal');
+    const filterToggle = document.getElementById('filter-toggle');
+    const filterApply = document.getElementById('filter-apply');
+    const filterCancel = document.getElementById('filter-cancel');
+
+    filterToggle.addEventListener('click', () => filterModal.classList.toggle('hidden'));
+
+    filterApply.addEventListener('click', () => {
+      filters.vehicle = document.getElementById('vehicle-filter').value;
+      filters.driver = document.getElementById('driver-filter').value;
+      filters.status = document.getElementById('status-filter').value;
+      filters.group = document.getElementById('group-filter').value;
+      filters.dateRange = document.getElementById('date-range').value;
+      currentPage = 1;
+      renderActivityTable(currentPage);
+      renderCharts();
+      filterModal.classList.add('hidden');
+    });
+
+    filterCancel.addEventListener('click', () => {
+      filterModal.classList.add('hidden');
+    });
+
+    // Sorting controls
+    document.querySelectorAll('.report-table th').forEach(th => {
+      th.addEventListener('click', () => {
+        const column = th.dataset.sort;
+        if (sortColumn === column) {
+          sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortColumn = column;
+          sortDirection = 'asc';
+        }
+        document.querySelectorAll('.report-table th').forEach(header => {
+          header.classList.remove('sort-asc', 'sort-desc');
+        });
+        th.classList.add(`sort-${sortDirection}`);
+        renderActivityTable(currentPage);
+      });
+    });
+
+    // Pagination controls
+    document.getElementById('prev-page').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderActivityTable(currentPage);
+      }
+    });
+
+    document.getElementById('next-page').addEventListener('click', () => {
+      currentPage++;
+      renderActivityTable(currentPage);
+    });
+
+    // Export activity data
+    document.getElementById('export-activity').addEventListener('click', () => {
+      const format = document.getElementById('export-format').value;
+      const filteredActivities = vehicleActivity.filter(activity => {
+        const matchesVehicle = filters.vehicle === 'all' || activity.vehicleId === filters.vehicle;
+        const matchesDriver = filters.driver === 'all' || activity.driver === filters.driver;
+        const matchesStatus = filters.status === 'all' || activity.status === filters.status;
+        const matchesGroup = filters.group === 'all' || activity.group === filters.group;
+        const now = new Date();
+        let dateMatch = true;
+        if (filters.dateRange === '24h') {
+          dateMatch = (now - new Date(activity.lastUpdated)) <= 24 * 60 * 60 * 1000;
+        } else if (filters.dateRange === '7d') {
+          dateMatch = (now - new Date(activity.lastUpdated)) <= 7 * 24 * 60 * 60 * 1000;
+        } else if (filters.dateRange === '30d') {
+          dateMatch = (now - new Date(activity.lastUpdated)) <= 30 * 24 * 60 * 60 * 1000;
+        }
+        return matchesVehicle && matchesDriver && matchesStatus && matchesGroup && dateMatch;
+      });
+
+      if (format === 'csv') {
+        const csvContent = [
+          'Vehicle ID,Driver,Status,Distance (km),Fuel Efficiency (km/L),Last Updated,Group',
+          ...filteredActivities.map(a => `${a.vehicleId},${a.driver},${a.status},${a.distance},${a.efficiency},${new Date(a.lastUpdated).toISOString()},${a.group}`)
+        ].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'vehicle_activity.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } else if (format === 'pdf') {
+        const element = document.querySelector('.widget-card');
+        const opt = {
+          margin: 0.5,
+          filename: 'vehicle_activity_report.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        html2pdf().from(element).set(opt).save();
+      }
+    });
+
+    // Dark mode toggle
+    document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      const isDarkMode = document.body.classList.contains('dark-mode');
+      localStorage.setItem('darkMode', isDarkMode);
+      document.getElementById('dark-mode-toggle').innerHTML = `<i class="fas fa-${isDarkMode ? 'sun' : 'moon'} text-xl"></i>`;
+    });
+
+    // Load dark mode preference
+    if (localStorage.getItem('darkMode') === 'true') {
+      document.body.classList.add('dark-mode');
+      document.getElementById('dark-mode-toggle').innerHTML = '<i class="fas fa-sun text-xl"></i>';
+    }
+
+    // Simulated WebSocket for real-time updates
+    function simulateWebSocketUpdates() {
+      setInterval(() => {
+        const randomIndex = Math.floor(Math.random() * vehicleActivity.length);
+        const activity = vehicleActivity[randomIndex];
+        activity.distance += Math.floor(Math.random() * 10);
+        activity.efficiency = (7 + Math.random() * 3).toFixed(1);
+        activity.status = ['Driving', 'Idling', 'Parked', 'Offline'][Math.floor(Math.random() * 4)];
+        activity.lastUpdated = new Date();
+        renderActivityTable(currentPage);
+        renderCharts();
+      }, 30000); // Simulate update every 30 seconds
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      populateFilters();
+      renderActivityTable();
+      renderCharts();
+      simulateWebSocketUpdates();
+    });
+  </script>
+</body>
+</html>

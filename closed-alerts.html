@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Closed Alerts - Lynx Lite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.2/babel.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .dark body {
+      background: linear-gradient(to bottom, #1f2937, #111827);
+      color: #f3f4f6;
+    }
+    .alert-card {
+      background: linear-gradient(145deg, #fff, #f8fafc);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-radius: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border-left: 8px solid #64748b;
+    }
+    .dark .alert-card {
+      background: linear-gradient(145deg, #374151, #1f2937);
+    }
+    .alert-card.critical { border-left-color: #DC2626; }
+    .alert-card.warning { border-left-color: #EAB308; }
+    .alert-card.info { border-left-color: #2563eb; }
+    .alert-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(37,99,235,0.2);
+    }
+    .alert-type-chip {
+      font-size: 0.85rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      margin-right: 0.5rem;
+      display: inline-block;
+    }
+    .chip-critical { background: #fee2e2; color: #DC2626; }
+    .chip-warning { background: #fef9c3; color: #EAB308; }
+    .chip-info { background: #dbeafe; color: #2563eb; }
+    .chip-system { background: #e0e7ff; color: #6366f1; }
+    .dark .chip-critical { background: #7f1d1d; color: #fee2e2; }
+    .dark .chip-warning { background: #854d0e; color: #fef9c3; }
+    .dark .chip-info { background: #1e40af; color: #dbeafe; }
+    .dark .chip-system { background: #3730a3; color: #e0e7ff; }
+    .alert-timestamp { font-size: 0.85rem; color: #64748b; }
+    .dark .alert-timestamp { color: #9ca3af; }
+    .alert-list { max-height: 60vh; overflow-y: auto; }
+    .modal {
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .dark .modal-content {
+      background: #1f2937;
+      color: #f3f4f6;
+    }
+    @media (max-width: 768px) {
+      .alert-list { max-height: 50vh; }
+      .alert-actions { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Simulated alert data with resolution status
+    const initialAlerts = Array.from({ length: 40 }, (_, i) => ({
+      id: `ALERT-${i+1}`,
+      vehicleId: i % 5 === 0 ? 'SYSTEM' : `VEHICLE-${String(i % 20 + 1).padStart(3, '0')}`,
+      type: i % 5 === 0 ? 'system' : (i % 3 === 0 ? 'critical' : i % 2 === 0 ? 'warning' : 'info'),
+      message: i % 5 === 0 ? `System update scheduled` : i % 3 === 0 ? `Low Fuel at ${(20 + Math.random()*10).toFixed(1)}%` : i % 2 === 0 ? `High Engine Temp at ${(120 + Math.random()*10).toFixed(1)}°C` : `Low Signal at ${(15 + Math.random()*5).toFixed(1)}%`,
+      timestamp: new Date(Date.now() - Math.random()*3600000),
+      resolved: true,
+      resolutionStatus: i % 2 === 0 ? 'resolved' : 'archived',
+      resolutionTimestamp: new Date(Date.now() - Math.random()*3600000),
+      snoozed: false,
+      snoozeUntil: null,
+      details: `Additional details for alert ${i+1}. This could include location data, sensor readings, or diagnostic codes.`
+    }));
+
+    const AlertCard = ({ alert, onDetails, onReopen }) => (
+      <div className={`alert-card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${alert.type}`}>
+        <div className="flex-1">
+          <div className="mb-2 flex items-center gap-2">
+            <span className={`alert-type-chip chip-${alert.type}`}>
+              {alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}
+            </span>
+            <span className="font-bold text-gray-900 dark:text-gray-100">{alert.vehicleId}</span>
+            <span className="alert-timestamp">
+              {alert.timestamp.toLocaleString()}
+            </span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              ({alert.resolutionStatus.charAt(0).toUpperCase() + alert.resolutionStatus.slice(1)})
+            </span>
+          </div>
+          <div className="text-lg text-gray-700 dark:text-gray-300">{alert.message}</div>
+        </div>
+        <div className="alert-actions flex gap-2">
+          <button
+            className="details-btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            title="View Details"
+            onClick={() => onDetails(alert)}
+          >
+            <i className="fas fa-info-circle mr-1"></i>Details
+          </button>
+          <button
+            className="reopen-btn bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            title="Reopen Alert"
+            onClick={() => onReopen(alert.id)}
+          >
+            <i className="fas fa-undo mr-1"></i>Reopen
+          </button>
+        </div>
+      </div>
+    );
+
+    const AlertModal = ({ alert, onClose }) => (
+      <div className="modal fixed inset-0 flex items-center justify-center z-50">
+        <div className="modal-content p-6 w-full max-w-lg">
+          <h2 className="text-xl font-bold mb-4">Alert Details</h2>
+          <p><strong>Vehicle ID:</strong> {alert.vehicleId}</p>
+          <p><strong>Type:</strong> {alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}</p>
+          <p><strong>Message:</strong> {alert.message}</p>
+          <p><strong>Timestamp:</strong> {alert.timestamp.toLocaleString()}</p>
+          <p><strong>Resolution Status:</strong> {alert.resolutionStatus.charAt(0).toUpperCase() + alert.resolutionStatus.slice(1)}</p>
+          <p><strong>Resolution Timestamp:</strong> {alert.resolutionTimestamp.toLocaleString()}</p>
+          <p><strong>Details:</strong> {alert.details}</p>
+          <button
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+
+    const App = () => {
+      const [alerts, setAlerts] = useState(() => {
+        const saved = localStorage.getItem('closedAlerts');
+        return saved ? JSON.parse(saved, (key, value) => {
+          if (key === 'timestamp' || key === 'snoozeUntil' || key === 'resolutionTimestamp') {
+            return value ? new Date(value) : null;
+          }
+          return value;
+        }).filter(a => a.resolved) : initialAlerts;
+      });
+      const [search, setSearch] = useState('');
+      const [typeFilter, setTypeFilter] = useState('');
+      const [sortBy, setSortBy] = useState('timestamp');
+      const [sortOrder, setSortOrder] = useState('desc');
+      const [currentPage, setCurrentPage] = useState(1);
+      const [darkMode, setDarkMode] = useState(false);
+      const [selectedAlert, setSelectedAlert] = useState(null);
+      const [isLoading, setIsLoading] = useState(true);
+      const alertsPerPage = 10;
+
+      useEffect(() => {
+        localStorage.setItem('closedAlerts', JSON.stringify(alerts));
+        setIsLoading(false);
+      }, [alerts]);
+
+      useEffect(() => {
+        document.body.classList.toggle('dark', darkMode);
+      }, [darkMode]);
+
+      const handleReopen = (id) => {
+        setAlerts(alerts.map(a => a.id === id ? { ...a, resolved: false, resolutionStatus: null, resolutionTimestamp: null } : a));
+      };
+
+      const handleExport = () => {
+        const csv = [
+          ['ID', 'Vehicle ID', 'Type', 'Message', 'Timestamp', 'Resolution Status', 'Resolution Timestamp', 'Details'].join(','),
+          ...alerts.map(a =>
+            [
+              a.id,
+              a.vehicleId,
+              a.type,
+              `"${a.message.replace(/"/g, '""')}"`,
+              a.timestamp.toISOString(),
+              a.resolutionStatus,
+              a.resolutionTimestamp.toISOString(),
+              `"${a.details.replace(/"/g, '""')}"`
+            ].join(',')
+          )
+        ].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'closed_alerts.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      const filteredAlerts = alerts
+        .filter(a =>
+          (search === '' ||
+            a.message.toLowerCase().includes(search.toLowerCase()) ||
+            a.vehicleId.toLowerCase().includes(search.toLowerCase())) &&
+          (typeFilter === '' || a.type === typeFilter)
+        )
+        .sort((a, b) => {
+          const multiplier = sortOrder === 'asc' ? 1 : -1;
+          if (sortBy === 'timestamp') {
+            return multiplier * (a.timestamp - b.timestamp);
+          } else if (sortBy === 'type') {
+            return multiplier * a.type.localeCompare(b.type);
+          } else if (sortBy === 'vehicleId') {
+            return multiplier * a.vehicleId.localeCompare(b.vehicleId);
+          } else if (sortBy === 'resolutionStatus') {
+            return multiplier * a.resolutionStatus.localeCompare(b.resolutionStatus);
+          } else if (sortBy === 'resolutionTimestamp') {
+            return multiplier * (a.resolutionTimestamp - b.resolutionTimestamp);
+          }
+          return 0;
+        });
+
+      const totalPages = Math.ceil(filteredAlerts.length / alertsPerPage);
+      const paginatedAlerts = filteredAlerts.slice(
+        (currentPage - 1) * alertsPerPage,
+        currentPage * alertsPerPage
+      );
+
+      return (
+        <div className={darkMode ? 'dark' : ''}>
+          <header className="bg-white dark:bg-gray-800 shadow flex flex-col md:flex-row justify-between items-center px-6 py-4 z-30 fixed top-0 left-0 w-full">
+            <div className="flex items-center space-x-4 mb-4 md:mb-0">
+              <a href="Main Dashboard.html" className="text-blue-600 hover:text-blue-800 font-bold text-xl">
+                <i className="fas fa-arrow-left mr-2"></i>Back to Dashboard
+              </a>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Closed Alerts</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <input
+                type="text"
+                placeholder="Search alerts, vehicle, type..."
+                className="border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-lg w-64 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:bg-gray-700 dark:text-gray-100"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Search Alerts"
+              />
+              <select
+                className="border border-gray-300 dark:border-gray-600 px-2 py-1 rounded-lg text-sm dark:bg-gray-700 dark:text-gray-100"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="">All Types</option>
+                <option value="critical">Critical</option>
+                <option value="warning">Warning</option>
+                <option value="info">Info</option>
+                <option value="system">System</option>
+              </select>
+              <select
+                className="border border-gray-300 dark:border-gray-600 px-2 py-1 rounded-lg text-sm dark:bg-gray-700 dark:text-gray-100"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="timestamp">Sort by Timestamp</option>
+                <option value="type">Sort by Type</option>
+                <option value="vehicleId">Sort by Vehicle ID</option>
+                <option value="resolutionStatus">Sort by Resolution Status</option>
+                <option value="resolutionTimestamp">Sort by Resolution Timestamp</option>
+              </select>
+              <button
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              >
+                <i className={`fas fa-sort-${sortOrder === 'asc' ? 'up' : 'down'} mr-1`}></i>
+                {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+              </button>
+              <button
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                onClick={handleExport}
+              >
+                <i className="fas fa-download mr-1"></i>Export CSV
+              </button>
+              <button
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                onClick={() => setDarkMode(!darkMode)}
+              >
+                <i className={`fas fa-${darkMode ? 'sun' : 'moon'} mr-1`}></i>
+                {darkMode ? 'Light' : 'Dark'} Mode
+              </button>
+            </div>
+          </header>
+          <main className="pt-24 px-6">
+            {isLoading ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 mt-12">
+                Loading alerts...
+              </div>
+            ) : paginatedAlerts.length === 0 ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 mt-12">
+                No closed alerts found.
+              </div>
+            ) : (
+              <div className="alert-list space-y-4">
+                {paginatedAlerts.map(alert => (
+                  <AlertCard
+                    key={alert.id}
+                    alert={alert}
+                    onDetails={setSelectedAlert}
+                    onReopen={handleReopen}
+                  />
+                ))}
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-6 space-x-2">
+                <button
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:bg-gray-400"
+                  onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span className="px-4 py-2 text-gray-900 dark:text-gray-100">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:bg-gray-400"
+                  onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+            {selectedAlert && (
+              <AlertModal alert={selectedAlert} onClose={() => setSelectedAlert(null)} />
+            )}
+          </main>
+        </div>
+      );
+    };
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>

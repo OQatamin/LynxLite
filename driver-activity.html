@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Driver Activity Report - Lynx Lite Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
+      color: #1f2937;
+    }
+    .widget-card {
+      background: linear-gradient(145deg, #ffffff, #f9fafb);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+      border-radius: 12px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .widget-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2rem;
+    }
+    .report-table th, .report-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+    .report-table th {
+      background: #f3f4f6;
+      font-weight: 600;
+      color: #374151;
+    }
+    .report-table tr:hover {
+      background: #f1f5f9;
+    }
+    @media (max-width: 768px) {
+      .widget-card { padding: 1.5rem; }
+      .report-table th, .report-table td { padding: 0.5rem; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+  <header class="bg-white shadow flex justify-between items-center px-6 py-4 z-30 fixed top-0 left-0 w-full" aria-label="Driver Activity Header">
+    <div class="flex items-center space-x-4">
+      <a href="Main Dashboard.html" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Back to Dashboard">
+        <i class="fas fa-arrow-left text-xl"></i>
+      </a>
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Driver Activity Report</h1>
+    </div>
+    <div class="flex items-center space-x-4">
+      <button id="export-driver-activity" class="text-blue-600 hover:text-blue-700 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Export Driver Activity" tabindex="0">
+        <i class="fas fa-download mr-2"></i>Export CSV
+      </button>
+    </div>
+  </header>
+  <main class="pt-24 px-6 max-w-7xl mx-auto">
+    <div class="widget-card p-8 mb-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Filter Drivers</h2>
+      <div class="flex flex-col md:flex-row gap-4 mb-6">
+        <div class="flex-1">
+          <label for="driver-filter" class="block text-sm font-medium text-gray-700">Driver</label>
+          <select id="driver-filter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+            <option value="All">All Drivers</option>
+            <option value="Driver 1">Driver 1</option>
+            <option value="Driver 2">Driver 2</option>
+            <option value="Driver 3">Driver 3</option>
+            <option value="Driver 4">Driver 4</option>
+            <option value="Driver 5">Driver 5</option>
+          </select>
+        </div>
+        <div class="flex items-end gap-2">
+          <button id="apply-filter" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Apply</button>
+          <button id="clear-filter" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="widget-card p-8">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+          <i class="fas fa-user-clock text-blue-600 mr-2"></i>Driver Activity Overview
+        </h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Total Driving Hours</h3>
+          <canvas id="hoursChart" height="120"></canvas>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Harsh Events</h3>
+          <canvas id="harshChart" height="120"></canvas>
+        </div>
+      </div>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Driver Activity</h3>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Driver</th>
+            <th>Vehicle ID</th>
+            <th>Total Hours</th>
+            <th>Distance (km)</th>
+            <th>Harsh Events</th>
+            <th>Safe Driving Score</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+        <tbody id="driver-activity-table-body">
+          <!-- Activity rows will be inserted here -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <script>
+    // Driver activity data
+    const driverActivity = [
+      { driver: 'Driver 1', vehicleId: 'VEHICLE-001', hours: 8, distance: 120, harshEvents: 2, lastUpdated: new Date(), score: 85 },
+      { driver: 'Driver 2', vehicleId: 'VEHICLE-023', hours: 6, distance: 85, harshEvents: 1, lastUpdated: new Date(), score: 90 },
+      { driver: 'Driver 3', vehicleId: 'VEHICLE-045', hours: 4, distance: 60, harshEvents: 0, lastUpdated: new Date(), score: 95 },
+      { driver: 'Driver 4', vehicleId: 'VEHICLE-078', hours: 9, distance: 150, harshEvents: 3, lastUpdated: new Date(), score: 75 },
+      { driver: 'Driver 5', vehicleId: 'VEHICLE-099', hours: 7, distance: 200, harshEvents: 1, lastUpdated: new Date(), score: 88 }
+    ];
+
+    // Render table
+    function renderDriverActivityTable(data) {
+      const tbody = document.getElementById('driver-activity-table-body');
+      tbody.innerHTML = '';
+      data.forEach(activity => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${activity.driver}</td>
+          <td>${activity.vehicleId}</td>
+          <td>${activity.hours}</td>
+          <td>${activity.distance}</td>
+          <td>${activity.harshEvents}</td>
+          <td><span class="score-badge px-2 py-1 rounded-full text-sm ${activity.score >= 90 ? 'bg-green-100 text-green-800' : activity.score >= 80 ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}">${activity.score}</span></td>
+          <td>${new Date(activity.lastUpdated).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Render charts
+    function renderCharts(data) {
+      const hoursData = data.map(a => a.hours);
+      const harshData = data.map(a => a.harshEvents);
+      const labels = data.map(a => a.driver);
+      new Chart(document.getElementById('hoursChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Total Hours',
+            data: hoursData,
+            backgroundColor: '#3b82f6'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } }
+        }
+      });
+      new Chart(document.getElementById('harshChart').getContext('2d'), {
+        type  : 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Harsh Events',
+            data: harshData,
+            backgroundColor: '#ef4444'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // Filter functionality
+    function filterDriverActivity() {
+      const driverFilter = document.getElementById('driver-filter').value;
+      const filteredData = driverFilter === 'All' ? driverActivity : driverActivity.filter(activity => activity.driver === driverFilter);
+      renderDriverActivityTable(filteredData);
+      renderCharts(filteredData);
+    }
+
+    // Export as CSV
+    document.getElementById('export-driver-activity').addEventListener('click', () => {
+      const driverFilter = document.getElementById('driver-filter').value;
+      const dataToExport = driverFilter === 'All' ? driverActivity : driverActivity.filter(activity => activity.driver === driverFilter);
+      const csvContent = [
+        'Driver,Vehicle ID,Total Hours,Distance (km),Harsh Events,Safe Driving Score,Last Updated',
+        ...dataToExport.map(a => `${a.driver},${a.vehicleId},${a.hours},${a.distance},${a.harshEvents},${a.score},${new Date(a.lastUpdated).toISOString()}`)
+      ].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'driver_activity.csv';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+
+    // Event listeners
+    document.getElementById('apply-filter').addEventListener('click', filterDriverActivity);
+    document.getElementById('clear-filter').addEventListener('click', () => {
+      document.getElementById('driver-filter').value = 'All';
+      filterDriverActivity();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderDriverActivityTable(driverActivity);
+      renderCharts(driverActivity);
+    });
+  </script>
+</body>
+</html>

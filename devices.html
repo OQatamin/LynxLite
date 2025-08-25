@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device Health - Lynx Lite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
+    }
+    body.dark-mode {
+      background: linear-gradient(to bottom, #18181b, #27272a);
+      color: #e5e7eb;
+    }
+    body.dark-mode header {
+      background: linear-gradient(to right, #18181b, #27272a);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    body.dark-mode #sidebar {
+      background: linear-gradient(180deg, #0f172a, #1e293b);
+    }
+    body.dark-mode .widget-card {
+      background: #23272f !important;
+      color: #e5e7eb !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    body.dark-mode .bg-white {
+      background: #23272f !important;
+      color: #e5e7eb !important;
+    }
+    body.dark-mode .text-gray-900 {
+      color: #e5e7eb !important;
+    }
+    body.dark-mode .text-gray-700 {
+      color: #e5e7eb !important;
+    }
+    body.dark-mode .border-gray-300 {
+      border-color: #334155 !important;
+    }
+    body.dark-mode .bg-blue-600 {
+      background: #2563eb !important;
+    }
+    body.dark-mode .bg-blue-700 {
+      background: #1e40af !important;
+    }
+    body.dark-mode .shadow {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+    }
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 30;
+    }
+    #sidebar {
+      position: fixed;
+      top: 4rem;
+      left: 0;
+      height: calc(100vh - 4rem);
+      z-index: 20;
+      background: linear-gradient(180deg, #1e40af, #1e3a8a);
+      transition: all 0.3s ease-in-out;
+    }
+    #main-content-container {
+      transition: margin-left 0.3s ease-in-out;
+      margin-left: 16rem;
+      padding-top: 5rem;
+    }
+    #sidebar.w-16 .nav-text {
+      opacity: 0;
+      display: none;
+    }
+    .device-status-chip.selected {
+      box-shadow: 0 0 0 2px #2563eb;
+    }
+    .chip-online { background: #16A34A; color: #fff; }
+    .chip-offline { background: #DC2626; color: #fff; }
+    .chip-warning { background: #EAB308; color: #fff; }
+    .chip-error { background: #7F1D1D; color: #fff; }
+    .toast {
+      transition: all 0.3s ease-in-out;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      background: #fff;
+      color: #1e293b;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      min-width: 220px;
+      max-width: 350px;
+      pointer-events: auto;
+    }
+    .toast.success { border-left: 6px solid #16A34A; }
+    .toast.info { border-left: 6px solid #2563eb; }
+    .toast.error { border-left: 6px solid #DC2626; }
+    .toast.hidden {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    .help-tooltip {
+      position: absolute;
+      background: #23272f;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      z-index: 50;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      display: none;
+    }
+    .help-icon:focus + .help-tooltip,
+    .help-icon:hover + .help-tooltip {
+      display: block;
+    }
+    .bulk-modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bulk-modal-content {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      padding: 2rem;
+      min-width: 320px;
+      max-width: 90vw;
+    }
+    .bulk-modal-content h3 { font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; }
+    .bulk-modal-content .device-list { max-height: 200px; overflow-y: auto; margin-bottom: 1rem; }
+    .bulk-modal-content .actions { display: flex; gap: 1rem; }
+    .bulk-modal-content .actions button { flex: 1; }
+    .bulk-modal-content .close-btn { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; color: #2563eb; cursor: pointer; }
+    /* Table improvements */
+    table { border-collapse: separate; border-spacing: 0; }
+    th, td { border-bottom: 1px solid #e5e7eb; }
+    th { background: #f1f5f9; font-weight: 600; }
+    tr:last-child td { border-bottom: none; }
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr { display: block; }
+      th, td { padding: 0.5rem 1rem; }
+      tr { margin-bottom: 1rem; }
+    }
+    /* Chart layout */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 768px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+  <header class="bg-white shadow flex justify-between items-center px-6 py-4 z-30" aria-label="Dashboard Header">
+    <div class="flex items-center space-x-4">
+      <button id="sidebar-toggle" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle Sidebar" tabindex="0">
+        <i class="fas fa-bars text-xl"></i>
+      </button>
+      <h1 class="text-2xl font-bold text-gray-900">Device Health</h1>
+    </div>
+    <div class="flex items-center space-x-4">
+      <button id="dark-mode-toggle" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle Dark Mode" tabindex="0">
+        <i class="fas fa-moon"></i>
+      </button>
+      <div class="relative">
+        <input type="text" id="device-search" placeholder="Search Device, Serial, Location..." class="border border-gray-300 px-4 py-2 rounded-lg w-64 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" aria-label="Search">
+        <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+      </div>
+      <button id="bulk-action-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500" aria-label="Bulk Actions" tabindex="0">
+        <i class="fas fa-tasks mr-1"></i> Bulk Actions
+      </button>
+      <div class="relative">
+        <button id="user-menu-button" class="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="User Menu" tabindex="0">
+          <i class="fas fa-user"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex">
+    <aside id="sidebar" class="w-64 text-white flex flex-col py-6 px-4" aria-label="Main Navigation">
+      <nav class="space-y-4">
+        <a href="Main Dashboard.html" class="nav-link group flex items-center px-3 py-2 text-sm font-semibold text-white bg-blue-700 rounded-lg" role="menuitem">
+          <i class="fas fa-tachometer-alt fa-fw mr-3"></i><span class="nav-text">Dashboard</span>
+        </a>
+        <a href="#" class="nav-link group flex items-center px-3 py-2 text-sm font-medium text-blue-200 rounded-lg hover:text-white hover:bg-blue-700" role="menuitem">
+          <i class="fas fa-satellite-dish fa-fw mr-3"></i><span class="nav-text">Device Health</span>
+        </a>
+        <a href="#" class="nav-link group flex items-center px-3 py-2 text-sm font-medium text-blue-200 rounded-lg hover:text-white hover:bg-blue-700" role="menuitem">
+          <i class="fas fa-cogs fa-fw mr-3"></i><span class="nav-text">Settings</span>
+        </a>
+        <a href="#" class="nav-link group flex items-center px-3 py-2 text-sm font-medium text-blue-200 rounded-lg hover:text-white hover:bg-blue-700" role="menuitem">
+          <i class="fas fa-question-circle fa-fw mr-3"></i><span class="nav-text">Help & Support</span>
+        </a>
+      </nav>
+    </aside>
+    <main id="main-content-container" class="flex-1 p-8" aria-label="Main Content" style="margin-left: 16rem;">
+      <!-- Industry Insights & Expert Comments -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-blue-50 dark:bg-blue-900 border-l-4 border-blue-600 p-6 rounded-lg shadow flex flex-col gap-2">
+          <div class="flex items-center mb-2">
+            <i class="fas fa-lightbulb text-blue-600 text-2xl mr-2"></i>
+            <span class="font-bold text-blue-800 dark:text-blue-200 text-lg">Device Health Industry Insights</span>
+          </div>
+          <ul class="list-disc ml-6 text-blue-900 dark:text-blue-100 text-sm">
+            <li>Predictive maintenance and real-time monitoring are essential for minimizing device downtime and operational disruptions.</li>
+            <li>IoT device health dashboards help organizations proactively address battery, signal, and error issues before they impact service.</li>
+            <li>Bulk actions and remote firmware updates streamline device management across large fleets.</li>
+            <li>Location-based analytics enable rapid troubleshooting and asset tracking for distributed devices.</li>
+          </ul>
+        </div>
+        <div class="bg-purple-50 dark:bg-purple-900 border-l-4 border-purple-600 p-6 rounded-lg shadow flex flex-col gap-2">
+          <div class="flex items-center mb-2">
+            <i class="fas fa-user-tie text-purple-600 text-2xl mr-2"></i>
+            <span class="font-bold text-purple-800 dark:text-purple-200 text-lg">Expert Comments</span>
+          </div>
+          <ul class="list-disc ml-6 text-purple-900 dark:text-purple-100 text-sm">
+            <li>"Automated health checks and predictive alerts are best practices for modern IoT device management."</li>
+            <li>"Bulk firmware updates and remote restarts reduce field service costs and improve uptime."</li>
+            <li>"Dashboards that visualize device status, location, and error history empower teams to act quickly and efficiently."</li>
+            <li>"Integrating device health with maintenance scheduling ensures long-term reliability and compliance."</li>
+          </ul>
+        </div>
+      </div>
+      <section class="mb-8">
+        <h2 class="text-xl font-bold mb-4">Device Overview</h2>
+        <div class="mb-6">
+          <h3 class="text-lg font-bold mb-2">Device Locations</h3>
+          <div id="device-map" style="height:300px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08);"></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="widget-card bg-white rounded-lg shadow p-6 flex justify-between items-center">
+            <div class="flex items-center">
+              <i class="fas fa-wifi text-3xl text-green-500 mr-4"></i>
+              <div>
+                <div class="text-lg font-bold">Online Devices</div>
+                <div class="text-2xl font-bold text-green-600" id="online-count">--</div>
+              </div>
+            </div>
+          </div>
+          <div class="widget-card bg-white rounded-lg shadow p-6 flex justify-between items-center">
+            <div class="flex items-center">
+              <i class="fas fa-power-off text-3xl text-red-500 mr-4"></i>
+              <div>
+                <div class="text-lg font-bold">Offline Devices</div>
+                <div class="text-2xl font-bold text-red-600" id="offline-count">--</div>
+              </div>
+            </div>
+          </div>
+          <div class="widget-card bg-white rounded-lg shadow p-6 flex justify-between items-center">
+            <div class="flex items-center">
+              <i class="fas fa-battery-half text-3xl text-yellow-500 mr-4"></i>
+              <div>
+                <div class="text-lg font-bold">Low Battery</div>
+                <div class="text-2xl font-bold text-yellow-600" id="low-battery-count">--</div>
+              </div>
+            </div>
+          </div>
+          <div class="widget-card bg-white rounded-lg shadow p-6 flex justify-between items-center">
+            <div class="flex items-center">
+              <i class="fas fa-exclamation-triangle text-3xl text-orange-500 mr-4"></i>
+              <div>
+                <div class="text-lg font-bold">Errors</div>
+                <div class="text-2xl font-bold text-orange-600" id="error-count">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="mb-8">
+        <h2 class="text-xl font-bold mb-4">Device List</h2>
+        <div class="widget-card bg-white p-6 rounded-lg">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-900">Devices</h3>
+          <div class="flex gap-2">
+            <select id="group-filter" class="border border-gray-300 px-2 py-1 rounded-lg text-sm">
+              <option value="">All Types</option>
+              <option value="Tracker">Tracker</option>
+              <option value="Sensor">Sensor</option>
+              <option value="Gateway">Gateway</option>
+            </select>
+            <button id="export-data" class="text-blue-600 hover:text-blue-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Export Filtered Data" tabindex="0">
+              <i class="fas fa-download mr-1"></i>Export Filtered CSV
+            </button>
+          </div>
+        </div>
+        <div class="mb-4 flex flex-wrap gap-2" id="status-chips">
+          <span class="device-status-chip chip-online" data-status="Online" tabindex="0" role="button" aria-label="Filter Online">Online</span>
+          <span class="device-status-chip chip-offline" data-status="Offline" tabindex="0" role="button" aria-label="Filter Offline">Offline</span>
+          <span class="device-status-chip chip-warning" data-status="Warning" tabindex="0" role="button" aria-label="Filter Warning">Warning</span>
+          <span class="device-status-chip chip-error" data-status="Error" tabindex="0" role="button" aria-label="Filter Error">Error</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white rounded-lg shadow">
+            <thead>
+              <tr>
+                <th class="px-4 py-2 text-left">Device ID</th>
+                <th class="px-4 py-2 text-left">Status</th>
+                <th class="px-4 py-2 text-left">Signal</th>
+                <th class="px-4 py-2 text-left">Battery</th>
+                <th class="px-4 py-2 text-left">Last Ping</th>
+                <th class="px-4 py-2 text-left">Firmware</th>
+                <th class="px-4 py-2 text-left">Predictive Maintenance</th>
+                <th class="px-4 py-2 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="device-list-body">
+              <!-- Device rows will be injected here -->
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </section>
+      <section>
+        <h2 class="text-xl font-bold mb-4">Device Details</h2>
+        <div id="device-details-panel" class="bg-white rounded-lg shadow p-6 widget-card">
+          <p>Select a device to view details.</p>
+        </div>
+      </section>
+      <div id="toast-container" class="fixed top-4 right-4 space-y-2 z-50" aria-live="assertive"></div>
+      <div id="bulk-modal" class="bulk-modal hidden" role="dialog" aria-modal="true">
+        <div class="bulk-modal-content relative">
+          <button class="close-btn" id="bulk-close" aria-label="Close Bulk Actions">&times;</button>
+          <h3>Bulk Actions</h3>
+          <div class="device-list" id="bulk-device-list"></div>
+          <div class="actions">
+            <button id="bulk-restart" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Restart Selected</button>
+            <button id="bulk-update" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Update Firmware</button>
+            <button id="bulk-message" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Send Message</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Dark mode toggle
+      const darkModeToggle = document.getElementById('dark-mode-toggle');
+      darkModeToggle.addEventListener('click', function() {
+        document.body.classList.toggle('dark-mode');
+        if (document.body.classList.contains('dark-mode')) {
+          localStorage.setItem('deviceHealthDarkMode', 'true');
+          darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        } else {
+          localStorage.setItem('deviceHealthDarkMode', 'false');
+          darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+        }
+      });
+      if (localStorage.getItem('deviceHealthDarkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+        darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+      }
+
+      // Collapsible Sidebar
+      const sidebar = document.getElementById('sidebar');
+      const mainContent = document.getElementById('main-content-container');
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('w-64');
+        sidebar.classList.toggle('w-16');
+        mainContent.classList.toggle('ml-64');
+        mainContent.classList.toggle('ml-16');
+        if (sidebar.classList.contains('w-16')) {
+            mainContent.style.marginLeft = '4rem';
+        } else {
+            mainContent.style.marginLeft = '16rem';
+        }
+      });
+
+      // Set initial state
+        if (sidebar.classList.contains('w-16')) {
+            mainContent.style.marginLeft = '4rem';
+        } else {
+            mainContent.style.marginLeft = '16rem';
+        }
+    });
+
+    // Sample device data
+    const devices = Array.from({ length: 50 }, (_, i) => {
+      const type = ['Tracker', 'Sensor', 'Gateway'][Math.floor(Math.random()*3)];
+      const model = `Model-${String.fromCharCode(65+Math.floor(Math.random()*5))}`;
+      const location = {
+        lat: 30 + Math.random() * 10,
+        lng: 35 + Math.random() * 10
+      };
+      return {
+        id: `DEVICE-${String(i + 1).padStart(3, '0')}`,
+        status: ['Online', 'Offline', 'Warning', 'Error'][Math.floor(Math.random() * 4)],
+        signal: Math.floor(Math.random() * 100),
+        battery: Math.floor(Math.random() * 100),
+        lastPing: new Date(Date.now() - Math.random() * 3600000).toLocaleTimeString(),
+        firmware: `v${Math.floor(Math.random() * 3) + 1}.${Math.floor(Math.random() * 10)}`,
+        uptime: Array.from({ length: 7 }, () => Math.floor(Math.random() * 24)),
+        signalHistory: Array.from({ length: 7 }, () => Math.floor(Math.random() * 100)),
+        batteryHistory: Array.from({ length: 7 }, () => Math.floor(Math.random() * 100)),
+        errorHistory: Array.from({ length: 7 }, () => Math.floor(Math.random() * 2)),
+        type,
+        model,
+        location
+      };
+    });
+
+    // Device list rendering
+    let statusFilter = '';
+    function predictiveMaintenance(device) {
+      // Simple AI: flag if battery < 20, signal < 30, or error count > 2 in last week
+      if (device.battery < 20 || device.signal < 30 || device.errorHistory.reduce((a,b)=>a+b,0) > 2) {
+        return '<span class="text-red-600 font-bold">Attention Needed</span>';
+      }
+      if (device.status === 'Warning') {
+        return '<span class="text-yellow-600 font-bold">Monitor</span>';
+      }
+      return '<span class="text-green-600 font-bold">Healthy</span>';
+    }
+
+    let groupFilter = '';
+    function renderDeviceList(filter = '') {
+      const tbody = document.getElementById('device-list-body');
+      tbody.innerHTML = '';
+      let filtered = devices.filter(d =>
+        d.id.toLowerCase().includes(filter.toLowerCase()) && (statusFilter === '' || d.status === statusFilter) && (groupFilter === '' || d.type === groupFilter)
+      );
+      filtered.forEach(device => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-blue-50 cursor-pointer';
+        tr.innerHTML = `
+          <td class="px-4 py-2">${device.id}</td>
+          <td class="px-4 py-2">
+            <span class="device-status-chip chip-${device.status.toLowerCase()}">${device.status}</span>
+          </td>
+          <td class="px-4 py-2">${device.signal}%</td>
+          <td class="px-4 py-2">${device.battery}%</td>
+          <td class="px-4 py-2">${device.lastPing}</td>
+          <td class="px-4 py-2">${device.firmware}</td>
+          <td class="px-4 py-2">${predictiveMaintenance(device)}</td>
+          <td class="px-4 py-2">
+            <button class="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 mr-2" onclick="event.stopPropagation(); showToast('Restarting ${device.id}...', 'info')">Restart</button>
+            <button class="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 mr-2" onclick="event.stopPropagation(); showToast('Updating firmware for ${device.id}...', 'info')">Update</button>
+            <button class="bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700" onclick="event.stopPropagation(); showToast('Message sent to ${device.id}', 'success')">Message</button>
+            <input type="checkbox" class="bulk-select" data-id="${device.id}" aria-label="Select for bulk action" style="margin-left:8px;" onclick="event.stopPropagation();">
+          </td>
+        `;
+        tr.addEventListener('click', (e) => {
+          if (!e.target.classList.contains('bulk-select')) showDeviceDetails(device);
+        });
+        tbody.appendChild(tr);
+      });
+      updateOverviewCounts(filtered);
+      renderDeviceMap(filtered);
+    }
+
+    // Overview counts
+    function updateOverviewCounts(list) {
+      document.getElementById('online-count').textContent = list.filter(d => d.status === 'Online').length;
+      document.getElementById('offline-count').textContent = list.filter(d => d.status === 'Offline').length;
+      document.getElementById('low-battery-count').textContent = list.filter(d => d.battery < 20).length;
+      document.getElementById('error-count').textContent = list.filter(d => d.status === 'Error').length;
+    }
+
+    // Status chip filter
+    document.querySelectorAll('#status-chips .device-status-chip').forEach(chip => {
+      chip.addEventListener('click', function() {
+        document.querySelectorAll('#status-chips .device-status-chip').forEach(c => c.classList.remove('selected'));
+        if (statusFilter === this.dataset.status) {
+          statusFilter = '';
+        } else {
+          statusFilter = this.dataset.status;
+          this.classList.add('selected');
+        }
+        renderDeviceList(document.getElementById('device-search').value);
+      });
+      chip.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') this.click();
+      });
+    });
+
+    // Bulk actions modal
+    document.getElementById('bulk-action-btn').addEventListener('click', function() {
+      const modal = document.getElementById('bulk-modal');
+      const list = document.getElementById('bulk-device-list');
+      list.innerHTML = '';
+      document.querySelectorAll('.bulk-select:checked').forEach(cb => {
+        const id = cb.dataset.id;
+        const div = document.createElement('div');
+        div.textContent = id;
+        list.appendChild(div);
+      });
+      modal.classList.remove('hidden');
+    });
+    document.getElementById('bulk-close').addEventListener('click', function() {
+      document.getElementById('bulk-modal').classList.add('hidden');
+    });
+    document.getElementById('bulk-restart').addEventListener('click', function() {
+      showToast('Restarting selected devices...', 'info');
+      document.getElementById('bulk-modal').classList.add('hidden');
+    });
+    document.getElementById('bulk-update').addEventListener('click', function() {
+      showToast('Updating firmware for selected devices...', 'info');
+      document.getElementById('bulk-modal').classList.add('hidden');
+    });
+    document.getElementById('bulk-message').addEventListener('click', function() {
+      showToast('Message sent to selected devices', 'success');
+      document.getElementById('bulk-modal').classList.add('hidden');
+    });
+
+    // Device details panel
+    let chartInstances = {};
+    function showDeviceDetails(device) {
+      // Destroy previous charts before updating panel HTML
+      Object.values(chartInstances).forEach(inst => {
+        if (inst) inst.destroy();
+      });
+      chartInstances = {};
+      const panel = document.getElementById('device-details-panel');
+      // Use actual device type/model/location
+      const location = `${device.location.lat.toFixed(4)}, ${device.location.lng.toFixed(4)}`;
+      const lastError = device.errorHistory.reduce((acc, val, idx) => val ? `Error on ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][idx]}` : acc, 'No recent errors');
+      const uptimePercent = ((device.uptime.reduce((a,b)=>a+b,0)/168)*100).toFixed(1); // 168 hours in a week
+      const firmwareStatus = Math.random() > 0.8 ? 'Update Available' : 'Up to Date';
+      const deviceType = device.type;
+      const deviceModel = device.model;
+      const lastMaintenance = new Date(Date.now() - Math.random()*60*24*3600000).toLocaleDateString();
+      const statusIcon = {
+        'Online': '<i class="fas fa-check-circle text-green-500"></i>',
+        'Offline': '<i class="fas fa-times-circle text-red-500"></i>',
+        'Warning': '<i class="fas fa-exclamation-circle text-yellow-500"></i>',
+        'Error': '<i class="fas fa-bug text-red-700"></i>'
+      }[device.status];
+      panel.innerHTML = `
+        <div class="flex flex-col md:flex-row gap-8">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-2">
+              ${statusIcon}
+              <h3 class="text-lg font-bold">${device.id}</h3>
+              <button id="copy-device-id" class="ml-2 px-2 py-1 bg-gray-200 rounded text-xs" aria-label="Copy Device ID">Copy ID</button>
+            </div>
+            <div class="mb-2"><span class="device-status-chip chip-${device.status.toLowerCase()}">${device.status}</span></div>
+            <p><strong>Type:</strong> ${deviceType}</p>
+            <p><strong>Model:</strong> ${deviceModel}</p>
+            <p><strong>Location:</strong> <span class="font-mono">${location}</span></p>
+            <p><strong>Signal:</strong> ${device.signal}%</p>
+            <p><strong>Battery:</strong> ${device.battery}%</p>
+            <p><strong>Last Ping:</strong> ${device.lastPing}</p>
+            <p><strong>Firmware:</strong> ${device.firmware} <span class="text-xs ml-2 ${firmwareStatus==='Update Available'?'text-yellow-600':'text-green-600'}">${firmwareStatus}</span></p>
+            <p><strong>Connectivity Uptime:</strong> ${uptimePercent}%</p>
+            <p><strong>Last Maintenance:</strong> ${lastMaintenance}</p>
+            <p><strong>Last Error:</strong> <span class="${lastError!=='No recent errors'?'text-red-600 font-semibold':''}">${lastError}</span></p>
+            <div class="mt-4 flex gap-2">
+              <button id="restart-device" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Restart</button>
+              <button id="update-device" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Update</button>
+              <button id="message-device" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Message</button>
+              <button id="logs-device" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">View Logs</button>
+              <button id="schedule-maintenance" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">Schedule Maintenance</button>
+            </div>
+          </div>
+          <div class="flex-1 charts-grid">
+            <canvas id="uptime-chart" height="120" aria-label="Uptime Chart"></canvas>
+            <canvas id="signal-chart" height="120" aria-label="Signal Chart"></canvas>
+            <canvas id="battery-chart" height="120" aria-label="Battery Chart"></canvas>
+            <canvas id="error-chart" height="120" aria-label="Error Chart"></canvas>
+          </div>
+        </div>
+      `;
+      // Attach button events
+      document.getElementById('copy-device-id').onclick = () => navigator.clipboard.writeText(device.id);
+      document.getElementById('restart-device').onclick = () => showToast(`Restarting ${device.id}...`, 'info');
+      document.getElementById('update-device').onclick = () => showToast(`Updating firmware for ${device.id}...`, 'info');
+      document.getElementById('message-device').onclick = () => showToast(`Message sent to ${device.id}`, 'success');
+      document.getElementById('logs-device').onclick = () => showToast(`Viewing logs for ${device.id}`, 'info');
+      document.getElementById('schedule-maintenance').onclick = () => showToast(`Scheduled maintenance for ${device.id}`, 'info');
+      // Synchronously render charts after panel HTML is set
+      renderCharts(device);
+    }
+
+    // Chart rendering
+    function renderCharts(device) {
+      ['uptime','signal','battery','error'].forEach(key => {
+        if (chartInstances[key]) {
+          chartInstances[key].destroy();
+          chartInstances[key] = null;
+        }
+      });
+      chartInstances.uptime = new Chart(document.getElementById('uptime-chart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{
+            label: 'Uptime (hrs)',
+            data: device.uptime,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37,99,235,0.1)',
+            fill: true
+          }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+      chartInstances.signal = new Chart(document.getElementById('signal-chart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{
+            label: 'Signal (%)',
+            data: device.signalHistory,
+            borderColor: '#16A34A',
+            backgroundColor: 'rgba(22,163,74,0.1)',
+            fill: true
+          }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+      chartInstances.battery = new Chart(document.getElementById('battery-chart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{
+            label: 'Battery (%)',
+            data: device.batteryHistory,
+            borderColor: '#EAB308',
+            backgroundColor: 'rgba(234,179,8,0.1)',
+            fill: true
+          }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+      chartInstances.error = new Chart(document.getElementById('error-chart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{
+            label: 'Errors',
+            data: device.errorHistory,
+            backgroundColor: '#DC2626',
+          }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+    }
+
+    // Toast notifications
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<i class="fas fa-info-circle mr-2"></i> ${message}`;
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.add('hidden'), 2000);
+      setTimeout(() => container.removeChild(toast), 2500);
+    }
+
+    // Search
+    document.getElementById('device-search').addEventListener('input', function() {
+      renderDeviceList(this.value);
+    });
+
+    // Device map rendering
+    let deviceMap;
+    function renderDeviceMap(list) {
+      if (!document.getElementById('device-map')) return;
+      if (!deviceMap) {
+        deviceMap = L.map('device-map').setView([35, 35], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(deviceMap);
+      }
+      deviceMap.eachLayer(function(layer) {
+        if (layer instanceof L.Marker) deviceMap.removeLayer(layer);
+      });
+      list.forEach(device => {
+        const marker = L.marker([device.location.lat, device.location.lng]).addTo(deviceMap);
+        marker.bindPopup(`<strong>${device.id}</strong><br>Status: ${device.status}<br>Type: ${device.type}<br>Battery: ${device.battery}%<br>Signal: ${device.signal}%`);
+      });
+    }
+
+    // Group filter
+    document.getElementById('group-filter').addEventListener('change', function() {
+      groupFilter = this.value;
+      renderDeviceList(document.getElementById('device-search').value);
+    });
+
+    // CSV export
+    document.getElementById('export-data').addEventListener('click', function() {
+      let rows = Array.from(document.querySelectorAll('#device-list-body tr')).map(tr =>
+        Array.from(tr.children).map(td => td.textContent.replace(/,/g, ''))
+      );
+      let csv = 'Device ID,Status,Signal,Battery,Last Ping,Firmware,Predictive Maintenance\n' +
+        rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'device_list.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Initial render
+    renderDeviceList();
+  </script>
+</body>
+</html>
