@@ -45,11 +45,17 @@
     .status-maintenance { background: #f59e42; }
     .status-alert { background: #f43f5e; }
     .vehicle-action-btn {
-      transition: background 0.2s, color 0.2s;
+      transition: all 0.2s ease;
+      border: none;
+      outline: none;
+      cursor: pointer;
     }
     .vehicle-action-btn:hover {
-      background: #2563eb;
-      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .vehicle-action-btn:active {
+      transform: translateY(0);
     }
     .analytics-widget {
       background: linear-gradient(145deg, #ffffff, #f8fafc);
@@ -436,9 +442,7 @@
           <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Vehicle Locations</h3>
           <div id="map" style="height: 400px;"></div>
           <div class="mt-4 flex gap-2 flex-wrap">
-            <button id="route-optimization-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center text-sm">
-              <i class="fas fa-route mr-2"></i>Optimize Routes
-            </button>
+
             <button id="geofence-btn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center text-sm">
               <i class="fas fa-draw-polygon mr-2"></i>Draw Geofence
             </button>
@@ -447,6 +451,9 @@
             </button>
             <button id="geofence-settings-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 flex items-center text-sm">
               <i class="fas fa-cog mr-2"></i>Geofence Settings
+            </button>
+            <button id="test-geofence-btn" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center text-sm">
+              <i class="fas fa-bug mr-2"></i>Test Geofence
             </button>
           </div>
           <div id="geofence-status" class="mt-2 text-sm text-gray-600 dark:text-gray-400 hidden">
@@ -502,8 +509,41 @@
       return selectedFormat();
     }
 
-    // Sample vehicle data for 500 vehicles
-    const vehicles = Array.from({ length: 500 }, (_, i) => {
+    // Generate violation history for drivers
+    function generateViolationHistory() {
+      const violationTypes = [
+        { type: 'Speeding', severity: 'High', points: 3, description: 'Exceeded speed limit by 10+ km/h' },
+        { type: 'Harsh Braking', severity: 'Medium', points: 2, description: 'Sudden braking detected' },
+        { type: 'Harsh Acceleration', severity: 'Medium', points: 2, description: 'Rapid acceleration detected' },
+        { type: 'Idling', severity: 'Low', points: 1, description: 'Excessive engine idling' },
+        { type: 'Geofence Violation', severity: 'High', points: 3, description: 'Vehicle left designated area' },
+        { type: 'Maintenance Overdue', severity: 'Medium', points: 2, description: 'Scheduled maintenance not completed' },
+        { type: 'Fuel Waste', severity: 'Low', points: 1, description: 'Poor fuel efficiency detected' },
+        { type: 'Route Deviation', severity: 'Medium', points: 2, description: 'Vehicle deviated from assigned route' }
+      ];
+      
+      const history = [];
+      const numViolations = Math.floor(Math.random() * 5); // 0-4 violations
+      
+      for (let i = 0; i < numViolations; i++) {
+        const violation = violationTypes[Math.floor(Math.random() * violationTypes.length)];
+        const daysAgo = Math.floor(Math.random() * 30) + 1; // 1-30 days ago
+        
+        history.push({
+          ...violation,
+          date: new Date(Date.now() - daysAgo * 24 * 3600000).toLocaleDateString(),
+          time: new Date(Date.now() - daysAgo * 24 * 3600000).toLocaleTimeString(),
+          location: `${(51.5 + (Math.random() - 0.5) * 0.1).toFixed(6)}, ${(-0.09 + (Math.random() - 0.5) * 0.1).toFixed(6)}`,
+          resolved: Math.random() > 0.3, // 70% resolved
+          warningIssued: Math.random() > 0.5 // 50% had warnings issued
+        });
+      }
+      
+      return history;
+    }
+
+    // Sample vehicle data for 50 vehicles (reduced for better performance)
+    const vehicles = Array.from({ length: 50 }, (_, i) => {
       const manufacturerKeys = Object.keys(vehicleTypes);
       const manufacturer = manufacturerKeys[i % manufacturerKeys.length];
       const models = vehicleTypes[manufacturer];
@@ -553,7 +593,8 @@
           onTimeDelivery: Math.floor(Math.random() * 100),
           weeklyTrend: Math.random() > 0.5 ? 'improving' : 'declining',
           totalDrivingHours: Math.floor(Math.random() * 40) + 20,
-          violations: Math.floor(Math.random() * 3)
+          violations: Math.floor(Math.random() * 3),
+          violationHistory: generateViolationHistory()
         },
         route: {
           eta: new Date(Date.now() + Math.random() * 2 * 3600000).toLocaleTimeString(),
@@ -650,19 +691,21 @@
       if (loadingIndicator) loadingIndicator.style.display = 'none';
       list.innerHTML = '';
       
-      let filtered = vehicles.filter(v =>
-        (v.id.toLowerCase().includes(filter.toLowerCase()) ||
-         v.driver.toLowerCase().includes(filter.toLowerCase()) ||
-         v.plateNumber.toLowerCase().includes(filter.toLowerCase()) ||
-         v.manufacturer.toLowerCase().includes(filter.toLowerCase()) ||
-         v.model.toLowerCase().includes(filter.toLowerCase()) ||
-         v.health.maintenanceRisk.toLowerCase().includes(filter.toLowerCase()) ||
-         v.driverBehavior.safetyRating.toLowerCase().includes(filter.toLowerCase()) ||
-         v.route.currentSpeed.toString().includes(filter) ||
-         v.health.fuel.toString().includes(filter)) &&
-        (filters.status === '' || v.status === filters.status) &&
-        (filters.group === '' || v.group === filters.group)
-      );
+      // Optimized filtering - only filter if there's actually a filter
+      let filtered = vehicles;
+      if (filter || filters.status || filters.group) {
+        const filterLower = filter.toLowerCase();
+        filtered = vehicles.filter(v =>
+          (!filter || 
+           v.id.toLowerCase().includes(filterLower) ||
+           v.driver.toLowerCase().includes(filterLower) ||
+           v.plateNumber.toLowerCase().includes(filterLower) ||
+           v.manufacturer.toLowerCase().includes(filterLower) ||
+           v.model.toLowerCase().includes(filterLower)) &&
+          (!filters.status || v.status === filters.status) &&
+          (!filters.group || v.group === filters.group)
+        );
+      }
 
       // Apply sorting
       filtered = sortVehicles(filtered, currentSort);
@@ -698,15 +741,28 @@
               <div class="text-sm text-gray-600 dark:text-gray-400">Fuel Efficiency: <span class="font-medium">${vehicle.route.fuelConsumption}L/100km</span></div>
               <div class="text-sm text-gray-600 dark:text-gray-400">ETA: <span class="font-medium">${vehicle.route.eta}</span></div>
               ${vehicle.health.maintenanceRisk === 'High' ? `<div class="text-xs text-red-600 dark:text-red-400 font-semibold flex items-center"><i class="fas fa-exclamation-triangle mr-1"></i>High Maintenance Risk</div>` : ''}
-              ${vehicle.route.optimized ? `<div class="text-xs text-green-600 dark:text-green-400 font-semibold flex items-center"><i class="fas fa-route mr-1"></i>Route Optimized (-${vehicle.route.timeSaved || 0}min)</div>` : ''}
-              <div class="flex gap-2 mt-2">
-                <button class="vehicle-action-btn px-3 py-1 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-blue-600 hover:text-white" title="Send Message" aria-label="Send Message to ${vehicle.driver}"><i class="fas fa-envelope"></i></button>
-                <button class="vehicle-action-btn px-3 py-1 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-blue-600 hover:text-white" title="Schedule Maintenance" aria-label="Schedule Maintenance for ${vehicle.id}"><i class="fas fa-tools"></i></button>
-                <button class="vehicle-action-btn px-3 py-1 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-blue-600 hover:text-white" title="Assign Driver" aria-label="Assign Driver to ${vehicle.id}"><i class="fas fa-user-plus"></i></button>
+
+              <div class="flex flex-wrap gap-2 mt-3 justify-start">
+                <button class="vehicle-action-btn flex-shrink-0 w-8 h-8 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-blue-600 hover:text-white flex items-center justify-center" title="Send Message" aria-label="Send Message to ${vehicle.driver}"><i class="fas fa-envelope text-sm"></i></button>
+                <button class="vehicle-action-btn flex-shrink-0 w-8 h-8 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-blue-600 hover:text-white flex items-center justify-center" title="Schedule Maintenance" aria-label="Schedule Maintenance for ${vehicle.id}"><i class="fas fa-tools text-sm"></i></button>
+                <button class="vehicle-action-btn flex-shrink-0 w-8 h-8 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-blue-600 hover:text-white flex items-center justify-center" title="Assign Driver" aria-label="Assign Driver to ${vehicle.id}"><i class="fas fa-user-plus text-sm"></i></button>
+                <button class="vehicle-action-btn flex-shrink-0 w-8 h-8 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-purple-600 hover:text-white flex items-center justify-center" title="View Camera" aria-label="View Camera for ${vehicle.id}"><i class="fas fa-video text-sm"></i></button>
+                <button class="vehicle-action-btn flex-shrink-0 w-8 h-8 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-indigo-600 hover:text-white flex items-center justify-center" title="View on Map" aria-label="View ${vehicle.id} on Map"><i class="fas fa-map-marker-alt text-sm"></i></button>
+                <button class="vehicle-action-btn flex-shrink-0 w-8 h-8 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-orange-600 hover:text-white flex items-center justify-center" title="View Logs" aria-label="View Logs for ${vehicle.id}"><i class="fas fa-file-alt text-sm"></i></button>
+                <button class="vehicle-action-btn flex-shrink-0 w-8 h-8 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-teal-600 hover:text-white flex items-center justify-center" title="Set Geofence for Driver" aria-label="Set Geofence for ${vehicle.driver}"><i class="fas fa-draw-polygon text-sm"></i></button>
+                <button class="vehicle-action-btn warning-btn flex-shrink-0 w-8 h-8 rounded bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-red-600 hover:text-white flex items-center justify-center" title="Issue Warning" aria-label="Issue Warning to ${vehicle.driver}" data-vehicle-id="${vehicle.id}"><i class="fas fa-exclamation-triangle text-sm"></i></button>
               </div>
               ${vehicle.alerts.length > 0 ? `<div class="mt-2 text-xs text-red-600 dark:text-red-400 font-semibold">Alerts: ${vehicle.alerts.join(', ')}</div>` : ''}
             `;
             card.querySelector('.fa-eye').parentElement.onclick = () => showVehicleModal(vehicle);
+            
+            // Add event listeners for the new action buttons
+            card.querySelector('.fa-video').parentElement.onclick = () => viewVehicleCamera(vehicle);
+            card.querySelector('.fa-map-marker-alt').parentElement.onclick = () => viewVehicleOnMap(vehicle);
+            card.querySelector('.fa-file-alt').parentElement.onclick = () => viewVehicleLogs(vehicle);
+            card.querySelector('.fa-draw-polygon').parentElement.onclick = () => setGeofenceForDriver(vehicle);
+            card.querySelector('.warning-btn').onclick = () => issueWarningToDriver(vehicle);
+            
             fragment.appendChild(card);
           });
           
@@ -787,6 +843,22 @@
     document.getElementById('vehicle-search').addEventListener('input', function() {
       currentPage = 1;
       renderVehicleList(currentPage, this.value, filters);
+    });
+
+    // Event delegation for warning buttons (fallback)
+    document.addEventListener('click', function(event) {
+      if (event.target.closest('.warning-btn')) {
+        const warningBtn = event.target.closest('.warning-btn');
+        const vehicleId = warningBtn.getAttribute('data-vehicle-id');
+        const vehicle = vehicles.find(v => v.id === vehicleId);
+        
+        if (vehicle) {
+          console.log('Warning button clicked via event delegation for vehicle:', vehicle.id);
+          issueWarningToDriver(vehicle);
+        } else {
+          console.error('Vehicle not found for ID:', vehicleId);
+        }
+      }
     });
     document.getElementById('sort-vehicles').addEventListener('change', function() {
       currentSort = this.value;
@@ -1082,6 +1154,43 @@
     document.getElementById('close-modal').onclick = () => {
       document.getElementById('vehicle-modal').classList.add('hidden');
     };
+
+    // Vehicle Action Functions
+    function viewVehicleCamera(vehicle) {
+      showToast(`Opening camera view for ${vehicle.id}`, 'info');
+      // TODO: Implement camera view modal or redirect to camera system
+      // This could open a modal with live camera feed or redirect to a dedicated camera page
+    }
+
+    function viewVehicleOnMap(vehicle) {
+      showToast(`Centering map on ${vehicle.id}`, 'info');
+      // TODO: Implement map centering functionality
+      // This should center the map on the vehicle's current location
+      if (window.map && window.vehicles) {
+        const vehicleMarker = window.vehicles.find(v => v.id === vehicle.id);
+        if (vehicleMarker && vehicleMarker.lat && vehicleMarker.lng) {
+          window.map.setView([vehicleMarker.lat, vehicleMarker.lng], 15);
+        }
+      }
+    }
+
+    function viewVehicleLogs(vehicle) {
+      showToast(`Opening logs for ${vehicle.id}`, 'info');
+      // TODO: Implement logs view modal
+      // This could open a modal with vehicle logs, maintenance history, alerts, etc.
+    }
+
+    function setGeofenceForDriver(vehicle) {
+      console.log('Setting geofence for driver:', vehicle.driver, 'vehicle:', vehicle.id);
+      
+      if (!isMapReady()) {
+        showToast('Please wait for the map to load before setting geofences', 'warning');
+        return;
+      }
+      
+      // Show driver-specific geofence modal
+      showDriverGeofenceModal(vehicle);
+    }
     window.onclick = function(event) {
       const vehicleModal = document.getElementById('vehicle-modal');
       const filterModal = document.getElementById('filter-modal');
@@ -1124,7 +1233,7 @@
       });
     }
 
-    // Map with Geofence and Route Optimization (Enhanced)
+    // Map with Geofence (Enhanced)
     let map, markers = [], polylines = [], geofenceCircle = null, tempGeofenceCircle = null;
     let lastRenderedVehicles = new Set();
     let isGeofenceMode = false;
@@ -1155,11 +1264,14 @@
           map.on('click', function(e) {
             console.log('Map clicked:', e.latlng, 'Geofence mode:', isGeofenceMode, 'Type:', geofenceType);
             if (isGeofenceMode) {
+              console.log('Processing geofence click for type:', geofenceType);
               if (geofenceType === 'circle') {
                 setGeofenceFromMap(e.latlng.lat, e.latlng.lng);
               } else if (geofenceType === 'polygon') {
                 addPolygonPoint(e.latlng.lat, e.latlng.lng);
               }
+            } else {
+              console.log('Map clicked but not in geofence mode');
             }
           });
           
@@ -2633,161 +2745,38 @@
       document.body.appendChild(modal);
     }
 
-    // Enhanced Route Optimization System
-    document.getElementById('route-optimization-btn').addEventListener('click', () => {
-      const drivingVehicles = vehicles.filter(v => v.status === 'Driving');
-      
-      if (drivingVehicles.length === 0) {
-        showToast('No driving vehicles to optimize.', 'warning');
-        return;
-      }
 
-      // Show optimization in progress
-      showToast('Optimizing routes... Please wait.', 'info');
-      
-      // Simulate optimization process with realistic improvements
-      setTimeout(() => {
-        let totalSavings = 0;
-        let optimizedCount = 0;
-        
-        drivingVehicles.forEach(v => {
-          const originalDistance = parseFloat(v.route.distance);
-          const originalDelay = v.route.trafficDelay;
-          
-          // Apply realistic optimization improvements
-          const distanceReduction = 0.1 + (Math.random() * 0.2); // 10-30% improvement
-          const delayReduction = Math.min(originalDelay * 0.5, Math.floor(Math.random() * 15)); // Up to 50% delay reduction
-          
-          // Calculate new optimized values
-          const newDistance = Math.max(5, originalDistance * (1 - distanceReduction));
-          const newDelay = Math.max(0, originalDelay - delayReduction);
-          const timeSaved = Math.floor((originalDistance - newDistance) * 2 + delayReduction); // Minutes saved
-          
-          // Update vehicle route data
-          v.route.distance = newDistance.toFixed(1);
-          v.route.trafficDelay = newDelay;
-          v.route.timeSaved = timeSaved;
-          v.route.optimized = true;
-          
-          // Recalculate ETA based on new distance and delay
-          const baseTime = (newDistance / 50) * 3600000; // Assuming 50 km/h average speed
-          const delayTime = newDelay * 60000; // Convert minutes to milliseconds
-          v.route.eta = new Date(Date.now() + baseTime + delayTime).toLocaleTimeString();
-          
-          totalSavings += timeSaved;
-          optimizedCount++;
-          
-          // Add route optimization waypoints for demo
-          if (!v.route.waypoints) {
-            v.route.waypoints = generateOptimizedWaypoints(v.lat, v.lng, newDistance);
-          }
-        });
-
-        // Show optimization results
-        const avgSavings = Math.round(totalSavings / optimizedCount);
-        const fuelSavings = Math.round(totalSavings * 0.8); // Estimated fuel savings in liters
-        const costSavings = Math.round(fuelSavings * 1.5); // Estimated cost savings in currency units
-        
-        showOptimizationResults({
-          vehiclesOptimized: optimizedCount,
-          timeSaved: totalSavings,
-          avgTimeSaved: avgSavings,
-          fuelSaved: fuelSavings,
-          costSaved: costSavings
-        });
-
-        // Update displays
-        renderMap(vehicles.filter(v => v.status === 'Driving').slice(0, 30));
-        renderVehicleList(currentPage, document.getElementById('vehicle-search').value, filters);
-        
-      }, 2000); // 2 second delay to simulate processing
-    });
-
-    // Generate realistic waypoints for optimized routes
-    function generateOptimizedWaypoints(startLat, startLng, distance) {
-      const waypoints = [];
-      const numWaypoints = Math.min(5, Math.max(2, Math.floor(distance / 10))); // 2-5 waypoints based on distance
-      
-      for (let i = 0; i < numWaypoints; i++) {
-        const progress = (i + 1) / (numWaypoints + 1);
-        const lat = startLat + (Math.random() - 0.5) * 0.02 * progress;
-        const lng = startLng + (Math.random() - 0.5) * 0.02 * progress;
-        waypoints.push({ lat, lng, type: i === numWaypoints - 1 ? 'destination' : 'waypoint' });
-      }
-      
-      return waypoints;
-    }
-
-    // Show optimization results modal
-    function showOptimizationResults(results) {
-      const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50';
-      modal.innerHTML = `
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md">
-          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
-            <i class="fas fa-route text-green-600 mr-2"></i>
-            Route Optimization Complete
-          </h3>
-          <div class="space-y-3">
-            <div class="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Vehicles Optimized:</span>
-              <span class="text-lg font-bold text-green-600">${results.vehiclesOptimized}</span>
-            </div>
-            <div class="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Total Time Saved:</span>
-              <span class="text-lg font-bold text-blue-600">${results.timeSaved} min</span>
-            </div>
-            <div class="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Avg. per Vehicle:</span>
-              <span class="text-lg font-bold text-purple-600">${results.avgTimeSaved} min</span>
-            </div>
-            <div class="flex justify-between items-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Saved:</span>
-              <span class="text-lg font-bold text-yellow-600">${results.fuelSaved}L</span>
-            </div>
-            <div class="flex justify-between items-center p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Cost Savings:</span>
-              <span class="text-lg font-bold text-emerald-600">$${results.costSaved}</span>
-            </div>
-          </div>
-          <div class="mt-6 flex gap-2">
-            <button onclick="this.closest('.fixed').remove()" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-              <i class="fas fa-check mr-2"></i>Apply Routes
-            </button>
-            <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
-              Cancel
-            </button>
-          </div>
-        </div>
-      `;
-      
-      document.body.appendChild(modal);
-      
-      // Auto-remove after 10 seconds
-      setTimeout(() => {
-        if (modal.parentElement) {
-          modal.remove();
-        }
-      }, 10000);
-    }
 
     // Enhanced Geofence Controls
     document.getElementById('geofence-btn').addEventListener('click', () => {
+      console.log('=== GEOFENCE DEBUG ===');
+      console.log('Geofence button clicked');
+      console.log('Map object:', map);
+      console.log('Map ready:', isMapReady());
+      console.log('Geofence mode:', isGeofenceMode);
+      console.log('Geofence type:', geofenceType);
+      console.log('Map container:', document.getElementById('map'));
+      console.log('=====================');
+      
       if (!isMapReady()) {
+        console.log('Map not ready, showing warning');
         showToast('Please wait for the map to load before drawing geofences', 'warning');
         return;
       }
       
       if (!isGeofenceMode) {
+        console.log('Showing geofence type modal');
         // Show type selection modal
         showGeofenceTypeModal();
       } else {
+        console.log('Canceling geofence drawing');
         // Cancel current drawing
         cancelGeofenceDrawing();
       }
     });
     
     function showGeofenceTypeModal() {
+      console.log('Creating geofence type modal');
       const modal = document.createElement('div');
       modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60';
       modal.innerHTML = `
@@ -2798,7 +2787,7 @@
           </h3>
           
           <div class="space-y-4">
-            <button onclick="startGeofenceDrawing('circle')" class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all">
+            <button id="circle-geofence-btn" class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all">
               <div class="flex items-center">
                 <i class="fas fa-circle text-blue-600 text-2xl mr-4"></i>
                 <div class="text-left">
@@ -2808,7 +2797,7 @@
               </div>
             </button>
             
-            <button onclick="startGeofenceDrawing('polygon')" class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all">
+            <button id="polygon-geofence-btn" class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all">
               <div class="flex items-center">
                 <i class="fas fa-draw-polygon text-purple-600 text-2xl mr-4"></i>
                 <div class="text-left">
@@ -2820,16 +2809,34 @@
           </div>
           
           <div class="flex justify-end gap-3 mt-6">
-            <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+            <button id="cancel-geofence-type" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
               Cancel
             </button>
           </div>
         </div>
       `;
       document.body.appendChild(modal);
+      
+      // Add event listeners after modal is created
+      document.getElementById('circle-geofence-btn').addEventListener('click', () => {
+        console.log('Circle geofence button clicked');
+        startGeofenceDrawing('circle');
+      });
+      
+      document.getElementById('polygon-geofence-btn').addEventListener('click', () => {
+        console.log('Polygon geofence button clicked');
+        startGeofenceDrawing('polygon');
+      });
+      
+      document.getElementById('cancel-geofence-type').addEventListener('click', () => {
+        console.log('Cancel geofence type button clicked');
+        modal.remove();
+      });
     }
     
     function startGeofenceDrawing(type) {
+      console.log('Starting geofence drawing, type:', type, 'map ready:', isMapReady());
+      
       geofenceType = type;
       isGeofenceMode = true;
       
@@ -2855,10 +2862,429 @@
       
       if (map) {
         map.getContainer().style.cursor = 'crosshair';
+        console.log('Map cursor set to crosshair');
+      } else {
+        console.error('Map not available for geofence drawing');
+        showToast('Map not available. Please refresh the page.', 'error');
+        return;
       }
       
       // Close type selection modal
-      document.querySelector('.fixed.inset-0').remove();
+      const typeModal = document.querySelector('.fixed.inset-0');
+      if (typeModal) {
+        typeModal.remove();
+      }
+      
+      console.log('Geofence drawing mode activated:', type);
+    }
+
+    function showDriverGeofenceModal(vehicle) {
+      console.log('Showing driver geofence modal for:', vehicle.driver);
+      
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60';
+      modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+            <i class="fas fa-draw-polygon mr-2 text-teal-600"></i>
+            Set Geofence for ${vehicle.driver}
+          </h3>
+          
+          <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div class="text-sm text-gray-600 dark:text-gray-300">
+              <strong>Vehicle:</strong> ${vehicle.id} (${vehicle.manufacturer} ${vehicle.model})<br>
+              <strong>Current Location:</strong> ${vehicle.lat.toFixed(6)}, ${vehicle.lng.toFixed(6)}<br>
+              <strong>Status:</strong> ${vehicle.status}
+            </div>
+          </div>
+          
+          <div class="space-y-4">
+            <button id="driver-circle-geofence" class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all">
+              <div class="flex items-center">
+                <i class="fas fa-circle text-teal-600 text-2xl mr-4"></i>
+                <div class="text-left">
+                  <div class="font-semibold text-gray-900 dark:text-white">Circle Geofence</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">Set radius around current location</div>
+                </div>
+              </div>
+            </button>
+            
+            <button id="driver-polygon-geofence" class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all">
+              <div class="flex items-center">
+                <i class="fas fa-draw-polygon text-teal-600 text-2xl mr-4"></i>
+                <div class="text-left">
+                  <div class="font-semibold text-gray-900 dark:text-white">Custom Polygon</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">Draw custom area on map</div>
+                </div>
+              </div>
+            </button>
+            
+            <button id="driver-center-map" class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all">
+              <div class="flex items-center">
+                <i class="fas fa-crosshairs text-blue-600 text-2xl mr-4"></i>
+                <div class="text-left">
+                  <div class="font-semibold text-gray-900 dark:text-white">Center Map on Vehicle</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">Focus map on current location</div>
+                </div>
+              </div>
+            </button>
+          </div>
+          
+          <div class="flex justify-end gap-3 mt-6">
+            <button id="cancel-driver-geofence" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      // Add event listeners
+      document.getElementById('driver-circle-geofence').addEventListener('click', () => {
+        modal.remove();
+        startDriverGeofenceDrawing(vehicle, 'circle');
+      });
+      
+      document.getElementById('driver-polygon-geofence').addEventListener('click', () => {
+        modal.remove();
+        startDriverGeofenceDrawing(vehicle, 'polygon');
+      });
+      
+      document.getElementById('driver-center-map').addEventListener('click', () => {
+        modal.remove();
+        centerMapOnVehicle(vehicle);
+      });
+      
+      document.getElementById('cancel-driver-geofence').addEventListener('click', () => {
+        modal.remove();
+      });
+    }
+
+    function startDriverGeofenceDrawing(vehicle, type) {
+      console.log('Starting driver geofence drawing:', type, 'for vehicle:', vehicle.id);
+      
+      geofenceType = type;
+      isGeofenceMode = true;
+      
+      // Clear any existing drawing state
+      clearPolygonPoints();
+      
+      const btn = document.getElementById('geofence-btn');
+      const statusDiv = document.getElementById('geofence-status');
+      
+      if (type === 'circle') {
+        // Pre-fill the geofence modal with vehicle's current location
+        document.getElementById('geofence-lat').value = vehicle.lat.toFixed(6);
+        document.getElementById('geofence-lng').value = vehicle.lng.toFixed(6);
+        document.getElementById('geofence-name').value = `Geofence for ${vehicle.driver}`;
+        
+        btn.innerHTML = '<i class="fas fa-times mr-2"></i>Cancel Circle';
+        btn.className = 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center text-sm';
+        statusDiv.classList.remove('hidden');
+        statusDiv.innerHTML = `<i class="fas fa-crosshairs mr-2"></i>Setting geofence for ${vehicle.driver}. Click on map to adjust center or use current location.`;
+        
+        // Center map on vehicle
+        centerMapOnVehicle(vehicle);
+        
+        // Show the geofence settings modal
+        document.getElementById('geofence-modal').classList.remove('hidden');
+        
+        showToast(`Setting circle geofence for ${vehicle.driver}. Vehicle location pre-filled.`, 'info');
+        
+      } else {
+        btn.innerHTML = '<i class="fas fa-times mr-2"></i>Cancel Polygon';
+        btn.className = 'px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center text-sm';
+        statusDiv.classList.remove('hidden');
+        statusDiv.innerHTML = `<i class="fas fa-mouse-pointer mr-2"></i>Drawing polygon geofence for ${vehicle.driver}. Click to add points, double-click to finish.`;
+        
+        // Center map on vehicle
+        centerMapOnVehicle(vehicle);
+        
+        showToast(`Drawing polygon geofence for ${vehicle.driver}. Click to add points, double-click to finish.`, 'info');
+      }
+      
+      if (map) {
+        map.getContainer().style.cursor = 'crosshair';
+      }
+    }
+
+    function centerMapOnVehicle(vehicle) {
+      if (map && vehicle.lat && vehicle.lng) {
+        map.setView([vehicle.lat, vehicle.lng], 15);
+        showToast(`Map centered on ${vehicle.driver}'s location`, 'info');
+      }
+    }
+
+    function issueWarningToDriver(vehicle) {
+      console.log('Issuing warning to driver:', vehicle.driver, 'vehicle:', vehicle.id);
+      console.log('Vehicle data:', vehicle);
+      
+      // Check for current violations
+      const currentViolations = checkCurrentViolations(vehicle);
+      console.log('Current violations found:', currentViolations);
+      
+      // Show warning modal with violation details
+      showWarningModal(vehicle, currentViolations);
+    }
+
+    function checkCurrentViolations(vehicle) {
+      const violations = [];
+      
+      // Check for speeding
+      if (vehicle.route.currentSpeed > vehicle.route.speedLimit) {
+        violations.push({
+          type: 'Speeding',
+          severity: 'High',
+          description: `Current speed: ${Math.round(vehicle.route.currentSpeed)} km/h (Limit: ${vehicle.route.speedLimit} km/h)`,
+          points: 3
+        });
+      }
+      
+      // Check for harsh driving behavior
+      if (vehicle.driverBehavior.harshBraking > 3) {
+        violations.push({
+          type: 'Harsh Braking',
+          severity: 'Medium',
+          description: `${vehicle.driverBehavior.harshBraking} harsh braking incidents detected`,
+          points: 2
+        });
+      }
+      
+      if (vehicle.driverBehavior.harshAcceleration > 3) {
+        violations.push({
+          type: 'Harsh Acceleration',
+          severity: 'Medium',
+          description: `${vehicle.driverBehavior.harshAcceleration} harsh acceleration incidents detected`,
+          points: 2
+        });
+      }
+      
+      // Check for maintenance issues
+      if (vehicle.health.maintenanceRisk === 'High') {
+        violations.push({
+          type: 'Maintenance Risk',
+          severity: 'Medium',
+          description: 'Vehicle requires immediate maintenance attention',
+          points: 2
+        });
+      }
+      
+      // Check for fuel efficiency
+      if (vehicle.route.fuelConsumption > 12) {
+        violations.push({
+          type: 'Fuel Inefficiency',
+          severity: 'Low',
+          description: `High fuel consumption: ${Math.round(vehicle.route.fuelConsumption)}L/100km`,
+          points: 1
+        });
+      }
+      
+      // Check for geofence violations (if any alerts contain geofence)
+      if (vehicle.alerts.includes('Geofence Violation')) {
+        violations.push({
+          type: 'Geofence Violation',
+          severity: 'High',
+          description: 'Vehicle has left designated geofence area',
+          points: 3
+        });
+      }
+      
+      return violations;
+    }
+
+    function showWarningModal(vehicle, currentViolations) {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60';
+      
+      const hasCurrentViolations = currentViolations.length > 0;
+      const hasViolationHistory = vehicle.driverBehavior.violationHistory.length > 0;
+      
+      modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+            <i class="fas fa-exclamation-triangle mr-2 text-red-600"></i>
+            Issue Warning - ${vehicle.driver}
+          </h3>
+          
+          <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div class="text-sm text-gray-600 dark:text-gray-300">
+              <strong>Vehicle:</strong> ${vehicle.id} (${vehicle.manufacturer} ${vehicle.model})<br>
+              <strong>Current Status:</strong> ${vehicle.status}<br>
+              <strong>Driver Score:</strong> ${Math.round(vehicle.driverBehavior.score)}/100<br>
+              <strong>Total Violations:</strong> ${vehicle.driverBehavior.violations}
+            </div>
+          </div>
+          
+          ${hasCurrentViolations ? `
+            <div class="mb-4">
+              <h4 class="font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                Current Violations Detected
+              </h4>
+              <div class="space-y-2">
+                ${currentViolations.map(violation => `
+                  <div class="p-3 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20 rounded-r-lg">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <div class="font-semibold text-red-700 dark:text-red-300">${violation.type}</div>
+                        <div class="text-sm text-red-600 dark:text-red-400">${violation.description}</div>
+                      </div>
+                      <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+                        violation.severity === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                        violation.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      }">${violation.severity}</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : `
+            <div class="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded-r-lg">
+              <div class="flex items-center">
+                <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                <span class="text-green-700 dark:text-green-300 font-semibold">No current violations detected</span>
+              </div>
+            </div>
+          `}
+          
+          ${hasViolationHistory ? `
+            <div class="mb-4">
+              <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                <i class="fas fa-history mr-2"></i>
+                Recent Violation History
+              </h4>
+              <div class="max-h-40 overflow-y-auto space-y-2">
+                ${vehicle.driverBehavior.violationHistory.slice(0, 5).map(violation => `
+                  <div class="p-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <div class="font-medium">${violation.type}</div>
+                        <div class="text-gray-600 dark:text-gray-400">${violation.date} at ${violation.time}</div>
+                        <div class="text-xs text-gray-500">${violation.description}</div>
+                      </div>
+                      <div class="text-right">
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+                          violation.resolved ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        }">${violation.resolved ? 'Resolved' : 'Pending'}</span>
+                        ${violation.warningIssued ? '<div class="text-xs text-orange-600 mt-1">Warning Issued</div>' : ''}
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          
+          <div class="space-y-3">
+            <h4 class="font-semibold text-gray-700 dark:text-gray-300">Warning Options</h4>
+            
+            <button id="issue-verbal-warning" class="w-full p-3 border-2 border-yellow-200 dark:border-yellow-600 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-all">
+              <div class="flex items-center">
+                <i class="fas fa-comment text-yellow-600 text-xl mr-3"></i>
+                <div class="text-left">
+                  <div class="font-semibold text-gray-900 dark:text-white">Verbal Warning</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">Send immediate notification to driver</div>
+                </div>
+              </div>
+            </button>
+            
+            <button id="issue-written-warning" class="w-full p-3 border-2 border-orange-200 dark:border-orange-600 rounded-lg hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-all">
+              <div class="flex items-center">
+                <i class="fas fa-file-alt text-orange-600 text-xl mr-3"></i>
+                <div class="text-left">
+                  <div class="font-semibold text-gray-900 dark:text-white">Written Warning</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">Issue formal written warning</div>
+                </div>
+              </div>
+            </button>
+            
+            <button id="schedule-meeting" class="w-full p-3 border-2 border-red-200 dark:border-red-600 rounded-lg hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+              <div class="flex items-center">
+                <i class="fas fa-calendar-alt text-red-600 text-xl mr-3"></i>
+                <div class="text-left">
+                  <div class="font-semibold text-gray-900 dark:text-white">Schedule Meeting</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">Arrange face-to-face discussion</div>
+                </div>
+              </div>
+            </button>
+          </div>
+          
+          <div class="flex justify-end gap-3 mt-6">
+            <button id="cancel-warning" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      // Add event listeners
+      document.getElementById('issue-verbal-warning').addEventListener('click', () => {
+        issueWarning(vehicle, 'Verbal', currentViolations);
+        modal.remove();
+      });
+      
+      document.getElementById('issue-written-warning').addEventListener('click', () => {
+        issueWarning(vehicle, 'Written', currentViolations);
+        modal.remove();
+      });
+      
+      document.getElementById('schedule-meeting').addEventListener('click', () => {
+        issueWarning(vehicle, 'Meeting', currentViolations);
+        modal.remove();
+      });
+      
+      document.getElementById('cancel-warning').addEventListener('click', () => {
+        modal.remove();
+      });
+    }
+
+    function issueWarning(vehicle, warningType, violations) {
+      const timestamp = new Date().toLocaleString();
+      const warningData = {
+        vehicleId: vehicle.id,
+        driver: vehicle.driver,
+        type: warningType,
+        violations: violations,
+        timestamp: timestamp,
+        status: 'Issued'
+      };
+      
+      // Store warning in localStorage (in a real app, this would go to a database)
+      const warnings = JSON.parse(localStorage.getItem('driverWarnings') || '[]');
+      warnings.push(warningData);
+      localStorage.setItem('driverWarnings', JSON.stringify(warnings));
+      
+      // Update vehicle's violation history
+      violations.forEach(violation => {
+        vehicle.driverBehavior.violationHistory.push({
+          ...violation,
+          date: new Date().toLocaleDateString(),
+          time: new Date().toLocaleTimeString(),
+          location: `${vehicle.lat.toFixed(6)}, ${vehicle.lng.toFixed(6)}`,
+          resolved: false,
+          warningIssued: true,
+          warningType: warningType
+        });
+      });
+      
+      // Show confirmation
+      const violationText = violations.length > 0 ? 
+        ` for ${violations.length} violation${violations.length > 1 ? 's' : ''}` : '';
+      
+      showToast(`${warningType} warning issued to ${vehicle.driver}${violationText}`, 'warning');
+      
+      // Log the warning
+      console.log(`Warning issued:`, warningData);
+      
+      // In a real application, this would trigger:
+      // - SMS/Email notification to driver
+      // - Dashboard notification
+      // - Report generation
+      // - Escalation if needed
     }
     
     function cancelGeofenceDrawing() {
@@ -2950,6 +3376,46 @@
         updateGeofenceDisplay();
         showToast('Geofence cleared successfully', 'success');
       }
+    });
+
+    // Test Geofence Function
+    document.getElementById('test-geofence-btn').addEventListener('click', () => {
+      console.log('=== GEOFENCE TEST ===');
+      console.log('1. Testing map element:', document.getElementById('map'));
+      console.log('2. Testing map object:', map);
+      console.log('3. Testing map ready function:', isMapReady());
+      console.log('4. Testing geofence variables:');
+      console.log('   - isGeofenceMode:', isGeofenceMode);
+      console.log('   - geofenceType:', geofenceType);
+      console.log('   - geofencePoints:', geofencePoints);
+      console.log('5. Testing Leaflet availability:', typeof L);
+      console.log('6. Testing map click handlers:', map ? 'Map exists' : 'No map');
+      
+      if (map) {
+        console.log('7. Map is available, testing click event...');
+        // Simulate a map click
+        const center = map.getCenter();
+        console.log('8. Map center:', center);
+        console.log('9. Testing geofence mode:', isGeofenceMode);
+        
+        if (isGeofenceMode) {
+          console.log('10. In geofence mode, testing click processing...');
+          if (geofenceType === 'circle') {
+            console.log('11. Processing circle geofence click');
+            setGeofenceFromMap(center.lat, center.lng);
+          } else if (geofenceType === 'polygon') {
+            console.log('11. Processing polygon geofence click');
+            addPolygonPoint(center.lat, center.lng);
+          }
+        } else {
+          console.log('10. Not in geofence mode');
+        }
+      } else {
+        console.log('7. Map is not available');
+      }
+      
+      console.log('=== END TEST ===');
+      showToast('Geofence test completed. Check console for details.', 'info');
     });
 
     // Enhanced modal controls
@@ -3552,6 +4018,13 @@
 
     // Initial render
     function initDashboard() {
+      // Show loading state immediately
+      const loadingIndicator = document.getElementById('loading-indicator');
+      if (loadingIndicator) {
+        loadingIndicator.style.display = 'flex';
+      }
+      
+      // Initialize dashboard layout
       const grid = document.getElementById('analytics-grid');
       const widgets = Array.from(grid.children);
       grid.innerHTML = '';
@@ -3560,18 +4033,16 @@
         if (widget) grid.appendChild(widget);
       });
       
-      // Show vehicles immediately, then load heavy components
-      setTimeout(() => {
-        renderVehicleList(1, '', {}, true); // Skip heavy renders initially
-        updateAnalytics();
-      }, 100);
+      // Render vehicles immediately (this will hide loading indicator)
+      renderVehicleList(1, '', {}, true); // Skip heavy renders initially
+      updateAnalytics();
       
       // Load heavy components after a short delay
       setTimeout(() => {
         renderUtilizationChart();
         renderMap(vehicles.slice(0, 30));
         renderAlertFeed();
-      }, 500);
+      }, 200);
       
       // Start real-time updates after everything is loaded
       setTimeout(() => {
@@ -3579,7 +4050,7 @@
         // Initialize critical monitoring
         checkCriticalAlerts();
         showToast('Enhanced fleet monitoring system activated', 'success');
-      }, 1000);
+      }, 600);
     }
     initDashboard();
     
