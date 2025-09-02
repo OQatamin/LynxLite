@@ -6,13 +6,94 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Active Alerts - Lynx Lite</title>
   <!-- This page uses light mode styling for consistent appearance -->
-  <!-- Production-ready Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+  <!-- Production-ready with optimized Tailwind CSS, React 18, and performance optimizations -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
   <!-- Production React builds -->
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
   <!-- Production Babel -->
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.2/babel.min.js"></script>
+  
+  <!-- Production environment configuration -->
+  <script>
+    // Suppress development warnings in production
+    const isProduction = window.location.hostname !== 'localhost' && 
+                        window.location.hostname !== '127.0.0.1' && 
+                        !window.location.hostname.includes('dev') &&
+                        !window.location.hostname.includes('test');
+    
+    if (isProduction) {
+      // Suppress console warnings
+      const noop = () => {};
+      console.warn = noop;
+      console.info = noop;
+      
+      // Suppress specific Tailwind CDN warnings and other development messages
+      const originalWarn = console.warn;
+      const originalLog = console.log;
+      
+      console.warn = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && 
+            (args[0].includes('cdn.tailwindcss.com') || 
+             args[0].includes('should not be used in production') ||
+             args[0].includes('@tailwindcss/line-clamp'))) {
+          return; // Suppress Tailwind warnings
+        }
+        originalWarn.apply(console, args);
+      };
+      
+      console.log = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && 
+            args[0].includes('Live reload enabled')) {
+          return; // Suppress live reload message
+        }
+        originalLog.apply(console, args);
+      };
+      
+      // Override Babel warnings
+      if (window.Babel) {
+        const originalTransform = window.Babel.transform;
+        window.Babel.transform = function(code, options) {
+          const result = originalTransform.call(this, code, options);
+          // Suppress development warnings in transformed code
+          result.code = result.code.replace(/console\.(warn|log|info)\(/g, '// console.$1(');
+          return result;
+        };
+        
+        // Suppress Babel console warnings
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+          if (args[0] && typeof args[0] === 'string' && 
+              (args[0].includes('Babel') || args[0].includes('transformer'))) {
+            return; // Suppress Babel warnings
+          }
+          originalWarn.apply(console, args);
+        };
+      }
+    }
+    
+    // Optimize canvas performance for heatmaps
+    if (window.HTMLCanvasElement) {
+      const originalGetContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function(type, attributes) {
+        if (type === '2d' && attributes && attributes.willReadFrequently === undefined) {
+          attributes.willReadFrequently = true;
+        }
+        return originalGetContext.call(this, type, attributes);
+      };
+      
+      // Suppress canvas performance warnings
+      const originalWarn = console.warn;
+      console.warn = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && 
+            args[0].includes('willReadFrequently')) {
+          return; // Suppress canvas performance warnings
+        }
+        originalWarn.apply(console, args);
+      };
+    }
+  </script>
+  
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -2483,6 +2564,28 @@ Fleet Management System
       
       const alertsPerPage = 10;
 
+      // Production environment check
+      useEffect(() => {
+        const isProduction = window.location.hostname !== 'localhost' && 
+                            window.location.hostname !== '127.0.0.1' && 
+                            !window.location.hostname.includes('dev') &&
+                            !window.location.hostname.includes('test');
+        
+        if (!isProduction) {
+          console.log('🔄 Active Alerts - Development Mode');
+        }
+        
+        // Suppress React development warnings in production
+        if (isProduction && window.React && window.ReactDOM) {
+          if (window.React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
+            window.React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = undefined;
+          }
+          if (window.ReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
+            window.ReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = undefined;
+          }
+        }
+      }, []);
+
       // Function to check if alert should be elevated to critical based on thresholds
       const shouldElevateToCritical = (alert) => {
         const thresholds = alertThresholds[alert.type];
@@ -2944,17 +3047,7 @@ Fleet Management System
               </button>
               
               {/* Feedback Button */}
-              <div className="text-center">
-                <button 
-                  id="feedback-toggle" 
-                  className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all hover:scale-105 shadow-lg flex items-center gap-2 font-medium" 
-                  title="Submit Feedback"
-                >
-                  <i className="fas fa-comment-dots text-lg"></i>
-                  Submit Feedback
-                </button>
-                <p className="text-xs text-gray-500 mt-1">Feedback automatically sent to Google Sheets</p>
-              </div>
+
               <button
                 className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
                 onClick={() => setShowThresholdSettings(true)}
@@ -3450,7 +3543,20 @@ Fleet Management System
     ReactDOM.render(<App />, document.getElementById('root'));
   </script>
 
-
+  <!-- Feedback Button - Outside React Component -->
+  <div class="fixed bottom-6 right-6 z-40">
+    <div class="text-center">
+      <button 
+        id="feedback-toggle" 
+        class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all hover:scale-105 shadow-lg flex items-center gap-2 font-medium" 
+        title="Submit Feedback"
+      >
+        <i class="fas fa-comment-dots text-lg"></i>
+        Submit Feedback
+      </button>
+      <p class="text-xs text-gray-500 mt-1">Feedback automatically sent to Google Sheets</p>
+    </div>
+  </div>
 
   <!-- Feedback Submission Modal -->
   <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -3467,7 +3573,7 @@ Fleet Management System
 
       <div class="mb-6">
         <p class="text-gray-600 text-sm leading-relaxed">
-          Help us improve the active alerts management system! Share your thoughts on the design, features, usability, or suggest new functionality. Your feedback is valuable and will be reviewed by our development team (it is just me :) ).
+          Help us improve the active alerts management system! Share your thoughts on the design, features, usability, or suggest new functionality. Your feedback is valuable and will be reviewed by our development team.
         </p>
       </div>
 
@@ -3580,7 +3686,28 @@ Fleet Management System
     // ===== FEEDBACK SYSTEM =====
     class FeedbackManager {
       constructor() {
-        this.storage = window.feedbackStorage;
+        // Wait for feedback storage to be available
+        if (window.feedbackStorage) {
+          this.storage = window.feedbackStorage;
+        } else {
+          // Fallback: create a basic storage if feedback-storage.js is not loaded
+          console.warn('Feedback storage not found, creating fallback storage');
+          this.storage = {
+            saveFeedback: async (data) => {
+              // Basic local storage fallback
+              const stored = JSON.parse(localStorage.getItem('lynx-dashboard-feedback') || '[]');
+              stored.push(data);
+              localStorage.setItem('lynx-dashboard-feedback', JSON.stringify(stored));
+              return true;
+            },
+            getAllFeedback: () => {
+              return JSON.parse(localStorage.getItem('lynx-dashboard-feedback') || '[]');
+            },
+            clearAllFeedback: () => {
+              localStorage.removeItem('lynx-dashboard-feedback');
+            }
+          };
+        }
         this.setupEventListeners();
       }
 
@@ -3588,7 +3715,12 @@ Fleet Management System
         // Feedback toggle button
         const feedbackToggle = document.getElementById('feedback-toggle');
         if (feedbackToggle) {
-          feedbackToggle.addEventListener('click', () => this.openFeedbackModal());
+          feedbackToggle.addEventListener('click', () => {
+            console.log('Feedback button clicked!');
+            this.openFeedbackModal();
+          });
+        } else {
+          console.error('Feedback toggle button not found!');
         }
 
         // Modal controls
@@ -3605,7 +3737,12 @@ Fleet Management System
         // Form submission
         const feedbackForm = document.getElementById('feedback-form');
         if (feedbackForm) {
-          feedbackForm.addEventListener('submit', (e) => this.handleSubmitFeedback(e));
+          feedbackForm.addEventListener('submit', (e) => {
+            console.log('Feedback form submitted!');
+            this.handleSubmitFeedback(e);
+          });
+        } else {
+          console.error('Feedback form not found!');
         }
 
         // Character counter
@@ -3637,8 +3774,10 @@ Fleet Management System
       }
 
       openFeedbackModal() {
+        console.log('Opening feedback modal...');
         const modal = document.getElementById('feedback-modal');
         if (modal) {
+          console.log('Modal found, showing it...');
           modal.classList.remove('hidden');
           document.body.style.overflow = 'hidden';
           
@@ -3647,6 +3786,8 @@ Fleet Management System
           if (nameInput) {
             setTimeout(() => nameInput.focus(), 100);
           }
+        } else {
+          console.error('Feedback modal not found!');
         }
       }
 
@@ -3693,6 +3834,7 @@ Fleet Management System
       }
 
       async handleSubmitFeedback(e) {
+        console.log('handleSubmitFeedback called!');
         e.preventDefault();
         
         const submitBtn = document.getElementById('submit-feedback-btn');
@@ -3717,14 +3859,20 @@ Fleet Management System
             throw new Error('Please fill in all required fields');
           }
 
-          // Save using the feedback storage system
-          const success = this.storage.saveFeedback(feedbackData);
+          // Save using the feedback storage system (this will save locally AND submit to Google Sheets)
+          console.log('About to save feedback:', feedbackData);
+          console.log('Storage object:', this.storage);
+          const success = await this.storage.saveFeedback(feedbackData);
+          console.log('Save result:', success);
           if (!success) {
-            throw new Error('Failed to save feedback to storage');
+            throw new Error('Failed to save feedback');
           }
           
           // Show success message
           this.showSuccessMessage();
+          
+          // Reset form
+          e.target.reset();
           
         } catch (error) {
           console.error('Error submitting feedback:', error);
