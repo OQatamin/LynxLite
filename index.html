@@ -182,16 +182,7 @@
           </div>
         </button>
         
-        <!-- View Feedback -->
-        <button id="view-feedback-btn" class="quick-action-btn flex items-center gap-3 px-4 py-3 hover:bg-orange-50 rounded-xl w-full transition-all duration-200 group" data-action="view-feedback">
-          <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-            <i class="fas fa-comments text-orange-600 text-lg"></i>
-          </div>
-          <div class="text-left">
-            <div class="font-medium text-gray-900">View Feedback</div>
-            <div class="text-xs text-gray-500">Review submitted feedback</div>
-          </div>
-        </button>
+
       </div>
     </div>
   </div>
@@ -1220,42 +1211,7 @@
     </div>
   </div>
 
-  <!-- View Feedback Modal -->
-  <div id="view-feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
-          <i class="fas fa-comments text-orange-600"></i>
-          Submitted Feedback & Comments
-        </h3>
-        <button id="close-view-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
-          <i class="fas fa-times text-xl"></i>
-        </button>
-      </div>
 
-      <!-- Feedback Controls -->
-      <div class="mb-6 flex flex-wrap gap-3">
-        <button id="refresh-feedback" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-          <i class="fas fa-sync mr-1"></i> Refresh
-        </button>
-        <button id="export-feedback" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
-          <i class="fas fa-download mr-1"></i> Export JSON
-        </button>
-        <button id="clear-feedback" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
-          <i class="fas fa-trash mr-1"></i> Clear All
-        </button>
-      </div>
-
-      <!-- Feedback List -->
-      <div id="feedback-list" class="space-y-4 max-h-96 overflow-y-auto">
-        <!-- Feedback items will be populated here -->
-        <div class="text-center py-8 text-gray-500">
-          <i class="fas fa-comments text-4xl mb-3"></i>
-          <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Coaching Assignment Modal -->
   <div id="coaching-assignment-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -6081,11 +6037,7 @@
           feedbackToggle.addEventListener('click', () => this.openFeedbackModal());
         }
 
-        // View feedback button in quick actions
-        const viewFeedbackBtn = document.getElementById('view-feedback-btn');
-        if (viewFeedbackBtn) {
-          viewFeedbackBtn.addEventListener('click', () => this.openViewFeedbackModal());
-        }
+
 
         // Modal controls
         const closeFeedbackModal = document.getElementById('close-feedback-modal');
@@ -6093,10 +6045,7 @@
           closeFeedbackModal.addEventListener('click', () => this.closeFeedbackModal());
         }
 
-        const closeViewFeedbackModal = document.getElementById('close-view-feedback-modal');
-        if (closeViewFeedbackModal) {
-          closeViewFeedbackModal.addEventListener('click', () => this.closeViewFeedbackModal());
-        }
+
 
         const cancelFeedbackBtn = document.getElementById('cancel-feedback-btn');
         if (cancelFeedbackBtn) {
@@ -6121,20 +6070,7 @@
           submitAnotherBtn.addEventListener('click', () => this.resetFeedbackForm());
         }
 
-        // Feedback controls
-        const refreshBtn = document.getElementById('refresh-feedback');
-        const exportBtn = document.getElementById('export-feedback');
-        const clearBtn = document.getElementById('clear-feedback');
 
-        if (refreshBtn) {
-          refreshBtn.addEventListener('click', () => this.loadFeedback());
-        }
-        if (exportBtn) {
-          exportBtn.addEventListener('click', () => this.exportFeedback());
-        }
-        if (clearBtn) {
-          clearBtn.addEventListener('click', () => this.clearAllFeedback());
-        }
       }
 
       openFeedbackModal() {
@@ -6159,22 +6095,7 @@
         }
       }
 
-      openViewFeedbackModal() {
-        const modal = document.getElementById('view-feedback-modal');
-        if (modal) {
-          modal.classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
-          this.loadFeedback();
-        }
-      }
 
-      closeViewFeedbackModal() {
-        const modal = document.getElementById('view-feedback-modal');
-        if (modal) {
-          modal.classList.add('hidden');
-          document.body.style.overflow = '';
-        }
-      }
 
       updateCharacterCount() {
         const textarea = document.getElementById('feedback-note');
