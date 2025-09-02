@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lynx Lite Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .login-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      padding: 2.5rem 2rem;
+      width: 100%;
+    }
+
+    .login-btn {
+      background: #3b82f6;
+      color: #fff;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 0.875rem 1.5rem;
+      width: 100%;
+      margin-top: 1.5rem;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .login-btn:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .login-btn:active {
+      transform: translateY(0);
+    }
+    .input-field {
+      width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      background: #fff;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    .error-msg {
+      color: #dc2626;
+      font-size: 0.875rem;
+      margin-top: 1rem;
+      text-align: center;
+      padding: 0.75rem;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+    }
+
+    /* Disclaimer Modal Styles */
+    .disclaimer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      animation: fadeIn 0.6s ease-out forwards;
+    }
+
+    .disclaimer-modal {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 900px;
+      width: 85%;
+      margin: 1rem;
+      transform: scale(0.8) translateY(20px);
+      animation: modalSlideIn 0.7s ease-out 0.3s forwards;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+    }
+
+    .disclaimer-header {
+      background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .disclaimer-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+      opacity: 0.3;
+    }
+
+    .disclaimer-header h2 {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      font-size: 1.8rem;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .disclaimer-icon {
+      position: relative;
+      z-index: 1;
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      animation: pulse 2s infinite;
+    }
+
+    .disclaimer-content {
+      padding: 2rem;
+      line-height: 1.6;
+      color: #374151;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .disclaimer-content p {
+      margin-bottom: 1.25rem;
+      font-size: 0.95rem;
+    }
+
+    .content-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .content-column {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content-column h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .feature-list, .feedback-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .feature-list li, .feedback-list li {
+      padding: 0.5rem 0;
+      position: relative;
+      padding-left: 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    .feature-list li::before {
+      content: '🔧';
+      position: absolute;
+      left: 0;
+      top: 0.5rem;
+    }
+
+    .feedback-list li::before {
+      content: '💡';
+      position: absolute;
+      left: 0;
+      top: 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .content-layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      
+      .disclaimer-modal {
+        width: 95%;
+        margin: 0.5rem;
+      }
+      
+      .disclaimer-content {
+        padding: 1.5rem;
+      }
+    }
+
+    .author-signature {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      text-align: center;
+      position: relative;
+    }
+
+    .author-signature::before {
+      content: '"';
+      position: absolute;
+      top: -10px;
+      left: 20px;
+      font-size: 3rem;
+      color: #3b82f6;
+      font-family: serif;
+    }
+
+    .author-name {
+      font-weight: 700;
+      color: #3b82f6;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .acknowledge-btn {
+      background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 1rem 2.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 1rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .acknowledge-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .acknowledge-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    }
+
+    .acknowledge-btn:hover::before {
+      left: 100%;
+    }
+
+    .acknowledge-btn:active {
+      transform: translateY(0);
+    }
+
+    .hidden-disclaimer {
+      display: none;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalSlideIn {
+      from { 
+        transform: scale(0.8) translateY(20px);
+        opacity: 0;
+      }
+      to { 
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    .disclaimer-overlay.hiding {
+      animation: fadeOut 0.5s ease-out forwards;
+    }
+
+    /* Animated Lynx Styles */
+    .lynx-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 2rem 0;
+      height: 150px;
+    }
+
+    .lynx {
+      position: relative;
+      transform-style: preserve-3d;
+      transition: all 0.3s ease;
+    }
+
+    .lynx-body {
+      position: relative;
+      width: 130px;
+      height: 130px;
+    }
+
+    .lynx-face {
+      position: relative;
+      width: 110px;
+      height: 110px;
+      margin: 0 auto;
+    }
+
+    /* Lynx Paws */
+    .lynx-paw {
+      position: absolute;
+      width: 14px;
+      height: 32px;
+      background: linear-gradient(180deg, #D2B48C 0%, #DEB887 50%, #F5DEB3 100%);
+      border-radius: 6px;
+      border: 2px solid #CD853F;
+      top: 40px;
+      transform-origin: top center;
+      transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 5;
+    }
+
+    /* Default relaxed paw positions */
+    .lynx-paw.left-paw {
+      left: 18px;
+      transform: rotate(-22deg);
+    }
+
+    .lynx-paw.right-paw {
+      right: 18px;
+      transform: rotate(22deg);
+    }
+
+    /* Paws covering eyes - realistic positions */
+    .lynx.covering-eyes .lynx-paw.left-paw {
+      transform: rotate(-78deg) translateY(-6px) translateX(4px);
+    }
+
+    .lynx.covering-eyes .lynx-paw.right-paw {
+      transform: rotate(78deg) translateY(-6px) translateX(-4px);
+    }
+
+    /* Excited paw movements */
+    .lynx.excited .lynx-paw.left-paw {
+      animation: leftPawExcited 0.6s ease-in-out;
+    }
+
+    .lynx.excited .lynx-paw.right-paw {
+      animation: rightPawExcited 0.6s ease-in-out;
+    }
+
+    /* Lynx Hands/Paws */
+    .lynx-hand {
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 18px;
+      height: 18px;
+      background: linear-gradient(135deg, #F5DEB3 0%, #DEB887 100%);
+      border-radius: 50%;
+      border: 2px solid #CD853F;
+      transition: all 0.6s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .paw-pads {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px;
+      height: 12px;
+      background: radial-gradient(circle, #8B4513 30%, #A0522D 100%);
+      border-radius: 50%;
+    }
+
+    .paw-pads::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: 1px;
+      width: 3px;
+      height: 3px;
+      background: #8B4513;
+      border-radius: 50%;
+    }
+
+    .paw-pads::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      right: 1px;
+      width: 3px;
+      height: 3px;
+      background: #8B4513;
+      border-radius: 50%;
+    }
+
+    /* Distinctive Lynx Ears */
+    .lynx-ear {
+      position: absolute;
+      width: 24px;
+      height: 32px;
+      background: linear-gradient(135deg, #D2B48C 0%, #DEB887 100%);
+      border-radius: 50% 50% 20% 20%;
+      border: 2px solid #CD853F;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .lynx-ear.left-ear {
+      top: -2px;
+      left: 15px;
+      transform: rotate(-18deg);
+    }
+
+    .lynx-ear.right-ear {
+      top: -2px;
+      right: 15px;
+      transform: rotate(18deg);
+    }
+
+    .lynx-ear::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 14px;
+      height: 18px;
+      background: linear-gradient(135deg, #F4A460 0%, #D2B48C 100%);
+      border-radius: 50% 50% 20% 20%;
+    }
+
+    /* Distinctive Lynx Ear Tufts */
+    .ear-tuft {
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 12px;
+      background: linear-gradient(180deg, #8B4513 0%, #A0522D 100%);
+      border-radius: 2px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .ear-tuft::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      width: 2px;
+      height: 8px;
+      background: #654321;
+      border-radius: 1px;
+    }
+
+    .ear-tuft::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 2px;
+      height: 8px;
+      background: #654321;
+      border-radius: 1px;
+    }
+
+    /* Lynx Head - Inverted Triangle Shape */
+    .lynx-head {
+      position: relative;
+      width: 90px;
+      height: 85px;
+      background: linear-gradient(135deg, #D2B48C 0%, #DEB887 50%, #F5DEB3 100%);
+      border-radius: 45% 45% 35% 35% / 60% 60% 40% 40%;
+      margin: 15px auto 0;
+      border: 3px solid #CD853F;
+      overflow: visible;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transform: perspective(100px) rotateX(5deg);
+    }
+    
+    /* Create the inverted triangle effect with a pseudo-element */
+    .lynx-head::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 85px;
+      height: 80px;
+      background: linear-gradient(135deg, #D2B48C 0%, #DEB887 50%, #F5DEB3 100%);
+      clip-path: polygon(20% 0%, 80% 0%, 90% 30%, 75% 70%, 50% 100%, 25% 70%, 10% 30%);
+      border-radius: 5px;
+      z-index: -1;
+    }
+
+    /* Lynx Facial Ruff - Enhanced for triangle face */
+    .lynx-ruff {
+      position: absolute;
+      width: 22px;
+      height: 28px;
+      background: linear-gradient(135deg, #F5DEB3 0%, #DEB887 100%);
+      border-radius: 0 0 60% 60%;
+      border: 2px solid #CD853F;
+      border-top: none;
+      top: 40px;
+      z-index: 2;
+    }
+
+    .lynx-ruff.left-ruff {
+      left: 2px;
+      transform: rotate(-15deg);
+      border-radius: 0 0 70% 50%;
+    }
+
+    .lynx-ruff.right-ruff {
+      right: 2px;
+      transform: rotate(15deg);
+      border-radius: 0 0 50% 70%;
+    }
+
+    /* Add additional ruff texture */
+    .lynx-ruff::after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 8px;
+      background: linear-gradient(135deg, #DEB887 0%, #D2B48C 100%);
+      border-radius: 0 0 50% 50%;
+    }
+
+    /* Lynx Eyes - positioned for triangle face */
+    .lynx-eyes {
+      position: absolute;
+      top: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 22px;
+      transition: all 0.3s ease;
+      z-index: 3;
+    }
+
+    .lynx-eye {
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      border: 2px solid #333;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .eyeball {
+      width: 9px;
+      height: 9px;
+      background: #333;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transition: all 0.2s ease;
+    }
+
+    /* Eyeball movements */
+    .lynx.looking-username .eyeball {
+      transform: translate(-50%, -70%);
+    }
+
+    .lynx.looking-password .eyeball {
+      transform: translate(-50%, -30%);
+    }
+
+    .lynx.peeking .eyeball {
+      transform: translate(-30%, -50%);
+      animation: peek 0.5s ease-in-out;
+    }
+
+    /* Distinctive Lynx Nose - positioned for triangle face */
+    .lynx-nose {
+      position: absolute;
+      top: 45px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 6px;
+      background: #2F1B14;
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+      z-index: 3;
+    }
+
+    .lynx-nose::after {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 3px;
+      background: #1A1A1A;
+      border-radius: 50%;
+    }
+
+    /* Lynx Mouth - positioned for narrow chin */
+    .lynx-mouth {
+      position: absolute;
+      top: 58px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 18px;
+      height: 9px;
+      border: 2px solid #2F1B14;
+      border-top: none;
+      border-radius: 0 0 50% 50%;
+      background: transparent;
+      z-index: 3;
+    }
+
+    .lynx-mouth::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 7px;
+      background: #2F1B14;
+    }
+
+    /* Lynx Spots */
+    .lynx-spots {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .spot {
+      position: absolute;
+      background: #8B4513;
+      border-radius: 50%;
+      opacity: 0.6;
+    }
+
+    .spot-1 {
+      top: 15px;
+      left: 15px;
+      width: 4px;
+      height: 4px;
+    }
+
+    .spot-2 {
+      top: 20px;
+      right: 18px;
+      width: 3px;
+      height: 3px;
+    }
+
+    .spot-3 {
+      bottom: 25px;
+      left: 20px;
+      width: 3px;
+      height: 3px;
+    }
+
+    .spot-4 {
+      bottom: 20px;
+      right: 15px;
+      width: 4px;
+      height: 4px;
+    }
+
+    /* Lynx animations */
+    .lynx.shy {
+      animation: shy 0.5s ease-in-out;
+    }
+
+    .lynx.excited {
+      animation: bounce 0.6s ease-in-out;
+    }
+
+    .lynx.sneaky {
+      animation: sneak 0.8s ease-in-out;
+    }
+
+    @keyframes shy {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(0.96) rotate(-2deg); }
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-8px) scale(1.02); }
+    }
+
+    @keyframes sneak {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.03) rotate(2deg); }
+      75% { transform: scale(1.03) rotate(-2deg); }
+    }
+
+    @keyframes peek {
+      0%, 100% { transform: translate(-30%, -50%) scale(1); }
+      50% { transform: translate(-30%, -50%) scale(1.1); }
+    }
+
+    @keyframes leftPawExcited {
+      0%, 100% { transform: rotate(-22deg); }
+      25% { transform: rotate(-32deg); }
+      75% { transform: rotate(-12deg); }
+    }
+
+    @keyframes rightPawExcited {
+      0%, 100% { transform: rotate(22deg); }
+      25% { transform: rotate(32deg); }
+      75% { transform: rotate(12deg); }
+    }
+
+    /* Lynx expressions */
+    .lynx.surprised .lynx-eye {
+      width: 20px;
+      height: 20px;
+    }
+
+    .lynx.surprised .eyeball {
+      width: 13px;
+      height: 13px;
+    }
+
+    .lynx.sleepy .lynx-eye {
+      height: 8px;
+      border-radius: 50% 50% 50% 50% / 20% 20% 80% 80%;
+    }
+
+    .lynx.sleepy .eyeball {
+      opacity: 0.3;
+    }
+
+    /* Lynx ear tuft sway effect */
+    .lynx-head .ear-tuft {
+      animation: tuftsway 4s ease-in-out infinite;
+    }
+
+    @keyframes tuftsway {
+      0%, 100% { transform: translateX(-50%) rotate(0deg); }
+      50% { transform: translateX(-50%) rotate(3deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Disclaimer Modal -->
+  <div id="disclaimer-overlay" class="disclaimer-overlay">
+    <div class="disclaimer-modal">
+      <div class="disclaimer-header">
+        <div class="disclaimer-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <h2>Prototype Disclaimer</h2>
+      </div>
+      <div class="disclaimer-content">
+        <p><strong>Welcome to Lynx Lite Fleet Management Prototype</strong></p>
+        
+        <p>This is a <strong>prototype demonstration</strong> of a comprehensive fleet management platform, developed as part of the ongoing efforts to create the Lynx Lite system.</p>
+        
+        <div class="author-signature">
+          <div class="author-name">Developed by Omar Qatamin</div>
+        </div>
+        
+        <p><strong>Important Notice:</strong> This work is <em>far from deployment</em> and is intended for demonstration, testing, and feedback purposes only.</p>
+        
+        <div class="content-layout">
+          <div class="content-column">
+            <h3><i class="fas fa-cogs"></i> Current Implementation</h3>
+            <ul class="feature-list">
+              <li>Simplified authentication for role-based testing</li>
+              <li>Mock data and simulated fleet operations</li>
+              <li>Prototype user interfaces and workflows</li>
+              <li>Demonstration features and functionalities</li>
+            </ul>
+          </div>
+          
+          <div class="content-column">
+            <h3><i class="fas fa-comments"></i> Feedback Requested</h3>
+            <ul class="feedback-list">
+              <li>Process flows and user workflows</li>
+              <li>Feature functionality and usability</li>
+              <li>Interface design and user experience</li>
+              <li>System architecture and performance</li>
+            </ul>
+          </div>
+        </div>
+        
+        <p style="font-size: 0.85rem; color: #6b7280; font-style: italic; text-align: center; margin-bottom: 1.5rem;">
+          Your insights and suggestions are valuable for the continued development of this platform.
+        </p>
+        
+        <button id="acknowledge-btn" class="acknowledge-btn">
+          <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>
+          Acknowledge & Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-container">
+    <div class="login-card">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Lynx Lite</h1>
+        <p class="text-gray-600">Sign in to your account</p>
+        
+        <!-- Animated Lynx Character -->
+        <div class="lynx-container" id="lynx-container">
+          <div class="lynx" id="animated-lynx">
+            <!-- Lynx Body -->
+            <div class="lynx-body">
+              <!-- Paws -->
+              <div class="lynx-paw left-paw" id="left-paw">
+                <div class="lynx-hand left-hand" id="left-hand">
+                  <div class="paw-pads"></div>
+                </div>
+              </div>
+              <div class="lynx-paw right-paw" id="right-paw">
+                <div class="lynx-hand right-hand" id="right-hand">
+                  <div class="paw-pads"></div>
+                </div>
+              </div>
+              
+              <!-- Lynx Face -->
+              <div class="lynx-face">
+                <!-- Distinctive Lynx Ears with Tufts -->
+                <div class="lynx-ear left-ear">
+                  <div class="ear-tuft"></div>
+                </div>
+                <div class="lynx-ear right-ear">
+                  <div class="ear-tuft"></div>
+                </div>
+                
+                <!-- Head -->
+                <div class="lynx-head">
+                  <!-- Facial Ruff -->
+                  <div class="lynx-ruff left-ruff"></div>
+                  <div class="lynx-ruff right-ruff"></div>
+                  
+                  <!-- Eyes -->
+                  <div class="lynx-eyes" id="lynx-eyes">
+                    <div class="lynx-eye left-eye">
+                      <div class="eyeball"></div>
+                    </div>
+                    <div class="lynx-eye right-eye">
+                      <div class="eyeball"></div>
+                    </div>
+                  </div>
+                  
+                  <!-- Distinctive Lynx Nose -->
+                  <div class="lynx-nose"></div>
+                  
+                  <!-- Mouth -->
+                  <div class="lynx-mouth"></div>
+                  
+                  <!-- Lynx Spots -->
+                  <div class="lynx-spots">
+                    <div class="spot spot-1"></div>
+                    <div class="spot spot-2"></div>
+                    <div class="spot spot-3"></div>
+                    <div class="spot spot-4"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <form id="login-form" autocomplete="off">
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-700 mb-2" for="username">Username</label>
+          <input id="username" type="text" class="input-field" placeholder="Enter your username" required>
+        </div>
+        
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-700 mb-2" for="password">Password</label>
+          <div class="relative">
+            <input id="password" type="password" class="input-field pr-12" placeholder="Enter your password" required>
+            <button type="button" id="toggle-password" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none" aria-label="Toggle password visibility">
+              <i class="fas fa-eye" id="password-icon"></i>
+            </button>
+          </div>
+        </div>
+        
+
+        
+        <button type="submit" class="login-btn">
+          <i class="fas fa-sign-in-alt"></i>
+          <span>Sign In</span>
+        </button>
+        
+        <div id="error-msg" class="error-msg hidden"></div>
+      </form>
+    </div>
+  </div>
+  <script>
+    // Disclaimer Modal Logic
+    document.addEventListener('DOMContentLoaded', function() {
+      const disclaimerOverlay = document.getElementById('disclaimer-overlay');
+      const acknowledgeBtn = document.getElementById('acknowledge-btn');
+      
+      // Check if user has already acknowledged the disclaimer
+      const hasAcknowledged = sessionStorage.getItem('disclaimerAcknowledged');
+      
+      if (hasAcknowledged) {
+        disclaimerOverlay.classList.add('hidden-disclaimer');
+      }
+      
+      // Handle acknowledge button click
+      acknowledgeBtn.addEventListener('click', function() {
+        // Store acknowledgment in session storage
+        sessionStorage.setItem('disclaimerAcknowledged', 'true');
+        
+        // Add hiding animation
+        disclaimerOverlay.classList.add('hiding');
+        
+        // Remove the modal after animation completes
+        setTimeout(function() {
+          disclaimerOverlay.classList.add('hidden-disclaimer');
+        }, 500);
+      });
+      
+      // Prevent clicking outside modal to close (force acknowledgment)
+      disclaimerOverlay.addEventListener('click', function(e) {
+        if (e.target === disclaimerOverlay) {
+          // Optional: Add a subtle shake animation to indicate they must acknowledge
+          const modal = disclaimerOverlay.querySelector('.disclaimer-modal');
+          modal.style.animation = 'none';
+          modal.offsetHeight; // Trigger reflow
+          modal.style.animation = 'modalSlideIn 0.3s ease-out';
+        }
+      });
+    });
+
+    // Animated Lynx Logic
+    document.addEventListener('DOMContentLoaded', function() {
+      const lynx = document.getElementById('animated-lynx');
+      const usernameField = document.getElementById('username');
+      const passwordField = document.getElementById('password');
+      const togglePasswordBtn = document.getElementById('toggle-password');
+      const passwordIcon = document.getElementById('password-icon');
+      
+      let isPasswordVisible = false;
+      let animationTimeout = null;
+      
+      // Clear any pending animations
+      function clearAnimations() {
+        if (animationTimeout) {
+          clearTimeout(animationTimeout);
+          animationTimeout = null;
+        }
+      }
+      
+      // Reset lynx to neutral state
+      function resetLynx() {
+        clearAnimations();
+        lynx.className = 'lynx';
+      }
+      
+      // Set lynx state with proper cleanup
+      function setLynxState(states, duration = 0) {
+        clearAnimations();
+        lynx.className = 'lynx';
+        
+        // Add new states
+        states.forEach(state => lynx.classList.add(state));
+        
+        // Auto-remove temporary animation states
+        if (duration > 0 && states.some(s => ['excited', 'shy', 'sneaky'].includes(s))) {
+          animationTimeout = setTimeout(() => {
+            ['excited', 'shy', 'sneaky'].forEach(temp => lynx.classList.remove(temp));
+          }, duration);
+        }
+      }
+      
+      // Username field interactions
+      usernameField.addEventListener('focus', function() {
+        setLynxState(['looking-username', 'excited'], 600);
+      });
+      
+      usernameField.addEventListener('input', function() {
+        if (this.value.length > 0) {
+          setLynxState(['looking-username', 'surprised']);
+        } else {
+          setLynxState(['looking-username']);
+        }
+      });
+      
+      // Password field interactions
+      passwordField.addEventListener('focus', function() {
+        if (!isPasswordVisible) {
+          setLynxState(['looking-password', 'covering-eyes', 'shy'], 500);
+        } else {
+          setLynxState(['looking-password', 'peeking']);
+        }
+      });
+      
+      passwordField.addEventListener('input', function() {
+        if (!isPasswordVisible && passwordField === document.activeElement) {
+          setLynxState(['looking-password', 'covering-eyes']);
+        }
+      });
+      
+      passwordField.addEventListener('blur', function() {
+        // Only reset if not clicking the toggle button
+        setTimeout(() => {
+          if (document.activeElement !== togglePasswordBtn) {
+            resetLynx();
+            setLynxState(['sleepy'], 2000);
+          }
+        }, 100);
+      });
+      
+      // Toggle password visibility
+      togglePasswordBtn.addEventListener('click', function() {
+        isPasswordVisible = !isPasswordVisible;
+        
+        if (isPasswordVisible) {
+          passwordField.type = 'text';
+          passwordIcon.classList.remove('fa-eye');
+          passwordIcon.classList.add('fa-eye-slash');
+          
+          // Lynx peeks sneakily
+          setLynxState(['peeking', 'sneaky'], 800);
+          
+        } else {
+          passwordField.type = 'password';
+          passwordIcon.classList.remove('fa-eye-slash');
+          passwordIcon.classList.add('fa-eye');
+          
+          // Lynx covers eyes again
+          setLynxState(['looking-password', 'covering-eyes', 'shy'], 500);
+        }
+      });
+      
+      // Reset when clicking outside form
+      document.addEventListener('click', function(e) {
+        const formElements = [usernameField, passwordField, togglePasswordBtn];
+        const clickedFormElement = formElements.some(el => el.contains(e.target));
+        
+        if (!clickedFormElement) {
+          setTimeout(() => {
+            resetLynx();
+            setLynxState(['sleepy'], 2000);
+          }, 200);
+        }
+      });
+      
+      // Form submission animation
+      document.getElementById('login-form').addEventListener('submit', function(e) {
+        setLynxState(['excited'], 600);
+      });
+      
+      // Welcome animation on page load
+      setTimeout(() => {
+        setLynxState(['excited'], 600);
+      }, 1000);
+    });
+
+    // Login logic with automatic role detection
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorMsg = document.getElementById('error-msg');
+      
+      if (!username || !password) {
+        errorMsg.textContent = 'Please fill in both username and password.';
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+      
+      errorMsg.classList.add('hidden');
+      
+      // Define valid credentials for each role
+      const validCredentials = {
+        'driver': { username: 'driver', password: 'driver' },
+        'dispatcher': { username: 'dispatcher', password: 'dispatcher' },
+        'owner': { username: 'owner', password: 'owner' },
+        'accountant': { username: 'accountant', password: 'accountant' },
+        'admin': { username: 'admin', password: 'admin' },
+        'fleet_manager': { username: 'fleet', password: 'fleet' }
+      };
+      
+      // Find the role that matches the credentials
+      let authenticatedRole = null;
+      for (const [role, credentials] of Object.entries(validCredentials)) {
+        if (credentials.username === username && credentials.password === password) {
+          authenticatedRole = role;
+          break;
+        }
+      }
+      
+      if (authenticatedRole) {
+        // Successful authentication - redirect to appropriate dashboard
+        let page = '';
+        switch(authenticatedRole) {
+          case 'admin': 
+          case 'fleet_manager': 
+            page = 'index.html'; 
+            break;
+          case 'owner': 
+            page = 'owner-dashboard.html'; 
+            break;
+          case 'dispatcher': 
+            page = 'dispatcher-dashboard.html'; 
+            break;
+          case 'driver': 
+            page = 'driver-dashboard.html'; 
+            break;
+          case 'accountant': 
+            page = 'accountant-dashboard.html'; 
+            break;
+          default: 
+            page = 'index.html';
+        }
+        
+        // Store user info in session storage for the dashboard
+        sessionStorage.setItem('userRole', authenticatedRole);
+        sessionStorage.setItem('username', username);
+        sessionStorage.setItem('isAuthenticated', 'true');
+        
+        // Redirect to the appropriate page
+        window.location.href = page;
+        
+      } else {
+        // Invalid credentials
+        errorMsg.textContent = 'Invalid username or password. Please check your credentials.';
+        errorMsg.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

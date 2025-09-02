@@ -1,0 +1,1 @@
+I Iwa want to a note taking card that should recieeve comments from colleaguesn on the design and features, it should have two fields, one for name and one for the note or feedback, the feed back should be postrd to a database so I can view it later 
