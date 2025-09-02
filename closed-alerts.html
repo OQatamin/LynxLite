@@ -596,7 +596,10 @@
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600 mb-1">
                     {alerts.length > 0 ? 
-                      Math.round(alerts.reduce((sum, alert) => sum + calculateResolutionTime(alert), 0) / alerts.length) : 0
+                      Math.round(alerts.reduce((sum, alert) => {
+                        const func = window.calculateResolutionTime || window.calculateResolutionTimeFallback;
+                        return sum + (func ? func(alert) : 30);
+                      }, 0) / alerts.length) : 0
                     }
                   </div>
                   <div className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide">Avg Resolution (min)</div>
@@ -604,7 +607,7 @@
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600 mb-1">
                     {alerts.length > 0 ? 
-                      Math.min(...alerts.map(alert => calculateResolutionTime(alert))) : 0
+                      Math.min(...alerts.map(alert => window.calculateResolutionTime(alert))) : 0
                     }
                   </div>
                   <div className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide">Fastest (min)</div>
@@ -612,7 +615,7 @@
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600 mb-1">
                     {alerts.length > 0 ? 
-                      Math.max(...alerts.map(alert => calculateResolutionTime(alert))) : 0
+                      Math.max(...alerts.map(alert => window.calculateResolutionTime(alert))) : 0
                     }
                   </div>
                   <div className="text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide">Slowest (min)</div>
@@ -653,7 +656,7 @@
                     <span className="text-sm text-gray-600 dark:text-gray-400">Resolution Efficiency</span>
                     <span className="text-lg font-bold text-green-600">
                       {alerts.length > 0 ? 
-                        Math.round((alerts.filter(alert => calculateResolutionTime(alert) <= 60).length / alerts.length) * 100) : 0
+                        Math.round((alerts.filter(alert => window.calculateResolutionTime(alert) <= 60).length / alerts.length) * 100) : 0
                       }%
                     </span>
                   </div>
@@ -667,7 +670,7 @@
                     <span className="text-sm text-gray-600 dark:text-gray-400">Critical Response</span>
                     <span className="text-lg font-bold text-red-600">
                       {alerts.length > 0 ? 
-                        Math.round((alerts.filter(alert => calculateResolutionTime(alert) <= 30).length / alerts.length) * 100) : 0
+                        Math.round((alerts.filter(alert => window.calculateResolutionTime(alert) <= 30).length / alerts.length) * 100) : 0
                       }%
                     </span>
                   </div>
@@ -767,7 +770,7 @@
                         <span className="text-gray-600 dark:text-gray-400">Avg Resolution Time:</span>
                         <span className="font-semibold text-green-600">
                           {alerts.length > 0 ? 
-                            Math.round(alerts.reduce((sum, alert) => sum + calculateResolutionTime(alert), 0) / alerts.length) : 0
+                            Math.round(alerts.reduce((sum, alert) => sum + window.calculateResolutionTime(alert), 0) / alerts.length) : 0
                           } min
                         </span>
                       </div>
@@ -775,7 +778,7 @@
                         <span className="text-gray-600 dark:text-gray-400">Fastest Resolution:</span>
                         <span className="font-semibold text-blue-600">
                           {alerts.length > 0 ? 
-                            Math.min(...alerts.map(alert => calculateResolutionTime(alert))) : 0
+                            Math.min(...alerts.map(alert => window.calculateResolutionTime(alert))) : 0
                           } min
                         </span>
                       </div>
@@ -783,7 +786,7 @@
                         <span className="text-gray-600 dark:text-gray-400">Slowest Resolution:</span>
                         <span className="font-semibold text-red-600">
                           {alerts.length > 0 ? 
-                            Math.max(...alerts.map(alert => calculateResolutionTime(alert))) : 0
+                            Math.max(...alerts.map(alert => window.calculateResolutionTime(alert))) : 0
                           } min
                         </span>
                       </div>
@@ -937,7 +940,7 @@
                 <div className="space-y-2 text-sm">
                   <p><strong>Alert Created:</strong> {alert.timestamp.toLocaleString()}</p>
                   <p><strong>Resolved:</strong> {alert.resolutionTimestamp.toLocaleString()}</p>
-                                      <p><strong>Resolution Time:</strong> {calculateResolutionTime(alert)} minutes</p>
+                                      <p><strong>Resolution Time:</strong> {window.calculateResolutionTime(alert)} minutes</p>
                   <p><strong>Status:</strong> 
                     <span className={`ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       alert.resolutionStatus === 'resolved' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
@@ -1209,7 +1212,7 @@
         }).filter(a => a.resolved) : initialAlerts;
         
         // Clean up any unrealistic resolution times
-        alertsData = cleanupUnrealisticResolutionTimes(alertsData);
+        alertsData = window.cleanupUnrealisticResolutionTimes(alertsData);
         
         return alertsData;
       });
@@ -1501,7 +1504,7 @@
   </script>
 
   <!-- Feedback Button - Outside React Component -->
-  <!-- Production-ready with Google Sheets integration -->
+  <!-- Production-ready with Google Sheets integration and fixed resolution time calculations -->
   <div class="fixed bottom-6 right-6 z-40">
     <div class="text-center">
       <button 
@@ -1646,9 +1649,16 @@
     // 1. Limiting generated resolution times to 5 minutes - 4 hours
     // 2. Adding validation to cap unrealistic values at reasonable limits
     // 3. Cleaning up existing data with unrealistic resolution times
+    // 4. Made functions globally available to fix GitHub viewing issues
 
     // Helper functions for resolution time calculations (defined outside React component)
-    const calculateResolutionTime = (alert) => {
+    // These functions are used by both the React component and the FeedbackManager
+    window.calculateResolutionTime = (alert) => {
+      // Safety check for missing data
+      if (!alert || !alert.resolutionTimestamp || !alert.timestamp) {
+        console.warn('Missing timestamp data for alert:', alert);
+        return 5; // Default to 5 minutes
+      }
       const timeMs = alert.resolutionTimestamp - alert.timestamp;
       const timeMinutes = timeMs / 60000; // Convert to minutes
       
@@ -1667,8 +1677,29 @@
       return Math.round(timeMinutes);
     };
 
+    // Fallback function in case the main function isn't available yet
+    window.calculateResolutionTimeFallback = (alert) => {
+      try {
+        if (!alert || !alert.resolutionTimestamp || !alert.timestamp) {
+          return 5; // Default to 5 minutes
+        }
+        const timeMs = alert.resolutionTimestamp - alert.timestamp;
+        const timeMinutes = timeMs / 60000;
+        
+        // Basic validation without complex logic
+        if (timeMinutes > 1440 || timeMinutes < 1) {
+          return 30; // Return reasonable default
+        }
+        
+        return Math.round(timeMinutes);
+      } catch (error) {
+        console.error('Error in fallback resolution time calculation:', error);
+        return 30; // Safe default
+      }
+    };
+
     // Function to clean up any existing unrealistic resolution times in the data
-    const cleanupUnrealisticResolutionTimes = (alerts) => {
+    window.cleanupUnrealisticResolutionTimes = (alerts) => {
       return alerts.map(alert => {
         const timeMs = alert.resolutionTimestamp - alert.timestamp;
         const timeMinutes = timeMs / 60000;
