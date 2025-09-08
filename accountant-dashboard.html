@@ -1,0 +1,3989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accountant Dashboard - Lynx Lite</title>
+  
+  <!-- External Dependencies -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Feedback Storage System -->
+  <script src="feedback-storage.js"></script>
+  
+  <!-- Custom Styles -->
+  <style>
+    body {
+      background: linear-gradient(to bottom, #f7fafc, #edf2f7);
+      color: #1a202c;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    .widget-card {
+      background: #ffffff;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+      border-radius: 12px;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    
+    .widget-card:hover {
+      box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+      transform: translateY(-2px);
+    }
+
+    .nav-tab {
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: background 0.2s, color 0.2s;
+      background: #e5e7eb;
+      margin-right: 0.5rem;
+    }
+    
+    .nav-tab.active {
+      background: #10b981;
+      color: #fff;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .metric-card {
+      padding: 1.5rem;
+      border-radius: 8px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    
+    .metric-card:hover {
+      transform: scale(1.02);
+    }
+
+
+
+
+
+
+
+
+
+    @media (max-width: 768px) {
+      .grid-cols-4 { 
+        grid-template-columns: 1fr 1fr; 
+      }
+    }
+    
+    @media (max-width: 640px) {
+      .grid-cols-4, .grid-cols-2 { 
+        grid-template-columns: 1fr; 
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+  
+  <!-- Header -->
+  <header class="bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <h1 class="text-2xl font-bold text-gray-900">Lynx Lite</h1>
+          <span class="text-sm text-gray-600">Accountant Dashboard</span>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+          <span class="text-sm text-gray-700">Welcome, Ahmed Ali</span>
+          
+          <!-- Feedback Button -->
+          <div class="text-center">
+            <button id="feedback-toggle" class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all hover:scale-105 shadow-lg flex items-center gap-2 font-medium" title="Submit Feedback">
+              <i class="fas fa-comment-dots text-lg"></i>
+              Submit Feedback
+            </button>
+            <p class="text-xs text-gray-500 mt-1">Feedback automatically sent to Google Sheets</p>
+          </div>
+          
+          <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+            <i class="fas fa-user text-white text-sm"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="pt-20 px-4 pb-8 max-w-7xl mx-auto">
+    
+    <!-- Navigation Tabs -->
+    <div class="mb-6">
+      <div class="flex flex-wrap items-center space-x-2">
+        <button class="nav-tab active" data-tab="finance">
+          <i class="fas fa-chart-line mr-2"></i>Finance Overview
+        </button>
+        <button class="nav-tab" data-tab="transactions">
+          <i class="fas fa-exchange-alt mr-2"></i>Transactions
+        </button>
+        <button class="nav-tab" data-tab="invoices">
+          <i class="fas fa-file-invoice mr-2"></i>Invoices
+        </button>
+        <button class="nav-tab" data-tab="fleet-analytics">
+          <i class="fas fa-truck mr-2"></i>Fleet Analytics
+        </button>
+
+        <button class="nav-tab" data-tab="customers-vendors">
+          <i class="fas fa-handshake mr-2"></i>Customers & Vendors
+        </button>
+        <button class="nav-tab" data-tab="accounts">
+          <i class="fas fa-book mr-2"></i>Accounts
+        </button>
+      </div>
+    </div>
+
+    <!-- Finance Section -->
+    <section id="finance-section" class="widget-card p-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Financial Overview</h2>
+      
+      <!-- Key Metrics -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="metric-card bg-green-100">
+          <div id="total-revenue" class="text-3xl font-bold text-green-700">$115,000</div>
+          <div class="text-sm text-gray-700 mt-2">Total Revenue</div>
+        </div>
+        <div class="metric-card bg-red-100">
+          <div id="total-expenses" class="text-3xl font-bold text-red-700">$75,200</div>
+          <div class="text-sm text-gray-700 mt-2">Total Expenses</div>
+        </div>
+        <div class="metric-card bg-blue-100">
+          <div id="net-profit" class="text-3xl font-bold text-blue-700">$39,800</div>
+          <div class="text-sm text-gray-700 mt-2">Net Profit</div>
+        </div>
+        <div class="metric-card bg-yellow-100">
+          <div id="pending-invoices" class="text-3xl font-bold text-yellow-700">$15,000</div>
+          <div class="text-sm text-gray-700 mt-2">Pending Invoices</div>
+        </div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="mb-8">
+        <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-history text-blue-600 mr-2"></i>Recent Transactions
+        </h3>
+        <div id="recent-transactions-list" class="space-y-3">
+          <!-- Transactions will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Financial Chart -->
+      <div class="mb-8">
+        <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-chart-pie text-green-600 mr-2"></i>Financial Distribution
+        </h3>
+        <div class="bg-white p-4 rounded-lg border">
+          <canvas id="financeChart" width="400" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Expense Tracking -->
+      <div class="mb-8">
+        <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-receipt text-green-600 mr-2"></i>Expense Tracking
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <h4 class="font-bold text-yellow-800 mb-3 flex items-center">
+              <i class="fas fa-gas-pump mr-2"></i>Fuel Expenses
+            </h4>
+            <div id="fuel-expenses-list" class="space-y-2">
+              <!-- Populated by JavaScript -->
+            </div>
+            <div class="mt-4 pt-3 border-t border-yellow-200">
+              <div class="font-bold text-yellow-800">Total: <span id="fuel-total">$0</span></div>
+            </div>
+          </div>
+          
+          <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h4 class="font-bold text-red-800 mb-3 flex items-center">
+              <i class="fas fa-wrench mr-2"></i>Maintenance
+            </h4>
+            <div id="maintenance-expenses-list" class="space-y-2">
+              <!-- Populated by JavaScript -->
+            </div>
+            <div class="mt-4 pt-3 border-t border-red-200">
+              <div class="font-bold text-red-800">Total: <span id="maintenance-total">$0</span></div>
+            </div>
+          </div>
+          
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h4 class="font-bold text-blue-800 mb-3 flex items-center">
+              <i class="fas fa-road mr-2"></i>Permits & Fees
+            </h4>
+            <div id="permits-expenses-list" class="space-y-2">
+              <!-- Populated by JavaScript -->
+            </div>
+            <div class="mt-4 pt-3 border-t border-blue-200">
+              <div class="font-bold text-blue-800">Total: <span id="permits-total">$0</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Invoices Section -->
+    <section id="invoices-section" class="widget-card p-8 hidden">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Invoice & Billing Management</h2>
+      
+      <!-- Invoice Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-green-100 p-4 rounded-lg text-center">
+          <div id="paid-invoices-count" class="text-2xl font-bold text-green-700">8</div>
+          <div class="text-sm text-gray-700">Paid Invoices</div>
+          <div id="paid-invoices-amount" class="text-lg font-semibold text-green-600">$45,200</div>
+        </div>
+        <div class="bg-yellow-100 p-4 rounded-lg text-center">
+          <div id="pending-invoices-count" class="text-2xl font-bold text-yellow-700">3</div>
+          <div class="text-sm text-gray-700">Pending Invoices</div>
+          <div id="pending-invoices-amount" class="text-lg font-semibold text-yellow-600">$15,800</div>
+        </div>
+        <div class="bg-red-100 p-4 rounded-lg text-center">
+          <div id="overdue-invoices-count" class="text-2xl font-bold text-red-700">2</div>
+          <div class="text-sm text-gray-700">Overdue Invoices</div>
+          <div id="overdue-invoices-amount" class="text-lg font-semibold text-red-600">$8,500</div>
+        </div>
+        <div class="bg-blue-100 p-4 rounded-lg text-center">
+          <div id="draft-invoices-count" class="text-2xl font-bold text-blue-700">1</div>
+          <div class="text-sm text-gray-700">Draft Invoices</div>
+          <div id="draft-invoices-amount" class="text-lg font-semibold text-blue-600">$3,200</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="mb-6 flex flex-wrap gap-4">
+        <button id="create-invoice-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+          <i class="fas fa-plus mr-2"></i>Create Invoice
+        </button>
+        <button id="send-reminders-btn" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700">
+          <i class="fas fa-bell mr-2"></i>Send Reminders
+        </button>
+        <button id="export-invoices-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+          <i class="fas fa-download mr-2"></i>Export Invoices
+        </button>
+      </div>
+
+      <!-- Invoices Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse bg-white rounded-lg shadow">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="border-b p-4 text-left">Invoice #</th>
+              <th class="border-b p-4 text-left">Client</th>
+              <th class="border-b p-4 text-left">Amount</th>
+              <th class="border-b p-4 text-left">Status</th>
+              <th class="border-b p-4 text-left">Due Date</th>
+              <th class="border-b p-4 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="invoices-table">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+
+
+
+
+    <!-- Transactions Section -->
+    <section id="transactions-section" class="widget-card p-8 hidden">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Transaction Management</h2>
+      
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-4">
+          <button id="add-transaction-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            <i class="fas fa-plus mr-2"></i>Add Transaction
+          </button>
+          <button id="export-transactions-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+            <i class="fas fa-file-export mr-2"></i>Export CSV
+          </button>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <input type="text" id="search-transactions" placeholder="Search transactions..." 
+                 class="border border-gray-300 rounded-lg px-3 py-2 w-64">
+          <select id="filter-transactions" class="border border-gray-300 rounded-lg px-3 py-2">
+            <option value="all">All Types</option>
+            <option value="Revenue">Revenue Only</option>
+            <option value="Expense">Expense Only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse bg-white rounded-lg shadow">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="border-b p-4 text-left">ID</th>
+              <th class="border-b p-4 text-left">Type</th>
+              <th class="border-b p-4 text-left">Amount</th>
+              <th class="border-b p-4 text-left">Description</th>
+              <th class="border-b p-4 text-left">Date</th>
+              <th class="border-b p-4 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="transactions-table">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Customers & Vendors Section (Combined A/R + A/P) -->
+    <section id="customers-vendors-section" class="widget-card p-8 hidden">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Customers & Vendors</h2>
+      
+      <!-- Sub-tabs for Receivables and Payables -->
+      <div class="flex border-b mb-6">
+        <button class="sub-tab active px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-medium" data-subtab="receivables">
+          <i class="fas fa-money-bill-wave mr-2"></i>Accounts Receivable
+        </button>
+        <button class="sub-tab px-4 py-2 text-gray-600 hover:text-gray-800" data-subtab="payables">
+          <i class="fas fa-file-invoice-dollar mr-2"></i>Accounts Payable
+        </button>
+      </div>
+      
+      <!-- Receivables Sub-section -->
+      <div id="receivables-subsection" class="subsection">
+      
+      <!-- A/R Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-green-100 p-4 rounded-lg text-center">
+          <div id="total-receivables" class="text-2xl font-bold text-green-700">$42,800</div>
+          <div class="text-sm text-gray-700">Total Receivables</div>
+          <div class="text-xs text-gray-500 mt-1">Outstanding invoices</div>
+        </div>
+        <div class="bg-green-100 p-4 rounded-lg text-center">
+          <div id="current-receivables" class="text-2xl font-bold text-green-700">$28,300</div>
+          <div class="text-sm text-gray-700">Current</div>
+          <div class="text-xs text-gray-500 mt-1">66% of total</div>
+        </div>
+        <div class="bg-red-100 p-4 rounded-lg text-center">
+          <div id="overdue-receivables" class="text-2xl font-bold text-red-700">$14,500</div>
+          <div class="text-sm text-gray-700">Overdue</div>
+          <div class="text-xs text-gray-500 mt-1">34% of total</div>
+        </div>
+        <div class="bg-blue-100 p-4 rounded-lg text-center">
+          <div id="avg-collection-period" class="text-2xl font-bold text-blue-700">22</div>
+          <div class="text-sm text-gray-700">Avg Collection Days</div>
+          <div class="text-xs text-gray-500 mt-1">Industry avg: 30</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="mb-6 flex flex-wrap gap-4">
+        <button id="send-statements-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+          <i class="fas fa-file-alt mr-2"></i>Send Statements
+        </button>
+        <button id="payment-reminders-btn" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700">
+          <i class="fas fa-bell mr-2"></i>Payment Reminders
+        </button>
+        <button id="aging-report-btn" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+          <i class="fas fa-chart-bar mr-2"></i>Aging Report
+        </button>
+        <button id="record-payment-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+          <i class="fas fa-dollar-sign mr-2"></i>Record Payment
+        </button>
+      </div>
+
+      <!-- Aging Analysis -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Aging Chart -->
+        <div class="bg-white p-6 rounded-lg border">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Payment Status</h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+              <span class="font-medium">Current</span>
+              <div class="text-right">
+                <span class="font-semibold text-green-700">$28,300</span>
+                <div class="text-xs text-gray-500">66.1%</div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-red-50 rounded">
+              <span class="font-medium">Overdue</span>
+              <div class="text-right">
+                <span class="font-semibold text-red-700">$14,500</span>
+                <div class="text-xs text-gray-500">33.9%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Overdue Customers -->
+        <div class="bg-white p-6 rounded-lg border">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Top Overdue Customers</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center p-3 border-l-4 border-red-400 bg-red-50">
+              <div>
+                <div class="font-medium">XYZ Transport</div>
+                <div class="text-sm text-gray-500">92 days overdue</div>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold text-red-700">$8,500</div>
+                <button class="text-xs bg-red-600 text-white px-2 py-1 rounded mt-1">Follow Up</button>
+              </div>
+            </div>
+            <div class="flex justify-between items-center p-3 border-l-4 border-orange-400 bg-orange-50">
+              <div>
+                <div class="font-medium">Metro Shipping</div>
+                <div class="text-sm text-gray-500">67 days overdue</div>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold text-orange-700">$4,100</div>
+                <button class="text-xs bg-orange-600 text-white px-2 py-1 rounded mt-1">Reminder</button>
+              </div>
+            </div>
+            <div class="flex justify-between items-center p-3 border-l-4 border-yellow-400 bg-yellow-50">
+              <div>
+                <div class="font-medium">Express Cargo</div>
+                <div class="text-sm text-gray-500">45 days overdue</div>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold text-yellow-700">$2,200</div>
+                <button class="text-xs bg-yellow-600 text-white px-2 py-1 rounded mt-1">Contact</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Receivables Table -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-gray-900">Customer Receivables</h3>
+          <div class="flex items-center space-x-3">
+            <input type="text" id="search-receivables" placeholder="Search customers..." 
+                   class="border border-gray-300 rounded-lg px-3 py-2 w-64">
+            <select id="filter-receivables" class="border border-gray-300 rounded-lg px-3 py-2">
+              <option value="all">All Customers</option>
+              <option value="current">Current Only</option>
+              <option value="overdue">Overdue Only</option>
+              <option value="high-risk">High Risk</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse bg-white rounded-lg shadow">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="border-b p-4 text-left">Customer</th>
+                <th class="border-b p-4 text-left">Total Outstanding</th>
+                <th class="border-b p-4 text-left">Current</th>
+                <th class="border-b p-4 text-left">Overdue</th>
+                <th class="border-b p-4 text-left">Last Payment</th>
+                <th class="border-b p-4 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="receivables-table">
+              <!-- Populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      </div>
+      
+      <!-- Payables Sub-section -->
+      <div id="payables-subsection" class="subsection hidden">
+      
+      <!-- A/P Summary Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-red-100 p-4 rounded-lg text-center">
+          <div id="total-payables" class="text-2xl font-bold text-red-700">$38,600</div>
+          <div class="text-sm text-gray-700">Total Payables</div>
+          <div class="text-xs text-gray-500 mt-1">Outstanding bills</div>
+        </div>
+        <div class="bg-green-100 p-4 rounded-lg text-center">
+          <div id="current-payables" class="text-2xl font-bold text-green-700">$24,800</div>
+          <div class="text-sm text-gray-700">Current</div>
+          <div class="text-xs text-gray-500 mt-1">64% of total</div>
+        </div>
+        <div class="bg-red-100 p-4 rounded-lg text-center">
+          <div id="overdue-payables" class="text-2xl font-bold text-red-700">$13,800</div>
+          <div class="text-sm text-gray-700">Overdue</div>
+          <div class="text-xs text-gray-500 mt-1">36% of total</div>
+        </div>
+        <div class="bg-blue-100 p-4 rounded-lg text-center">
+          <div id="avg-payment-period" class="text-2xl font-bold text-blue-700">28</div>
+          <div class="text-sm text-gray-700">Avg Payment Days</div>
+          <div class="text-xs text-gray-500 mt-1">Target: 30 days</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="mb-6 flex flex-wrap gap-4">
+        <button id="pay-bills-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+          <i class="fas fa-credit-card mr-2"></i>Pay Bills
+        </button>
+        <button id="add-bill-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+          <i class="fas fa-plus mr-2"></i>Add Bill
+        </button>
+        <button id="vendor-report-btn" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+          <i class="fas fa-chart-bar mr-2"></i>Vendor Report
+        </button>
+        <button id="payment-run-btn" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700">
+          <i class="fas fa-play mr-2"></i>Payment Run
+        </button>
+      </div>
+
+      <!-- Bills Due & Vendor Analysis -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Bills Due This Week -->
+        <div class="bg-white p-6 rounded-lg border">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Bills Due This Week</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center p-3 border-l-4 border-red-400 bg-red-50">
+              <div>
+                <div class="font-medium">Gulf Fuel Services</div>
+                <div class="text-sm text-gray-500">Due: Jan 25, 2025</div>
+                <div class="text-xs text-red-600">2 days overdue</div>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold text-red-700">$12,500</div>
+                <button class="text-xs bg-red-600 text-white px-2 py-1 rounded mt-1">Pay Now</button>
+              </div>
+            </div>
+            <div class="flex justify-between items-center p-3 border-l-4 border-orange-400 bg-orange-50">
+              <div>
+                <div class="font-medium">AutoCare Maintenance</div>
+                <div class="text-sm text-gray-500">Due: Jan 27, 2025</div>
+                <div class="text-xs text-orange-600">Due today</div>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold text-orange-700">$8,200</div>
+                <button class="text-xs bg-orange-600 text-white px-2 py-1 rounded mt-1">Schedule</button>
+              </div>
+            </div>
+            <div class="flex justify-between items-center p-3 border-l-4 border-yellow-400 bg-yellow-50">
+              <div>
+                <div class="font-medium">Insurance Plus Co</div>
+                <div class="text-sm text-gray-500">Due: Jan 30, 2025</div>
+                <div class="text-xs text-yellow-600">Due in 3 days</div>
+              </div>
+              <div class="text-right">
+                <div class="font-semibold text-yellow-700">$6,800</div>
+                <button class="text-xs bg-yellow-600 text-white px-2 py-1 rounded mt-1">Review</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Vendors by Amount -->
+        <div class="bg-white p-6 rounded-lg border">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Top Vendors by Amount</h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+              <span class="font-medium">Gulf Fuel Services</span>
+              <div class="text-right">
+                <span class="font-semibold text-gray-900">$18,500</span>
+                <div class="text-xs text-gray-500">3 outstanding bills</div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+              <span class="font-medium">AutoCare Maintenance</span>
+              <div class="text-right">
+                <span class="font-semibold text-gray-900">$12,300</span>
+                <div class="text-xs text-gray-500">2 outstanding bills</div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+              <span class="font-medium">Insurance Plus Co</span>
+              <div class="text-right">
+                <span class="font-semibold text-gray-900">$6,800</span>
+                <div class="text-xs text-gray-500">1 outstanding bill</div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+              <span class="font-medium">Office Supplies Inc</span>
+              <div class="text-right">
+                <span class="font-semibold text-gray-900">$1,000</span>
+                <div class="text-xs text-gray-500">1 outstanding bill</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aging Analysis -->
+      <div class="bg-white p-6 rounded-lg border mb-8">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Payables Aging Analysis</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+            <div class="text-2xl font-bold text-green-700">$24,800</div>
+            <div class="text-sm text-green-600 font-medium">Current</div>
+            <div class="text-xs text-gray-500 mt-1">64.2% of total</div>
+          </div>
+          <div class="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+            <div class="text-2xl font-bold text-red-700">$13,800</div>
+            <div class="text-sm text-red-600 font-medium">Overdue</div>
+            <div class="text-xs text-gray-500 mt-1">35.8% of total</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vendor Payables Table -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-gray-900">Vendor Payables</h3>
+          <div class="flex items-center space-x-3">
+            <input type="text" id="search-payables" placeholder="Search vendors..." 
+                   class="border border-gray-300 rounded-lg px-3 py-2 w-64">
+            <select id="filter-payables" class="border border-gray-300 rounded-lg px-3 py-2">
+              <option value="all">All Vendors</option>
+              <option value="current">Current Only</option>
+              <option value="overdue">Overdue Only</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse bg-white rounded-lg shadow">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="border-b p-4 text-left">Vendor</th>
+                <th class="border-b p-4 text-left">Total Outstanding</th>
+                <th class="border-b p-4 text-left">Current</th>
+                <th class="border-b p-4 text-left">Overdue</th>
+                <th class="border-b p-4 text-left">Next Due Date</th>
+                <th class="border-b p-4 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="payables-table">
+              <!-- Populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- Accounts Section (Combined General Ledger + Chart of Accounts) -->
+    <section id="accounts-section" class="widget-card p-8 hidden">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Accounts</h2>
+      
+      <!-- Sub-tabs for Ledger and Chart of Accounts -->
+      <div class="flex border-b mb-6">
+        <button class="sub-tab active px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-medium" data-subtab="ledger">
+          <i class="fas fa-book mr-2"></i>Account Balances
+        </button>
+        <button class="sub-tab px-4 py-2 text-gray-600 hover:text-gray-800" data-subtab="chart-accounts">
+          <i class="fas fa-list-alt mr-2"></i>Chart of Accounts
+        </button>
+      </div>
+      
+      <!-- Ledger Sub-section -->
+      <div id="ledger-subsection" class="subsection">
+      
+      <!-- Account Balances Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-blue-100 p-4 rounded-lg text-center">
+          <div id="total-assets" class="text-2xl font-bold text-blue-700">$185,400</div>
+          <div class="text-sm text-gray-700">Total Assets</div>
+          <div class="text-xs text-gray-500 mt-1">Current + Fixed</div>
+        </div>
+        <div class="bg-red-100 p-4 rounded-lg text-center">
+          <div id="total-liabilities" class="text-2xl font-bold text-red-700">$92,300</div>
+          <div class="text-sm text-gray-700">Total Liabilities</div>
+          <div class="text-xs text-gray-500 mt-1">Current + Long-term</div>
+        </div>
+        <div class="bg-green-100 p-4 rounded-lg text-center">
+          <div id="total-equity" class="text-2xl font-bold text-green-700">$93,100</div>
+          <div class="text-sm text-gray-700">Total Equity</div>
+          <div class="text-xs text-gray-500 mt-1">Owner's equity</div>
+        </div>
+      </div>
+
+      <!-- Key Account Balances -->
+      <div class="bg-white p-6 rounded-lg border">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Key Account Balances</h3>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+            <div>
+              <div class="font-medium">Cash and Bank</div>
+              <div class="text-sm text-gray-500">1000 - Current Asset</div>
+            </div>
+            <div class="text-right">
+              <div class="font-semibold text-green-700">$45,200</div>
+              <div class="text-xs text-gray-500">Debit Balance</div>
+            </div>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-blue-50 rounded">
+            <div>
+              <div class="font-medium">Accounts Receivable</div>
+              <div class="text-sm text-gray-500">1200 - Current Asset</div>
+            </div>
+            <div class="text-right">
+              <div class="font-semibold text-blue-700">$42,800</div>
+              <div class="text-xs text-gray-500">Debit Balance</div>
+            </div>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
+            <div>
+              <div class="font-medium">Fleet Vehicles</div>
+              <div class="text-sm text-gray-500">1500 - Fixed Asset</div>
+            </div>
+            <div class="text-right">
+              <div class="font-semibold text-yellow-700">$75,000</div>
+              <div class="text-xs text-gray-500">Debit Balance</div>
+            </div>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-red-50 rounded">
+            <div>
+              <div class="font-medium">Accounts Payable</div>
+              <div class="text-sm text-gray-500">2000 - Current Liability</div>
+            </div>
+            <div class="text-right">
+              <div class="font-semibold text-red-700">$38,600</div>
+              <div class="text-xs text-gray-500">Credit Balance</div>
+            </div>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-purple-50 rounded">
+            <div>
+              <div class="font-medium">Owner's Capital</div>
+              <div class="text-sm text-gray-500">3000 - Equity</div>
+            </div>
+            <div class="text-right">
+              <div class="font-semibold text-purple-700">$93,100</div>
+              <div class="text-xs text-gray-500">Credit Balance</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      
+      <!-- Chart of Accounts Sub-section -->
+      <div id="chart-accounts-subsection" class="subsection hidden">
+      
+      <!-- Account Categories Summary -->
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div class="bg-blue-100 p-4 rounded-lg text-center">
+          <div id="assets-count" class="text-2xl font-bold text-blue-700">4</div>
+          <div class="text-sm text-gray-700">Asset Accounts</div>
+          <div class="text-xs text-gray-500 mt-1">1000-1999</div>
+        </div>
+        <div class="bg-red-100 p-4 rounded-lg text-center">
+          <div id="liabilities-count" class="text-2xl font-bold text-red-700">3</div>
+          <div class="text-sm text-gray-700">Liability Accounts</div>
+          <div class="text-xs text-gray-500 mt-1">2000-2999</div>
+        </div>
+        <div class="bg-green-100 p-4 rounded-lg text-center">
+          <div id="equity-count" class="text-2xl font-bold text-green-700">1</div>
+          <div class="text-sm text-gray-700">Equity Accounts</div>
+          <div class="text-xs text-gray-500 mt-1">3000-3999</div>
+        </div>
+        <div class="bg-purple-100 p-4 rounded-lg text-center">
+          <div id="revenue-count" class="text-2xl font-bold text-purple-700">1</div>
+          <div class="text-sm text-gray-700">Revenue Accounts</div>
+          <div class="text-xs text-gray-500 mt-1">4000-4999</div>
+        </div>
+        <div class="bg-orange-100 p-4 rounded-lg text-center">
+          <div id="expense-count" class="text-2xl font-bold text-orange-700">4</div>
+          <div class="text-sm text-gray-700">Expense Accounts</div>
+          <div class="text-xs text-gray-500 mt-1">5000-5999</div>
+        </div>
+      </div>
+
+      <!-- Account Categories Tabs -->
+      <div class="mb-6">
+        <div class="flex flex-wrap border-b">
+          <button class="account-category-tab active px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-medium" data-category="all">
+            All Accounts
+          </button>
+          <button class="account-category-tab px-4 py-2 text-gray-600 hover:text-gray-800" data-category="Asset">
+            Assets
+          </button>
+          <button class="account-category-tab px-4 py-2 text-gray-600 hover:text-gray-800" data-category="Liability">
+            Liabilities
+          </button>
+          <button class="account-category-tab px-4 py-2 text-gray-600 hover:text-gray-800" data-category="Equity">
+            Equity
+          </button>
+          <button class="account-category-tab px-4 py-2 text-gray-600 hover:text-gray-800" data-category="Revenue">
+            Revenue
+          </button>
+          <button class="account-category-tab px-4 py-2 text-gray-600 hover:text-gray-800" data-category="Expense">
+            Expenses
+          </button>
+        </div>
+      </div>
+
+      <!-- Chart of Accounts Table (View Only) -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-bold text-gray-900">Chart of Accounts</h3>
+          <div class="flex items-center space-x-3">
+            <input type="text" id="search-accounts" placeholder="Search accounts..." 
+                   class="border border-gray-300 rounded-lg px-3 py-2 w-64">
+            <select id="filter-accounts" class="border border-gray-300 rounded-lg px-3 py-2">
+              <option value="all">All Types</option>
+              <option value="Asset">Assets Only</option>
+              <option value="Liability">Liabilities Only</option>
+              <option value="Equity">Equity Only</option>
+              <option value="Revenue">Revenue Only</option>
+              <option value="Expense">Expenses Only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse bg-white rounded-lg shadow">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="border-b p-4 text-left">Account Code</th>
+                <th class="border-b p-4 text-left">Account Name</th>
+                <th class="border-b p-4 text-left">Type</th>
+                <th class="border-b p-4 text-left">Normal Side</th>
+                <th class="border-b p-4 text-left">Current Balance</th>
+                <th class="border-b p-4 text-left">Description</th>
+              </tr>
+            </thead>
+            <tbody id="chart-accounts-table">
+              <!-- Populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- Fleet Analytics Section -->
+    <section id="fleet-analytics-section" class="widget-card p-8 hidden">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Fleet Analytics</h2>
+      
+      <!-- Period Selector -->
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center space-x-2">
+          <label class="text-sm font-medium text-gray-700">Period:</label>
+          <select id="analytics-period" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <option value="current-month">Current Month (Jan 2025)</option>
+            <option value="last-month">Last Month (Dec 2024)</option>
+            <option value="last-7-days">Last 7 Days</option>
+            <option value="ytd">Year to Date 2025</option>
+          </select>
+        </div>
+        <div class="text-sm text-gray-500">
+          <i class="fas fa-info-circle mr-1"></i>
+          Financial performance by individual vehicles and drivers
+        </div>
+      </div>
+
+      <!-- Fleet Overview Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="metric-card bg-blue-100">
+          <div id="fleet-vehicles" class="text-3xl font-bold text-blue-700">5</div>
+          <div class="text-sm text-gray-700 mt-2">Active Vehicles</div>
+        </div>
+        <div class="metric-card bg-green-100">
+          <div id="fleet-drivers" class="text-3xl font-bold text-green-700">5</div>
+          <div class="text-sm text-gray-700 mt-2">Active Drivers</div>
+        </div>
+        <div class="metric-card bg-purple-100">
+          <div id="fleet-trips" class="text-3xl font-bold text-purple-700">639</div>
+          <div class="text-sm text-gray-700 mt-2">Total Trips</div>
+        </div>
+        <div class="metric-card bg-yellow-100">
+          <div id="fleet-efficiency" class="text-3xl font-bold text-yellow-700">81%</div>
+          <div class="text-sm text-gray-700 mt-2">Avg Efficiency</div>
+        </div>
+      </div>
+
+      <!-- Vehicles Performance -->
+      <div class="mb-8">
+        <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-truck text-blue-600 mr-2"></i>Vehicle Performance
+        </h3>
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="border-b p-4 text-left">Vehicle</th>
+                <th class="border-b p-4 text-left">Revenue</th>
+                <th class="border-b p-4 text-left">Expenses</th>
+                <th class="border-b p-4 text-left">Profit</th>
+                <th class="border-b p-4 text-left">Efficiency</th>
+                <th class="border-b p-4 text-left">Trips</th>
+                <th class="border-b p-4 text-left">Status</th>
+              </tr>
+            </thead>
+            <tbody id="vehicles-performance-table">
+              <!-- Populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Drivers Performance -->
+      <div class="mb-8">
+        <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-user-tie text-green-600 mr-2"></i>Driver Performance
+        </h3>
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="border-b p-4 text-left">Driver</th>
+                <th class="border-b p-4 text-left">Revenue</th>
+                <th class="border-b p-4 text-left">Expenses</th>
+                <th class="border-b p-4 text-left">Profit</th>
+                <th class="border-b p-4 text-left">Efficiency</th>
+                <th class="border-b p-4 text-left">Trips</th>
+                <th class="border-b p-4 text-left">Rating</th>
+              </tr>
+            </thead>
+            <tbody id="drivers-performance-table">
+              <!-- Populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+
+    </section>
+
+  </main>
+
+
+
+
+
+
+
+  <!-- Add Transaction Modal -->
+  <div id="add-transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">Add New Transaction</h3>
+      
+      <form id="add-transaction-form">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
+          <select id="transaction-type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="Revenue">Revenue</option>
+            <option value="Expense">Expense</option>
+          </select>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Amount ($)</label>
+          <input type="number" id="transaction-amount" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+          <input type="text" id="transaction-description" class="w-full border border-gray-300 rounded-lg px-3 py-2" required>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+          <select id="transaction-payment" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="cash">Cash</option>
+            <option value="card">Card</option>
+            <option value="digital">Digital</option>
+          </select>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <button type="button" id="cancel-transaction" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+            Cancel
+          </button>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+            Add Transaction
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="notification-toast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden z-50">
+    <div class="flex items-center">
+      <i class="fas fa-check-circle mr-2"></i>
+      <span id="toast-message">Success!</span>
+    </div>
+  </div>
+
+  <!-- Vehicle Details Modal -->
+  <div id="vehicle-details-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold text-gray-900" id="vehicle-modal-title">Vehicle Details</h3>
+        <button id="close-vehicle-modal" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <!-- Period Selector for Vehicle Modal -->
+      <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+        <div class="flex items-center justify-between">
+          <label class="text-sm font-medium text-gray-700">Time Period:</label>
+          <select id="vehicle-modal-period" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <option value="current-month">Current Month (Jan 2025)</option>
+            <option value="last-month">Last Month (Dec 2024)</option>
+            <option value="last-7-days">Last 7 Days</option>
+            <option value="ytd">Year to Date 2025</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="vehicle-modal-content">
+        <!-- Content will be populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Driver Details Modal -->
+  <div id="driver-details-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold text-gray-900" id="driver-modal-title">Driver Details</h3>
+        <button id="close-driver-modal" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <!-- Period Selector for Driver Modal -->
+      <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+        <div class="flex items-center justify-between">
+          <label class="text-sm font-medium text-gray-700">Time Period:</label>
+          <select id="driver-modal-period" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <option value="current-month">Current Month (Jan 2025)</option>
+            <option value="last-month">Last Month (Dec 2024)</option>
+            <option value="last-7-days">Last 7 Days</option>
+            <option value="ytd">Year to Date 2025</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="driver-modal-content">
+        <!-- Content will be populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    console.log('🚀 Accountant Dashboard Initialized');
+
+    // Sample Data
+    const financeData = {
+      metrics: {
+        revenue: 115000,
+        expenses: 75200,
+        profit: 39800,
+        pending: 15000
+      },
+      transactions: [
+        { id: 'TXN-001', type: 'Revenue', amount: 5000, description: 'Payment for Invoice #1001', date: '2025-01-15', paymentMethod: 'cash' },
+        { id: 'TXN-002', type: 'Expense', amount: 1200, description: 'Fuel Purchase', date: '2025-01-14', paymentMethod: 'card' },
+        { id: 'TXN-003', type: 'Revenue', amount: 2500, description: 'Client B Payment', date: '2025-01-13', paymentMethod: 'digital' },
+        { id: 'TXN-004', type: 'Expense', amount: 850, description: 'Vehicle Maintenance', date: '2025-01-12', paymentMethod: 'cash' },
+        { id: 'TXN-005', type: 'Revenue', amount: 3200, description: 'Logistics Service Payment', date: '2025-01-11', paymentMethod: 'digital' }
+      ],
+      expenses: {
+        fuel: [
+          { vehicle: 'VEH-001', driver: 'Ahmed Ali', amount: 1200, liters: 50, date: '2025-01-14' },
+          { vehicle: 'VEH-002', driver: 'Sara Mohamed', amount: 890, liters: 37, date: '2025-01-13' },
+          { vehicle: 'VEH-003', driver: 'Omar Hassan', amount: 650, liters: 27, date: '2025-01-12' }
+        ],
+        maintenance: [
+          { vehicle: 'VEH-001', type: 'Engine Service', amount: 850, date: '2025-01-12', description: 'Oil change & tune-up' },
+          { vehicle: 'VEH-003', type: 'Tire Replacement', amount: 620, date: '2025-01-10', description: '4x new tires' },
+          { vehicle: 'VEH-002', type: 'Brake Service', amount: 420, date: '2025-01-08', description: 'Brake pads replacement' }
+        ],
+        permits: [
+          { type: 'Highway Toll', vehicle: 'VEH-001', amount: 450, date: '2025-01-15', description: 'Monthly pass - Route A' },
+          { type: 'Commercial Permit', vehicle: 'VEH-002', amount: 280, date: '2025-01-10', description: 'Vehicle registration renewal' },
+          { type: 'Inspection Fee', vehicle: 'VEH-003', amount: 150, date: '2025-01-05', description: 'Annual safety inspection' }
+        ]
+      },
+      invoices: [
+        { id: 'INV-001', client: 'ABC Logistics', amount: 15200, status: 'Paid', issueDate: '2025-01-05', dueDate: '2025-01-20' },
+        { id: 'INV-002', client: 'XYZ Transport', amount: 8500, status: 'Overdue', issueDate: '2024-12-15', dueDate: '2025-01-15' },
+        { id: 'INV-003', client: 'Quick Delivery Co', amount: 12300, status: 'Pending', issueDate: '2025-01-10', dueDate: '2025-01-25' },
+        { id: 'INV-004', client: 'Fast Freight Ltd', amount: 6800, status: 'Paid', issueDate: '2025-01-08', dueDate: '2025-01-23' },
+        { id: 'INV-005', client: 'Express Cargo', amount: 3200, status: 'Draft', issueDate: '2025-01-12', dueDate: '2025-01-27' },
+        { id: 'INV-006', client: 'Metro Shipping', amount: 9400, status: 'Pending', issueDate: '2025-01-11', dueDate: '2025-01-26' }
+      ],
+
+
+      receivables: {
+        summary: {
+          totalOutstanding: 42800,
+          current: 28300,
+          overdue: 14500,
+          avgCollectionDays: 22
+        },
+        aging: {
+          current: { amount: 28300, percentage: 66.1 },
+          overdue: { amount: 14500, percentage: 33.9 }
+        },
+        customers: [
+          {
+            id: 'CUST-001',
+            name: 'ABC Logistics',
+            totalOutstanding: 15200,
+            current: 12000,
+            overdue: 3200,
+            lastPayment: '2025-01-10',
+            creditLimit: 25000,
+            riskLevel: 'Low'
+          },
+          {
+            id: 'CUST-002',
+            name: 'XYZ Transport',
+            totalOutstanding: 8500,
+            current: 0,
+            overdue: 8500,
+            lastPayment: '2024-10-25',
+            creditLimit: 15000,
+            riskLevel: 'High'
+          },
+          {
+            id: 'CUST-003',
+            name: 'Quick Delivery Co',
+            totalOutstanding: 12300,
+            current: 9500,
+            overdue: 2800,
+            lastPayment: '2025-01-05',
+            creditLimit: 20000,
+            riskLevel: 'Low'
+          },
+          {
+            id: 'CUST-004',
+            name: 'Metro Shipping',
+            totalOutstanding: 4100,
+            current: 0,
+            thirtyTo60: 0,
+            sixtyTo90: 4100,
+            over90: 0,
+            lastPayment: '2024-11-15',
+            creditLimit: 10000,
+            riskLevel: 'Medium'
+          },
+          {
+            id: 'CUST-005',
+            name: 'Express Cargo',
+            totalOutstanding: 2700,
+            current: 500,
+            thirtyTo60: 2200,
+            sixtyTo90: 0,
+            over90: 0,
+            lastPayment: '2024-12-20',
+            creditLimit: 8000,
+            riskLevel: 'Medium'
+          }
+        ]
+      },
+      payables: {
+        summary: {
+          totalOutstanding: 38600,
+          current: 24800,
+          overdue: 13800,
+          avgPaymentDays: 28
+        },
+        aging: {
+          current: { amount: 24800, percentage: 64.2 },
+          overdue: { amount: 13800, percentage: 35.8 }
+        },
+        vendors: [
+          {
+            id: 'VEND-001',
+            name: 'Gulf Fuel Services',
+            totalOutstanding: 18500,
+            current: 12500,
+            overdue: 6000,
+            nextDueDate: '2025-01-25',
+            paymentTerms: 'Net 30',
+            status: 'Critical'
+          },
+          {
+            id: 'VEND-002',
+            name: 'AutoCare Maintenance',
+            totalOutstanding: 12300,
+            current: 8200,
+            overdue: 4100,
+            nextDueDate: '2025-01-27',
+            paymentTerms: 'Net 30',
+            status: 'Normal'
+          },
+          {
+            id: 'VEND-003',
+            name: 'Insurance Plus Co',
+            totalOutstanding: 6800,
+            current: 6800,
+            overdue: 0,
+            nextDueDate: '2025-01-30',
+            paymentTerms: 'Net 45',
+            status: 'Normal'
+          },
+          {
+            id: 'VEND-004',
+            name: 'Office Supplies Inc',
+            totalOutstanding: 1000,
+            current: 0,
+            overdue: 1000,
+            nextDueDate: '2024-11-15',
+            paymentTerms: 'Net 15',
+            status: 'Overdue'
+          },
+          {
+            id: 'VEND-005',
+            name: 'Fleet Tracking Systems',
+            totalOutstanding: 2700,
+            current: 0,
+            overdue: 2700,
+            nextDueDate: '2024-10-20',
+            paymentTerms: 'Net 30',
+            status: 'Critical'
+          }
+        ]
+      },
+      ledger: {
+        chartOfAccounts: [
+          { code: '1000', name: 'Cash and Bank', type: 'Asset', balance: 45200, normalSide: 'Debit', status: 'Active', lastActivity: '2025-01-15', description: 'Primary operating cash account' },
+          { code: '1200', name: 'Accounts Receivable', type: 'Asset', balance: 42800, normalSide: 'Debit', status: 'Active', lastActivity: '2025-01-14', description: 'Customer outstanding balances' },
+          { code: '1300', name: 'Inventory', type: 'Asset', balance: 22400, normalSide: 'Debit', status: 'Active', lastActivity: '2025-01-10', description: 'Spare parts and supplies' },
+          { code: '1500', name: 'Fleet Vehicles', type: 'Asset', balance: 75000, normalSide: 'Debit', status: 'Active', lastActivity: '2025-01-01', description: 'Company fleet vehicles' },
+          { code: '2000', name: 'Accounts Payable', type: 'Liability', balance: 38600, normalSide: 'Credit', status: 'Active', lastActivity: '2025-01-13', description: 'Vendor outstanding balances' },
+          { code: '2100', name: 'Accrued Expenses', type: 'Liability', balance: 12500, normalSide: 'Credit', status: 'Active', lastActivity: '2025-01-12', description: 'Unpaid accrued expenses' },
+          { code: '2200', name: 'Vehicle Loans', type: 'Liability', balance: 41200, normalSide: 'Credit', status: 'Active', lastActivity: '2025-01-01', description: 'Long-term vehicle financing' },
+          { code: '3000', name: 'Owner\'s Capital', type: 'Equity', balance: 93100, normalSide: 'Credit', status: 'Active', lastActivity: '2025-01-01', description: 'Owner equity investment' },
+          { code: '4000', name: 'Transportation Revenue', type: 'Revenue', balance: 115000, normalSide: 'Credit', status: 'Active', lastActivity: '2025-01-12', description: 'Revenue from transportation services' },
+          { code: '5000', name: 'Fuel Expense', type: 'Expense', balance: 45200, normalSide: 'Debit', status: 'Active', lastActivity: '2025-01-15', description: 'Vehicle fuel costs' },
+          { code: '5100', name: 'Maintenance Expense', type: 'Expense', balance: 18900, normalSide: 'Debit', status: 'Active', lastActivity: '2025-01-13', description: 'Vehicle maintenance and repairs' },
+          { code: '5200', name: 'Insurance Expense', type: 'Expense', balance: 6800, normalSide: 'Debit', status: 'Active', lastActivity: '2025-01-01', description: 'Vehicle and liability insurance' },
+          { code: '5300', name: 'Driver Wages', type: 'Expense', balance: 28500, normalSide: 'Debit', status: 'Active', lastActivity: '2025-01-11', description: 'Driver salary and wages' }
+        ],
+        summary: {
+          totalAssets: 185400,
+          totalLiabilities: 92300,
+          totalEquity: 93100,
+          trialBalance: 0
+        }
+      },
+      
+      // Vehicle Master Data (static info)
+      vehicleProfiles: [
+        { id: 'VEH-001', plate: 'ABC-123', model: 'Ford Transit', year: 2022, capacity: '3.5T' },
+        { id: 'VEH-002', plate: 'XYZ-456', model: 'Mercedes Sprinter', year: 2023, capacity: '2.5T' },
+        { id: 'VEH-003', plate: 'DEF-789', model: 'Isuzu NPR', year: 2021, capacity: '5T' },
+        { id: 'VEH-004', plate: 'GHI-012', model: 'Toyota Hiace', year: 2022, capacity: '1.5T' },
+        { id: 'VEH-005', plate: 'JKL-345', model: 'Nissan Urvan', year: 2020, capacity: '1T' }
+      ],
+      
+      // Driver Master Data (static info)
+      driverProfiles: [
+        { id: 'DRV-001', name: 'Ahmed Ali', license: 'DL-2019-001', experience: 8, joinDate: '2019-03-15' },
+        { id: 'DRV-002', name: 'Sara Mohamed', license: 'DL-2020-045', experience: 6, joinDate: '2020-07-22' },
+        { id: 'DRV-003', name: 'Omar Hassan', license: 'DL-2018-123', experience: 9, joinDate: '2018-11-10' },
+        { id: 'DRV-004', name: 'Fatima Ahmed', license: 'DL-2021-089', experience: 4, joinDate: '2021-02-28' },
+        { id: 'DRV-005', name: 'Mohamed Khalil', license: 'DL-2022-156', experience: 3, joinDate: '2022-05-12' }
+      ],
+      
+      // Period-based Financial Performance Data
+      performanceData: {
+        'current-month': {
+          label: 'January 2025',
+          vehicles: [
+            { id: 'VEH-001', revenue: 28500, expenses: 18200, profit: 10300, pending: 3500, efficiency: 85, trips: 142, avgDistance: 2850, fuelCost: 4200 },
+            { id: 'VEH-002', revenue: 32000, expenses: 20100, profit: 11900, pending: 4200, efficiency: 92, trips: 156, avgDistance: 3100, fuelCost: 4800 },
+            { id: 'VEH-003', revenue: 25000, expenses: 16500, profit: 8500, pending: 2800, efficiency: 78, trips: 134, avgDistance: 2400, fuelCost: 3900 },
+            { id: 'VEH-004', revenue: 19500, expenses: 12400, profit: 7100, pending: 2500, efficiency: 88, trips: 118, avgDistance: 1950, fuelCost: 2800 },
+            { id: 'VEH-005', revenue: 10000, expenses: 8000, profit: 2000, pending: 2000, efficiency: 65, trips: 89, avgDistance: 1200, fuelCost: 2200 }
+          ],
+          drivers: [
+            { id: 'DRV-001', revenue: 35000, expenses: 22000, profit: 13000, pending: 4500, efficiency: 89, trips: 178, rating: 4.8, hours: 186, avgSpeed: 45 },
+            { id: 'DRV-002', revenue: 28000, expenses: 18500, profit: 9500, pending: 3200, efficiency: 85, trips: 145, rating: 4.6, hours: 168, avgSpeed: 42 },
+            { id: 'DRV-003', revenue: 22000, expenses: 14200, profit: 7800, pending: 2800, efficiency: 82, trips: 124, rating: 4.5, hours: 155, avgSpeed: 38 },
+            { id: 'DRV-004', revenue: 18000, expenses: 12000, profit: 6000, pending: 2500, efficiency: 79, trips: 108, rating: 4.7, hours: 142, avgSpeed: 40 },
+            { id: 'DRV-005', revenue: 12000, expenses: 8500, profit: 3500, pending: 2000, efficiency: 73, trips: 87, rating: 4.3, hours: 125, avgSpeed: 35 }
+          ]
+        },
+        'last-month': {
+          label: 'December 2024',
+          vehicles: [
+            { id: 'VEH-001', revenue: 24000, expenses: 15800, profit: 8200, pending: 2800, efficiency: 82, trips: 128, avgDistance: 2650, fuelCost: 3800 },
+            { id: 'VEH-002', revenue: 28500, expenses: 17200, profit: 11300, pending: 3500, efficiency: 89, trips: 142, avgDistance: 2950, fuelCost: 4200 },
+            { id: 'VEH-003', revenue: 21000, expenses: 14100, profit: 6900, pending: 2200, efficiency: 75, trips: 118, avgDistance: 2200, fuelCost: 3500 },
+            { id: 'VEH-004', revenue: 16500, expenses: 10800, profit: 5700, pending: 2000, efficiency: 85, trips: 102, avgDistance: 1800, fuelCost: 2400 },
+            { id: 'VEH-005', revenue: 8000, expenses: 6600, profit: 1400, pending: 1500, efficiency: 62, trips: 75, avgDistance: 1050, fuelCost: 1900 }
+          ],
+          drivers: [
+            { id: 'DRV-001', revenue: 31000, expenses: 19500, profit: 11500, pending: 3800, efficiency: 86, trips: 158, rating: 4.7, hours: 172, avgSpeed: 44 },
+            { id: 'DRV-002', revenue: 24500, expenses: 16200, profit: 8300, pending: 2700, efficiency: 82, trips: 128, rating: 4.5, hours: 156, avgSpeed: 41 },
+            { id: 'DRV-003', revenue: 19000, expenses: 12800, profit: 6200, pending: 2300, efficiency: 79, trips: 108, rating: 4.4, hours: 142, avgSpeed: 37 },
+            { id: 'DRV-004', revenue: 15000, expenses: 10200, profit: 4800, pending: 2000, efficiency: 76, trips: 94, rating: 4.6, hours: 128, avgSpeed: 39 },
+            { id: 'DRV-005', revenue: 8500, expenses: 5800, profit: 2700, pending: 1200, efficiency: 70, trips: 72, rating: 4.2, hours: 108, avgSpeed: 34 }
+          ]
+        },
+        'last-7-days': {
+          label: 'Last 7 Days',
+          vehicles: [
+            { id: 'VEH-001', revenue: 7200, expenses: 4600, profit: 2600, pending: 900, efficiency: 87, trips: 35, avgDistance: 2900, fuelCost: 1050 },
+            { id: 'VEH-002', revenue: 8100, expenses: 5100, profit: 3000, pending: 1100, efficiency: 94, trips: 38, avgDistance: 3200, fuelCost: 1200 },
+            { id: 'VEH-003', revenue: 6200, expenses: 4100, profit: 2100, pending: 700, efficiency: 80, trips: 32, avgDistance: 2500, fuelCost: 950 },
+            { id: 'VEH-004', revenue: 4800, expenses: 3100, profit: 1700, pending: 800, efficiency: 90, trips: 28, avgDistance: 2000, fuelCost: 700 },
+            { id: 'VEH-005', revenue: 2200, expenses: 1300, profit: 900, pending: 700, efficiency: 68, trips: 22, avgDistance: 1300, fuelCost: 450 }
+          ],
+          drivers: [
+            { id: 'DRV-001', revenue: 8800, expenses: 5500, profit: 3300, pending: 1200, efficiency: 91, trips: 42, rating: 4.8, hours: 46, avgSpeed: 46 },
+            { id: 'DRV-002', revenue: 7200, expenses: 4700, profit: 2500, pending: 900, efficiency: 87, trips: 36, rating: 4.6, hours: 42, avgSpeed: 43 },
+            { id: 'DRV-003', revenue: 5500, expenses: 3600, profit: 1900, pending: 700, efficiency: 84, trips: 31, rating: 4.5, hours: 38, avgSpeed: 39 },
+            { id: 'DRV-004', revenue: 4200, expenses: 2800, profit: 1400, pending: 600, efficiency: 81, trips: 26, rating: 4.7, hours: 35, avgSpeed: 41 },
+            { id: 'DRV-005', revenue: 2800, expenses: 1600, profit: 1200, pending: 800, efficiency: 75, trips: 20, rating: 4.3, hours: 28, avgSpeed: 36 }
+          ]
+        },
+        'ytd': {
+          label: 'Year to Date 2025',
+          vehicles: [
+            { id: 'VEH-001', revenue: 28500, expenses: 18200, profit: 10300, pending: 3500, efficiency: 85, trips: 142, avgDistance: 2850, fuelCost: 4200 },
+            { id: 'VEH-002', revenue: 32000, expenses: 20100, profit: 11900, pending: 4200, efficiency: 92, trips: 156, avgDistance: 3100, fuelCost: 4800 },
+            { id: 'VEH-003', revenue: 25000, expenses: 16500, profit: 8500, pending: 2800, efficiency: 78, trips: 134, avgDistance: 2400, fuelCost: 3900 },
+            { id: 'VEH-004', revenue: 19500, expenses: 12400, profit: 7100, pending: 2500, efficiency: 88, trips: 118, avgDistance: 1950, fuelCost: 2800 },
+            { id: 'VEH-005', revenue: 10000, expenses: 8000, profit: 2000, pending: 2000, efficiency: 65, trips: 89, avgDistance: 1200, fuelCost: 2200 }
+          ],
+          drivers: [
+            { id: 'DRV-001', revenue: 35000, expenses: 22000, profit: 13000, pending: 4500, efficiency: 89, trips: 178, rating: 4.8, hours: 186, avgSpeed: 45 },
+            { id: 'DRV-002', revenue: 28000, expenses: 18500, profit: 9500, pending: 3200, efficiency: 85, trips: 145, rating: 4.6, hours: 168, avgSpeed: 42 },
+            { id: 'DRV-003', revenue: 22000, expenses: 14200, profit: 7800, pending: 2800, efficiency: 82, trips: 124, rating: 4.5, hours: 155, avgSpeed: 38 },
+            { id: 'DRV-004', revenue: 18000, expenses: 12000, profit: 6000, pending: 2500, efficiency: 79, trips: 108, rating: 4.7, hours: 142, avgSpeed: 40 },
+            { id: 'DRV-005', revenue: 12000, expenses: 8500, profit: 3500, pending: 2000, efficiency: 73, trips: 87, rating: 4.3, hours: 125, avgSpeed: 35 }
+          ]
+        }
+      }
+    };
+
+    // Navigation Management
+    function initializeNavigation() {
+      console.log('📋 Initializing navigation...');
+      
+      const tabs = document.querySelectorAll('.nav-tab');
+      const sections = document.querySelectorAll('section');
+
+      console.log(`Found ${tabs.length} tabs and ${sections.length} sections`);
+
+      if (tabs.length === 0) {
+        console.error('❌ No navigation tabs found!');
+        return;
+      }
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+          e.preventDefault();
+          console.log(`🔘 Clicked tab: ${this.dataset.tab}`);
+          
+          // Remove active class from all tabs
+          tabs.forEach(t => t.classList.remove('active'));
+          // Add active class to clicked tab
+          this.classList.add('active');
+
+          // Hide all sections
+          sections.forEach(s => s.classList.add('hidden'));
+          
+          // Show target section
+          const targetId = this.dataset.tab + '-section';
+          const targetSection = document.getElementById(targetId);
+          if (targetSection) {
+            targetSection.classList.remove('hidden');
+            console.log(`✅ Switched to ${this.dataset.tab} section`);
+          } else {
+            console.error(`❌ Section not found: ${targetId}`);
+          }
+        });
+      });
+
+      console.log('✅ Navigation initialization complete');
+      
+      // Initialize sub-tabs
+      initializeSubTabs();
+    }
+
+    // Initialize Sub-Tab Navigation
+    function initializeSubTabs() {
+      console.log('📋 Initializing sub-tab navigation...');
+      
+      const subTabs = document.querySelectorAll('.sub-tab');
+      
+      if (subTabs.length === 0) {
+        console.log('ℹ️ No sub-tabs found');
+        return;
+      }
+      
+      console.log(`Found ${subTabs.length} sub-tabs`);
+      
+      subTabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+          e.preventDefault();
+          console.log(`🔘 Clicked sub-tab: ${this.dataset.subtab}`);
+          
+          // Find the parent section to limit scope
+          const parentSection = this.closest('section');
+          if (!parentSection) return;
+          
+          // Remove active class from sibling sub-tabs
+          const siblingTabs = parentSection.querySelectorAll('.sub-tab');
+          siblingTabs.forEach(t => {
+            t.classList.remove('active', 'border-blue-500', 'text-blue-600');
+            t.classList.add('text-gray-600');
+          });
+          
+          // Add active class to clicked sub-tab
+          this.classList.add('active', 'border-blue-500', 'text-blue-600');
+          this.classList.remove('text-gray-600');
+          
+          // Hide all subsections in this parent
+          const subSections = parentSection.querySelectorAll('.subsection');
+          subSections.forEach(s => s.classList.add('hidden'));
+          
+          // Show target subsection
+          const targetId = this.dataset.subtab + '-subsection';
+          const targetSubSection = document.getElementById(targetId);
+          if (targetSubSection) {
+            targetSubSection.classList.remove('hidden');
+            console.log(`✅ Showing subsection: ${targetId}`);
+            
+            // Populate data when subsection is shown
+            if (this.dataset.subtab === 'chart-accounts') {
+              console.log('📋 Populating Chart of Accounts table...');
+              populateChartOfAccountsTable();
+            } else if (this.dataset.subtab === 'receivables') {
+              console.log('📋 Populating Receivables table...');
+              populateReceivablesTable();
+            } else if (this.dataset.subtab === 'payables') {
+              console.log('📋 Populating Payables table...');
+              populatePayablesTable();
+            }
+          } else {
+            console.error(`❌ Subsection not found: ${targetId}`);
+          }
+        });
+      });
+      
+      console.log('✅ Sub-tab navigation initialized');
+    }
+
+    // Populate Recent Transactions
+    function populateRecentTransactions() {
+      console.log('📝 Populating recent transactions...');
+      
+      const container = document.getElementById('recent-transactions-list');
+      if (!container) return;
+
+      container.innerHTML = '';
+      
+      financeData.transactions.slice(0, 5).forEach(transaction => {
+        const div = document.createElement('div');
+        div.className = `p-4 rounded-lg border-l-4 ${
+          transaction.type === 'Revenue' 
+            ? 'bg-green-50 border-green-500' 
+            : 'bg-red-50 border-red-500'
+        }`;
+        
+        div.innerHTML = `
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="font-semibold ${transaction.type === 'Revenue' ? 'text-green-700' : 'text-red-700'}">
+                ${transaction.type}: $${transaction.amount.toLocaleString()}
+              </span>
+              <p class="text-sm text-gray-600 mt-1">${transaction.description}</p>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-gray-500">${transaction.date}</div>
+              <div class="text-xs text-gray-400">${transaction.paymentMethod}</div>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(div);
+      });
+      
+      console.log('✅ Recent transactions populated');
+    }
+
+    // Populate Transactions Table
+    function populateTransactionsTable() {
+      console.log('📊 Populating transactions table...');
+      
+      const tbody = document.getElementById('transactions-table');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      
+      financeData.transactions.forEach(transaction => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        tr.innerHTML = `
+          <td class="border-b p-4 font-medium">${transaction.id}</td>
+          <td class="border-b p-4">
+            <span class="px-2 py-1 rounded text-xs font-medium ${
+              transaction.type === 'Revenue' 
+                ? 'bg-green-100 text-green-700' 
+                : 'bg-red-100 text-red-700'
+            }">
+              ${transaction.type}
+            </span>
+          </td>
+          <td class="border-b p-4 font-semibold">$${transaction.amount.toLocaleString()}</td>
+          <td class="border-b p-4">${transaction.description}</td>
+          <td class="border-b p-4">${transaction.date}</td>
+          <td class="border-b p-4">
+            <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600">
+              View
+            </button>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      console.log('✅ Transactions table populated');
+    }
+
+    // Create Financial Chart
+    function createFinancialChart() {
+      console.log('📈 Creating financial chart...');
+      console.log('📊 Finance data metrics:', financeData.metrics);
+      
+      const canvas = document.getElementById('financeChart');
+      if (!canvas) {
+        console.warn('❌ Chart canvas not found');
+        createChartFallback();
+        return;
+      }
+
+      // Check if Chart.js is loaded
+      if (typeof Chart === 'undefined') {
+        console.warn('❌ Chart.js not loaded, creating fallback');
+        createChartFallback();
+        return;
+      }
+
+      try {
+        const ctx = canvas.getContext('2d');
+        
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Revenue', 'Expenses', 'Net Profit', 'Pending'],
+            datasets: [{
+              label: 'Amount ($)',
+              data: [
+                financeData.metrics.revenue,
+                financeData.metrics.expenses,
+                financeData.metrics.profit,
+                financeData.metrics.pending
+              ],
+              backgroundColor: [
+                '#10b981', // green
+                '#ef4444', // red
+                '#3b82f6', // blue
+                '#f59e0b'  // yellow
+              ],
+              borderWidth: 1,
+              borderColor: [
+                '#059669', // darker green
+                '#dc2626', // darker red
+                '#2563eb', // darker blue
+                '#d97706'  // darker yellow
+              ],
+              borderRadius: 4,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            indexAxis: 'y', // This makes it horizontal
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false // Hide legend since we have labels
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.parsed.x || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = ((value / total) * 100).toFixed(1);
+                    return `${label}: $${value.toLocaleString()} (${percentage}%)`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                grid: {
+                  display: true,
+                  color: '#f3f4f6'
+                },
+                ticks: {
+                  callback: function(value) {
+                    return '$' + value.toLocaleString();
+                  }
+                }
+              },
+              y: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  font: {
+                    weight: 'bold'
+                  }
+                }
+              }
+            },
+            layout: {
+              padding: {
+                left: 10,
+                right: 10,
+                top: 10,
+                bottom: 10
+              }
+            }
+          }
+        });
+        
+        // Mark canvas as having chart created
+        canvas.setAttribute('data-chart-created', 'true');
+        console.log('✅ Financial chart created successfully');
+        
+      } catch (error) {
+        console.error('❌ Error creating chart:', error);
+        createChartFallback();
+      }
+    }
+
+    // Fallback chart display if Chart.js fails
+    function createChartFallback() {
+      console.log('📊 Creating chart fallback...');
+      
+      const canvas = document.getElementById('financeChart');
+      if (!canvas) return;
+      
+      const container = canvas.parentElement;
+      container.innerHTML = `
+        <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+          <i class="fas fa-chart-bar text-green-600 mr-2"></i>Financial Distribution
+        </h3>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="w-20 text-right font-bold text-green-700">Revenue</div>
+            <div class="flex-1 mx-4">
+              <div class="bg-green-200 rounded-full h-8 relative overflow-hidden">
+                <div class="bg-green-500 h-full rounded-full" style="width: 47%"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">
+                  $${financeData.metrics.revenue.toLocaleString()}
+                </div>
+              </div>
+            </div>
+            <div class="text-sm text-gray-600 w-12">47%</div>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="w-20 text-right font-bold text-red-700">Expenses</div>
+            <div class="flex-1 mx-4">
+              <div class="bg-red-200 rounded-full h-8 relative overflow-hidden">
+                <div class="bg-red-500 h-full rounded-full" style="width: 31%"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">
+                  $${financeData.metrics.expenses.toLocaleString()}
+                </div>
+              </div>
+            </div>
+            <div class="text-sm text-gray-600 w-12">31%</div>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="w-20 text-right font-bold text-blue-700">Net Profit</div>
+            <div class="flex-1 mx-4">
+              <div class="bg-blue-200 rounded-full h-8 relative overflow-hidden">
+                <div class="bg-blue-500 h-full rounded-full" style="width: 16%"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">
+                  $${financeData.metrics.profit.toLocaleString()}
+                </div>
+              </div>
+            </div>
+            <div class="text-sm text-gray-600 w-12">16%</div>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="w-20 text-right font-bold text-yellow-700">Pending</div>
+            <div class="flex-1 mx-4">
+              <div class="bg-yellow-200 rounded-full h-8 relative overflow-hidden">
+                <div class="bg-yellow-500 h-full rounded-full" style="width: 6%"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">
+                  $${financeData.metrics.pending.toLocaleString()}
+                </div>
+              </div>
+            </div>
+            <div class="text-sm text-gray-600 w-12">6%</div>
+          </div>
+        </div>
+        <p class="text-center text-sm text-gray-500 mt-4">
+          <em>Financial distribution overview (Chart.js fallback)</em>
+        </p>
+      `;
+      
+      console.log('✅ Chart fallback created');
+    }
+
+    // Populate Expense Tracking
+    function populateExpenseTracking() {
+      console.log('💰 Populating expense tracking...');
+      
+      // Fuel expenses
+      const fuelContainer = document.getElementById('fuel-expenses-list');
+      const fuelTotal = document.getElementById('fuel-total');
+      if (fuelContainer && fuelTotal) {
+        fuelContainer.innerHTML = '';
+        let total = 0;
+        
+        financeData.expenses.fuel.forEach(expense => {
+          total += expense.amount;
+          const div = document.createElement('div');
+          div.className = 'text-sm bg-white p-3 rounded border-l-4 border-yellow-400';
+          div.innerHTML = `
+            <div class="font-medium">${expense.vehicle}</div>
+            <div class="text-yellow-700">$${expense.amount} (${expense.liters}L)</div>
+            <div class="text-gray-500">${expense.driver}</div>
+          `;
+          fuelContainer.appendChild(div);
+        });
+        
+        fuelTotal.textContent = `$${total.toLocaleString()}`;
+      }
+      
+      // Maintenance expenses
+      const maintenanceContainer = document.getElementById('maintenance-expenses-list');
+      const maintenanceTotal = document.getElementById('maintenance-total');
+      if (maintenanceContainer && maintenanceTotal) {
+        maintenanceContainer.innerHTML = '';
+        let total = 0;
+        
+        financeData.expenses.maintenance.forEach(expense => {
+          total += expense.amount;
+          const div = document.createElement('div');
+          div.className = 'text-sm bg-white p-3 rounded border-l-4 border-red-400';
+          div.innerHTML = `
+            <div class="font-medium">${expense.type}</div>
+            <div class="text-red-700">$${expense.amount}</div>
+            <div class="text-gray-500">${expense.vehicle}</div>
+          `;
+          maintenanceContainer.appendChild(div);
+        });
+        
+        maintenanceTotal.textContent = `$${total.toLocaleString()}`;
+      }
+      
+      // Permits expenses
+      const permitsContainer = document.getElementById('permits-expenses-list');
+      const permitsTotal = document.getElementById('permits-total');
+      if (permitsContainer && permitsTotal) {
+        permitsContainer.innerHTML = '';
+        let total = 0;
+        
+        financeData.expenses.permits.forEach(expense => {
+          total += expense.amount;
+          const div = document.createElement('div');
+          div.className = 'text-sm bg-white p-3 rounded border-l-4 border-blue-400';
+          div.innerHTML = `
+            <div class="font-medium">${expense.type}</div>
+            <div class="text-blue-700">$${expense.amount}</div>
+            <div class="text-gray-500">${expense.vehicle}</div>
+          `;
+          permitsContainer.appendChild(div);
+        });
+        
+        permitsTotal.textContent = `$${total.toLocaleString()}`;
+      }
+      
+      console.log('✅ Expense tracking populated');
+    }
+
+    // Populate Invoices Table
+    function populateInvoicesTable() {
+      console.log('📋 Populating invoices table...');
+      
+      const tbody = document.getElementById('invoices-table');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      
+      financeData.invoices.forEach(invoice => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        const statusColors = {
+          'Paid': 'bg-green-100 text-green-700',
+          'Pending': 'bg-yellow-100 text-yellow-700',
+          'Overdue': 'bg-red-100 text-red-700',
+          'Draft': 'bg-gray-100 text-gray-700'
+        };
+        
+        tr.innerHTML = `
+          <td class="border-b p-4 font-medium">${invoice.id}</td>
+          <td class="border-b p-4">${invoice.client}</td>
+          <td class="border-b p-4 font-semibold">$${invoice.amount.toLocaleString()}</td>
+          <td class="border-b p-4">
+            <span class="px-2 py-1 rounded text-xs font-medium ${statusColors[invoice.status]}">
+              ${invoice.status}
+            </span>
+          </td>
+          <td class="border-b p-4">${invoice.dueDate}</td>
+          <td class="border-b p-4">
+            <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 mr-1">
+              View
+            </button>
+            ${invoice.status === 'Draft' ? '<button class="bg-green-500 text-white px-3 py-1 rounded text-xs hover:bg-green-600">Send</button>' : ''}
+            ${invoice.status === 'Overdue' ? '<button class="bg-orange-500 text-white px-3 py-1 rounded text-xs hover:bg-orange-600">Remind</button>' : ''}
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      console.log('✅ Invoices table populated');
+    }
+
+
+
+    // Populate Receivables Table
+    function populateReceivablesTable() {
+      console.log('📋 Populating receivables table...');
+      
+      const tbody = document.getElementById('receivables-table');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      
+      financeData.receivables.customers.forEach(customer => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        const riskColors = {
+          'Low': 'bg-green-100 text-green-700',
+          'Medium': 'bg-yellow-100 text-yellow-700',
+          'High': 'bg-red-100 text-red-700'
+        };
+        
+        tr.innerHTML = `
+          <td class="border-b p-4">
+            <div class="font-medium">${customer.name}</div>
+            <div class="text-sm text-gray-500">${customer.id}</div>
+            <span class="px-2 py-1 rounded text-xs font-medium ${riskColors[customer.riskLevel]} mt-1 inline-block">
+              ${customer.riskLevel} Risk
+            </span>
+          </td>
+          <td class="border-b p-4 font-semibold">$${customer.totalOutstanding.toLocaleString()}</td>
+          <td class="border-b p-4 ${customer.current > 0 ? 'text-green-700 font-medium' : 'text-gray-400'}">
+            $${customer.current.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${customer.overdue > 0 ? 'text-yellow-700 font-medium' : 'text-gray-400'}">
+            $${customer.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${customer.overdue > 0 ? 'text-orange-700 font-medium' : 'text-gray-400'}">
+            $${customer.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${customer.overdue > 0 ? 'text-red-700 font-medium' : 'text-gray-400'}">
+            $${customer.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4 text-sm">${customer.lastPayment}</td>
+          <td class="border-b p-4">
+            <div class="flex space-x-1">
+              <button class="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600">
+                Statement
+              </button>
+              ${customer.riskLevel === 'High' || customer.overdue > 0 ? 
+                '<button class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600">Follow Up</button>' :
+                customer.overdue > 0 || customer.overdue > 0 ?
+                '<button class="bg-orange-500 text-white px-2 py-1 rounded text-xs hover:bg-orange-600">Remind</button>' :
+                '<button class="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600">Payment</button>'
+              }
+            </div>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      console.log('✅ Receivables table populated');
+    }
+
+    // Initialize Accounts Receivable Features
+    function initializeReceivables() {
+      console.log('💰 Initializing Accounts Receivable...');
+      
+      // Initialize search and filter for receivables
+      const searchInput = document.getElementById('search-receivables');
+      const filterSelect = document.getElementById('filter-receivables');
+      
+      if (searchInput) {
+        searchInput.addEventListener('input', filterReceivables);
+      }
+      
+      if (filterSelect) {
+        filterSelect.addEventListener('change', filterReceivables);
+      }
+      
+      // Initialize action buttons
+      const sendStatementsBtn = document.getElementById('send-statements-btn');
+      const paymentRemindersBtn = document.getElementById('payment-reminders-btn');
+      const agingReportBtn = document.getElementById('aging-report-btn');
+      const recordPaymentBtn = document.getElementById('record-payment-btn');
+      
+      if (sendStatementsBtn) {
+        sendStatementsBtn.addEventListener('click', () => {
+          showNotification('Statements sent to all customers with outstanding balances!');
+        });
+      }
+      
+      if (paymentRemindersBtn) {
+        paymentRemindersBtn.addEventListener('click', () => {
+          showNotification('Payment reminders sent to overdue customers!');
+        });
+      }
+      
+      if (agingReportBtn) {
+        agingReportBtn.addEventListener('click', () => {
+          showNotification('Basic overdue report generated!');
+        });
+      }
+      
+      if (recordPaymentBtn) {
+        recordPaymentBtn.addEventListener('click', () => {
+          showNotification('Payment recording feature will open payment modal!');
+        });
+      }
+      
+      console.log('✅ Accounts Receivable initialized');
+    }
+
+    function filterReceivables() {
+      const searchTerm = document.getElementById('search-receivables')?.value.toLowerCase() || '';
+      const filterType = document.getElementById('filter-receivables')?.value || 'all';
+      
+      let filteredCustomers = financeData.receivables.customers;
+      
+      // Filter by type
+      if (filterType !== 'all') {
+        switch(filterType) {
+          case 'current':
+            filteredCustomers = filteredCustomers.filter(c => c.current > 0 && c.overdue === 0);
+            break;
+          case 'overdue':
+            filteredCustomers = filteredCustomers.filter(c => c.overdue > 0);
+            break;
+          case 'high-risk':
+            filteredCustomers = filteredCustomers.filter(c => c.riskLevel === 'High' || c.overdue > 0);
+            break;
+        }
+      }
+      
+      // Filter by search term
+      if (searchTerm) {
+        filteredCustomers = filteredCustomers.filter(c => 
+          c.name.toLowerCase().includes(searchTerm) ||
+          c.id.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      renderFilteredReceivables(filteredCustomers);
+    }
+
+    function renderFilteredReceivables(customers) {
+      const tbody = document.getElementById('receivables-table');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      
+      customers.forEach(customer => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        const riskColors = {
+          'Low': 'bg-green-100 text-green-700',
+          'Medium': 'bg-yellow-100 text-yellow-700',
+          'High': 'bg-red-100 text-red-700'
+        };
+        
+        tr.innerHTML = `
+          <td class="border-b p-4">
+            <div class="font-medium">${customer.name}</div>
+            <div class="text-sm text-gray-500">${customer.id}</div>
+            <span class="px-2 py-1 rounded text-xs font-medium ${riskColors[customer.riskLevel]} mt-1 inline-block">
+              ${customer.riskLevel} Risk
+            </span>
+          </td>
+          <td class="border-b p-4 font-semibold">$${customer.totalOutstanding.toLocaleString()}</td>
+          <td class="border-b p-4 ${customer.current > 0 ? 'text-green-700 font-medium' : 'text-gray-400'}">
+            $${customer.current.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${customer.overdue > 0 ? 'text-yellow-700 font-medium' : 'text-gray-400'}">
+            $${customer.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${customer.overdue > 0 ? 'text-orange-700 font-medium' : 'text-gray-400'}">
+            $${customer.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${customer.overdue > 0 ? 'text-red-700 font-medium' : 'text-gray-400'}">
+            $${customer.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4 text-sm">${customer.lastPayment}</td>
+          <td class="border-b p-4">
+            <div class="flex space-x-1">
+              <button class="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600">
+                Statement
+              </button>
+              ${customer.riskLevel === 'High' || customer.overdue > 0 ? 
+                '<button class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600">Follow Up</button>' :
+                customer.overdue > 0 || customer.overdue > 0 ?
+                '<button class="bg-orange-500 text-white px-2 py-1 rounded text-xs hover:bg-orange-600">Remind</button>' :
+                '<button class="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600">Payment</button>'
+              }
+            </div>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Populate Payables Table
+    function populatePayablesTable() {
+      console.log('📋 Populating payables table...');
+      
+      const tbody = document.getElementById('payables-table');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      
+      financeData.payables.vendors.forEach(vendor => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        const statusColors = {
+          'Normal': 'bg-green-100 text-green-700',
+          'Overdue': 'bg-yellow-100 text-yellow-700',
+          'Critical': 'bg-red-100 text-red-700'
+        };
+        
+        // Calculate days overdue
+        const dueDate = new Date(vendor.nextDueDate);
+        const today = new Date();
+        const daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+        
+        tr.innerHTML = `
+          <td class="border-b p-4">
+            <div class="font-medium">${vendor.name}</div>
+            <div class="text-sm text-gray-500">${vendor.id}</div>
+            <span class="px-2 py-1 rounded text-xs font-medium ${statusColors[vendor.status]} mt-1 inline-block">
+              ${vendor.status}
+            </span>
+          </td>
+          <td class="border-b p-4 font-semibold">$${vendor.totalOutstanding.toLocaleString()}</td>
+          <td class="border-b p-4 ${vendor.current > 0 ? 'text-green-700 font-medium' : 'text-gray-400'}">
+            $${vendor.current.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${vendor.overdue > 0 ? 'text-yellow-700 font-medium' : 'text-gray-400'}">
+            $${vendor.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${vendor.overdue > 0 ? 'text-orange-700 font-medium' : 'text-gray-400'}">
+            $${vendor.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${vendor.overdue > 0 ? 'text-red-700 font-medium' : 'text-gray-400'}">
+            $${vendor.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4">
+            <div class="text-sm">${vendor.nextDueDate}</div>
+            ${daysOverdue > 0 ? 
+              `<div class="text-xs text-red-600">${daysOverdue} days overdue</div>` :
+              daysOverdue === 0 ?
+              `<div class="text-xs text-orange-600">Due today</div>` :
+              `<div class="text-xs text-green-600">Due in ${Math.abs(daysOverdue)} days</div>`
+            }
+          </td>
+          <td class="border-b p-4">
+            <div class="flex space-x-1">
+              <button class="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600">
+                Pay
+              </button>
+              ${vendor.status === 'Critical' || daysOverdue > 30 ? 
+                '<button class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600">Urgent</button>' :
+                vendor.status === 'Overdue' || daysOverdue > 0 ?
+                '<button class="bg-orange-500 text-white px-2 py-1 rounded text-xs hover:bg-orange-600">Review</button>' :
+                '<button class="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600">Schedule</button>'
+              }
+            </div>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      console.log('✅ Payables table populated');
+    }
+
+    // Initialize Accounts Payable Features
+    function initializePayables() {
+      console.log('💳 Initializing Accounts Payable...');
+      
+      // Initialize search and filter for payables
+      const searchInput = document.getElementById('search-payables');
+      const filterSelect = document.getElementById('filter-payables');
+      
+      if (searchInput) {
+        searchInput.addEventListener('input', filterPayables);
+      }
+      
+      if (filterSelect) {
+        filterSelect.addEventListener('change', filterPayables);
+      }
+      
+      // Initialize action buttons
+      const payBillsBtn = document.getElementById('pay-bills-btn');
+      const addBillBtn = document.getElementById('add-bill-btn');
+      const vendorReportBtn = document.getElementById('vendor-report-btn');
+      const paymentRunBtn = document.getElementById('payment-run-btn');
+      
+      if (payBillsBtn) {
+        payBillsBtn.addEventListener('click', () => {
+          showNotification('Bill payment interface opened!');
+        });
+      }
+      
+      if (addBillBtn) {
+        addBillBtn.addEventListener('click', () => {
+          showNotification('Add new bill form opened!');
+        });
+      }
+      
+      if (vendorReportBtn) {
+        vendorReportBtn.addEventListener('click', () => {
+          showNotification('Basic vendor report generated!');
+        });
+      }
+      
+      if (paymentRunBtn) {
+        paymentRunBtn.addEventListener('click', () => {
+          showNotification('Payment run scheduled for processing!');
+        });
+      }
+      
+      console.log('✅ Accounts Payable initialized');
+    }
+
+    function filterPayables() {
+      const searchTerm = document.getElementById('search-payables')?.value.toLowerCase() || '';
+      const filterType = document.getElementById('filter-payables')?.value || 'all';
+      
+      let filteredVendors = financeData.payables.vendors;
+      
+      // Filter by type
+      if (filterType !== 'all') {
+        switch(filterType) {
+          case 'current':
+            filteredVendors = filteredVendors.filter(v => v.current > 0 && v.overdue === 0);
+            break;
+          case 'overdue':
+            filteredVendors = filteredVendors.filter(v => v.overdue > 0);
+            break;
+          case 'critical':
+            filteredVendors = filteredVendors.filter(v => v.status === 'Critical' || v.overdue > 0);
+            break;
+        }
+      }
+      
+      // Filter by search term
+      if (searchTerm) {
+        filteredVendors = filteredVendors.filter(v => 
+          v.name.toLowerCase().includes(searchTerm) ||
+          v.id.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      renderFilteredPayables(filteredVendors);
+    }
+
+    function renderFilteredPayables(vendors) {
+      const tbody = document.getElementById('payables-table');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      
+      vendors.forEach(vendor => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        const statusColors = {
+          'Normal': 'bg-green-100 text-green-700',
+          'Overdue': 'bg-yellow-100 text-yellow-700',
+          'Critical': 'bg-red-100 text-red-700'
+        };
+        
+        // Calculate days overdue
+        const dueDate = new Date(vendor.nextDueDate);
+        const today = new Date();
+        const daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+        
+        tr.innerHTML = `
+          <td class="border-b p-4">
+            <div class="font-medium">${vendor.name}</div>
+            <div class="text-sm text-gray-500">${vendor.id}</div>
+            <span class="px-2 py-1 rounded text-xs font-medium ${statusColors[vendor.status]} mt-1 inline-block">
+              ${vendor.status}
+            </span>
+          </td>
+          <td class="border-b p-4 font-semibold">$${vendor.totalOutstanding.toLocaleString()}</td>
+          <td class="border-b p-4 ${vendor.current > 0 ? 'text-green-700 font-medium' : 'text-gray-400'}">
+            $${vendor.current.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${vendor.overdue > 0 ? 'text-yellow-700 font-medium' : 'text-gray-400'}">
+            $${vendor.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${vendor.overdue > 0 ? 'text-orange-700 font-medium' : 'text-gray-400'}">
+            $${vendor.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4 ${vendor.overdue > 0 ? 'text-red-700 font-medium' : 'text-gray-400'}">
+            $${vendor.overdue.toLocaleString()}
+          </td>
+          <td class="border-b p-4">
+            <div class="text-sm">${vendor.nextDueDate}</div>
+            ${daysOverdue > 0 ? 
+              `<div class="text-xs text-red-600">${daysOverdue} days overdue</div>` :
+              daysOverdue === 0 ?
+              `<div class="text-xs text-orange-600">Due today</div>` :
+              `<div class="text-xs text-green-600">Due in ${Math.abs(daysOverdue)} days</div>`
+            }
+          </td>
+          <td class="border-b p-4">
+            <div class="flex space-x-1">
+              <button class="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600">
+                Pay
+              </button>
+              ${vendor.status === 'Critical' || daysOverdue > 30 ? 
+                '<button class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600">Urgent</button>' :
+                vendor.status === 'Overdue' || daysOverdue > 0 ?
+                '<button class="bg-orange-500 text-white px-2 py-1 rounded text-xs hover:bg-orange-600">Review</button>' :
+                '<button class="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600">Schedule</button>'
+              }
+            </div>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+
+
+    // Populate Chart of Accounts Table (Simplified - View Only)
+    function populateChartOfAccountsTable() {
+      console.log('📋 Populating chart of accounts table...');
+      
+      const tbody = document.getElementById('chart-accounts-table');
+      if (!tbody) {
+        console.error('❌ Chart accounts table body not found!');
+        return;
+      }
+      
+      console.log('📊 Chart of Accounts data:', financeData.ledger.chartOfAccounts.length, 'accounts');
+      console.log('📊 Sample account:', financeData.ledger.chartOfAccounts[0]);
+
+      tbody.innerHTML = '';
+      
+      // Sort accounts by code
+      const sortedAccounts = [...financeData.ledger.chartOfAccounts].sort((a, b) => a.code.localeCompare(b.code));
+      console.log('📊 Sorted accounts:', sortedAccounts.length);
+      
+      sortedAccounts.forEach(account => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        const typeColors = {
+          'Asset': 'bg-blue-100 text-blue-700',
+          'Liability': 'bg-red-100 text-red-700',
+          'Equity': 'bg-green-100 text-green-700',
+          'Revenue': 'bg-purple-100 text-purple-700',
+          'Expense': 'bg-orange-100 text-orange-700'
+        };
+        
+        tr.innerHTML = `
+          <td class="border-b p-4 font-bold text-gray-900">${account.code}</td>
+          <td class="border-b p-4">
+            <div class="font-medium">${account.name}</div>
+          </td>
+          <td class="border-b p-4">
+            <span class="px-2 py-1 rounded text-xs font-medium ${typeColors[account.type]}">
+              ${account.type}
+            </span>
+          </td>
+          <td class="border-b p-4 text-center">
+            <span class="font-medium ${account.normalSide === 'Debit' ? 'text-green-600' : 'text-red-600'}">
+              ${account.normalSide}
+            </span>
+          </td>
+          <td class="border-b p-4 font-semibold ${account.balance >= 0 ? 'text-gray-900' : 'text-red-600'}">
+            $${Math.abs(account.balance).toLocaleString()}
+          </td>
+          <td class="border-b p-4 text-sm">${account.description || ''}</td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      // Update account counts
+      updateAccountCounts();
+      
+      console.log('✅ Chart of accounts table populated');
+    }
+
+    // Update Account Category Counts
+    function updateAccountCounts() {
+      const accounts = financeData.ledger.chartOfAccounts;
+      
+      document.getElementById('assets-count').textContent = accounts.filter(a => a.type === 'Asset').length;
+      document.getElementById('liabilities-count').textContent = accounts.filter(a => a.type === 'Liability').length;
+      document.getElementById('equity-count').textContent = accounts.filter(a => a.type === 'Equity').length;
+      document.getElementById('revenue-count').textContent = accounts.filter(a => a.type === 'Revenue').length;
+      document.getElementById('expense-count').textContent = accounts.filter(a => a.type === 'Expense').length;
+    }
+
+    // Initialize Chart of Accounts Features (Simplified)
+    function initializeChartOfAccounts() {
+      console.log('📊 Initializing Chart of Accounts (View Only)...');
+      
+      // Initialize search and filter
+      const searchInput = document.getElementById('search-accounts');
+      const filterSelect = document.getElementById('filter-accounts');
+      
+      if (searchInput) {
+        searchInput.addEventListener('input', filterChartOfAccounts);
+      }
+      
+      if (filterSelect) {
+        filterSelect.addEventListener('change', filterChartOfAccounts);
+      }
+      
+      // Initialize category tabs
+      const categoryTabs = document.querySelectorAll('.account-category-tab');
+      categoryTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+          // Remove active class from all tabs
+          categoryTabs.forEach(t => {
+            t.classList.remove('active', 'border-b-2', 'border-blue-500', 'text-blue-600', 'font-medium');
+            t.classList.add('text-gray-600');
+          });
+          
+          // Add active class to clicked tab
+          this.classList.add('active', 'border-b-2', 'border-blue-500', 'text-blue-600', 'font-medium');
+          this.classList.remove('text-gray-600');
+          
+          // Filter accounts by category
+          const category = this.dataset.category;
+          filterAccountsByCategory(category);
+        });
+      });
+      
+      console.log('✅ Chart of Accounts (View Only) initialized');
+    }
+
+    function filterChartOfAccounts() {
+      const searchTerm = document.getElementById('search-accounts')?.value.toLowerCase() || '';
+      const filterType = document.getElementById('filter-accounts')?.value || 'all';
+      
+      let filteredAccounts = financeData.ledger.chartOfAccounts;
+      
+      // Filter by type
+      if (filterType !== 'all') {
+        filteredAccounts = filteredAccounts.filter(account => account.type === filterType);
+      }
+      
+      // Filter by search term
+      if (searchTerm) {
+        filteredAccounts = filteredAccounts.filter(account => 
+          account.code.toLowerCase().includes(searchTerm) ||
+          account.name.toLowerCase().includes(searchTerm) ||
+          (account.description && account.description.toLowerCase().includes(searchTerm))
+        );
+      }
+      
+      renderFilteredAccounts(filteredAccounts);
+    }
+
+    function filterAccountsByCategory(category) {
+      let filteredAccounts = financeData.ledger.chartOfAccounts;
+      
+      if (category !== 'all') {
+        filteredAccounts = filteredAccounts.filter(account => account.type === category);
+      }
+      
+      renderFilteredAccounts(filteredAccounts);
+    }
+
+    function renderFilteredAccounts(accounts) {
+      const tbody = document.getElementById('chart-accounts-table');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      
+      // Sort accounts by code
+      const sortedAccounts = [...accounts].sort((a, b) => a.code.localeCompare(b.code));
+      
+      sortedAccounts.forEach(account => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        const typeColors = {
+          'Asset': 'bg-blue-100 text-blue-700',
+          'Liability': 'bg-red-100 text-red-700',
+          'Equity': 'bg-green-100 text-green-700',
+          'Revenue': 'bg-purple-100 text-purple-700',
+          'Expense': 'bg-orange-100 text-orange-700'
+        };
+        
+        tr.innerHTML = `
+          <td class="border-b p-4 font-bold text-gray-900">${account.code}</td>
+          <td class="border-b p-4">
+            <div class="font-medium">${account.name}</div>
+          </td>
+          <td class="border-b p-4">
+            <span class="px-2 py-1 rounded text-xs font-medium ${typeColors[account.type]}">
+              ${account.type}
+            </span>
+          </td>
+          <td class="border-b p-4 text-center">
+            <span class="font-medium ${account.normalSide === 'Debit' ? 'text-green-600' : 'text-red-600'}">
+              ${account.normalSide}
+            </span>
+          </td>
+          <td class="border-b p-4 font-semibold ${account.balance >= 0 ? 'text-gray-900' : 'text-red-600'}">
+            $${Math.abs(account.balance).toLocaleString()}
+          </td>
+          <td class="border-b p-4 text-sm">${account.description || ''}</td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+
+
+
+
+    // Modal Management
+    function initializeModals() {
+      console.log('🎭 Initializing modals...');
+      
+      const addTransactionBtn = document.getElementById('add-transaction-btn');
+      const modal = document.getElementById('add-transaction-modal');
+      const cancelBtn = document.getElementById('cancel-transaction');
+      const form = document.getElementById('add-transaction-form');
+      
+      // Open modal
+      if (addTransactionBtn && modal) {
+        addTransactionBtn.addEventListener('click', () => {
+          modal.classList.remove('hidden');
+        });
+      }
+      
+      // Close modal
+      if (cancelBtn && modal) {
+        cancelBtn.addEventListener('click', () => {
+          modal.classList.add('hidden');
+          form.reset();
+        });
+      }
+      
+      // Close modal on outside click
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            modal.classList.add('hidden');
+            form.reset();
+          }
+        });
+      }
+      
+      // Handle form submission
+      if (form) {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          addNewTransaction();
+        });
+      }
+      
+      console.log('✅ Modals initialized');
+    }
+
+    // Add New Transaction
+    function addNewTransaction() {
+      console.log('➕ Adding new transaction...');
+      
+      const type = document.getElementById('transaction-type').value;
+      const amount = parseFloat(document.getElementById('transaction-amount').value);
+      const description = document.getElementById('transaction-description').value;
+      const paymentMethod = document.getElementById('transaction-payment').value;
+      
+      // Generate new ID
+      const newId = `TXN-${String(financeData.transactions.length + 1).padStart(3, '0')}`;
+      
+      // Create new transaction
+      const newTransaction = {
+        id: newId,
+        type: type,
+        amount: amount,
+        description: description,
+        date: new Date().toISOString().split('T')[0],
+        paymentMethod: paymentMethod
+      };
+      
+      // Add to data
+      financeData.transactions.unshift(newTransaction);
+      
+      // Update metrics
+      if (type === 'Revenue') {
+        financeData.metrics.revenue += amount;
+        financeData.metrics.profit += amount;
+      } else {
+        financeData.metrics.expenses += amount;
+        financeData.metrics.profit -= amount;
+      }
+      
+      // Update display
+      updateMetrics();
+      populateRecentTransactions();
+      populateTransactionsTable();
+      createFinancialChart();
+      
+      // Close modal and show notification
+      document.getElementById('add-transaction-modal').classList.add('hidden');
+      document.getElementById('add-transaction-form').reset();
+      showNotification(`${type} of $${amount.toLocaleString()} added successfully!`);
+      
+      console.log('✅ Transaction added:', newTransaction);
+    }
+
+    // Update Metrics Display
+    function updateMetrics() {
+      document.getElementById('total-revenue').textContent = `$${financeData.metrics.revenue.toLocaleString()}`;
+      document.getElementById('total-expenses').textContent = `$${financeData.metrics.expenses.toLocaleString()}`;
+      document.getElementById('net-profit').textContent = `$${financeData.metrics.profit.toLocaleString()}`;
+      document.getElementById('pending-invoices').textContent = `$${financeData.metrics.pending.toLocaleString()}`;
+    }
+
+    // Show Notification Toast
+    function showNotification(message, type = 'success') {
+      const toast = document.getElementById('notification-toast');
+      const messageSpan = document.getElementById('toast-message');
+      
+      if (toast && messageSpan) {
+        messageSpan.textContent = message;
+        
+        // Set color based on type
+        toast.className = toast.className.replace(/bg-\w+-500/, `bg-${type === 'success' ? 'green' : 'red'}-500`);
+        
+        // Show toast
+        toast.classList.remove('hidden');
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+          toast.classList.add('hidden');
+        }, 3000);
+      }
+    }
+
+    // Search and Filter Functionality
+    function initializeSearchAndFilter() {
+      console.log('🔍 Initializing search and filter...');
+      
+      const searchInput = document.getElementById('search-transactions');
+      const filterSelect = document.getElementById('filter-transactions');
+      
+      if (searchInput) {
+        searchInput.addEventListener('input', filterTransactions);
+      }
+      
+      if (filterSelect) {
+        filterSelect.addEventListener('change', filterTransactions);
+      }
+    }
+
+    function filterTransactions() {
+      const searchTerm = document.getElementById('search-transactions')?.value.toLowerCase() || '';
+      const filterType = document.getElementById('filter-transactions')?.value || 'all';
+      
+      let filteredTransactions = financeData.transactions;
+      
+      // Filter by type
+      if (filterType !== 'all') {
+        filteredTransactions = filteredTransactions.filter(t => t.type === filterType);
+      }
+      
+      // Filter by search term
+      if (searchTerm) {
+        filteredTransactions = filteredTransactions.filter(t => 
+          t.description.toLowerCase().includes(searchTerm) ||
+          t.id.toLowerCase().includes(searchTerm) ||
+          t.paymentMethod.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      renderFilteredTransactions(filteredTransactions);
+    }
+
+    function renderFilteredTransactions(transactions) {
+      const tbody = document.getElementById('transactions-table');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      
+      transactions.forEach(transaction => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        tr.innerHTML = `
+          <td class="border-b p-4 font-medium">${transaction.id}</td>
+          <td class="border-b p-4">
+            <span class="px-2 py-1 rounded text-xs font-medium ${
+              transaction.type === 'Revenue' 
+                ? 'bg-green-100 text-green-700' 
+                : 'bg-red-100 text-red-700'
+            }">
+              ${transaction.type}
+            </span>
+          </td>
+          <td class="border-b p-4 font-semibold">$${transaction.amount.toLocaleString()}</td>
+          <td class="border-b p-4">${transaction.description}</td>
+          <td class="border-b p-4">${transaction.date}</td>
+          <td class="border-b p-4">
+            <button class="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600">
+              View
+            </button>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+
+
+    // Export Functionality (Simplified - Transactions & Invoices Only)
+    function initializeExports() {
+      console.log('📤 Initializing export functions (Lite)...');
+      
+      const exportTransactionsBtn = document.getElementById('export-transactions-btn');
+      const exportInvoicesBtn = document.getElementById('export-invoices-btn');
+      
+      if (exportTransactionsBtn) {
+        exportTransactionsBtn.addEventListener('click', exportTransactions);
+      }
+      
+      if (exportInvoicesBtn) {
+        exportInvoicesBtn.addEventListener('click', exportInvoices);
+      }
+    }
+
+    function exportTransactions() {
+      const csv = convertToCSV(financeData.transactions);
+      downloadCSV(csv, 'transactions.csv');
+      showNotification('Transactions exported to CSV!');
+    }
+
+    function exportInvoices() {
+      const csv = convertInvoicesToCSV(financeData.invoices);
+      downloadCSV(csv, 'invoices.csv');
+      showNotification('Invoices exported to CSV!');
+    }
+
+    function convertInvoicesToCSV(invoices) {
+      const headers = ['Invoice Number', 'Customer', 'Amount', 'Due Date', 'Status'];
+      const rows = invoices.map(invoice => [
+        invoice.number,
+        invoice.customer,
+        invoice.amount,
+        invoice.dueDate,
+        invoice.status
+      ]);
+      
+      return [headers, ...rows].map(row => row.join(',')).join('\n');
+    }
+
+    function convertToCSV(data) {
+      const headers = ['ID', 'Type', 'Amount', 'Description', 'Date', 'Payment Method'];
+      const rows = data.map(row => [
+        row.id,
+        row.type,
+        row.amount,
+        row.description,
+        row.date,
+        row.paymentMethod
+      ]);
+      
+      return [headers, ...rows].map(row => row.join(',')).join('\n');
+    }
+
+    function downloadCSV(csv, filename) {
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }
+
+    function downloadJSON(data, filename) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }
+
+    // Helper Functions for Period-Aware Data
+    let currentPeriod = 'current-month'; // Default period
+    
+    function getCurrentVehicleData() {
+      const periodData = financeData.performanceData[currentPeriod];
+      if (!periodData) return [];
+      
+      // Merge profile data with performance data
+      return financeData.vehicleProfiles.map(profile => {
+        const performance = periodData.vehicles.find(v => v.id === profile.id) || {};
+        return { ...profile, ...performance };
+      });
+    }
+    
+    function getCurrentDriverData() {
+      const periodData = financeData.performanceData[currentPeriod];
+      if (!periodData) return [];
+      
+      // Merge profile data with performance data
+      return financeData.driverProfiles.map(profile => {
+        const performance = periodData.drivers.find(d => d.id === profile.id) || {};
+        return { ...profile, ...performance };
+      });
+    }
+    
+    function getPeriodLabel() {
+      const periodData = financeData.performanceData[currentPeriod];
+      return periodData ? periodData.label : 'Current Period';
+    }
+    
+    function updateCurrentPeriod(newPeriod) {
+      currentPeriod = newPeriod;
+      updateFleetAnalytics();
+    }
+
+    // Fleet Analytics Functions
+    function initializeFleetAnalytics() {
+      console.log('📊 Initializing Fleet Analytics...');
+      
+      const periodSelect = document.getElementById('analytics-period');
+      
+      if (periodSelect) {
+        periodSelect.addEventListener('change', function() {
+          updateCurrentPeriod(this.value);
+        });
+      }
+      
+      // Initial population
+      updateFleetAnalytics();
+      
+      console.log('✅ Fleet Analytics initialized');
+    }
+    
+    function updateFleetAnalytics() {
+      populateVehiclesPerformanceTable();
+      populateDriversPerformanceTable();
+      updateFleetOverviewCards();
+    }
+    
+    function populateVehiclesPerformanceTable() {
+      console.log(`🚛 Populating vehicles performance table for ${getPeriodLabel()}...`);
+      
+      const tbody = document.getElementById('vehicles-performance-table');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      
+      const vehicles = getCurrentVehicleData();
+      vehicles.forEach(vehicle => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        const profitMargin = ((vehicle.profit / vehicle.revenue) * 100).toFixed(1);
+        const statusColor = vehicle.efficiency >= 85 ? 'bg-green-100 text-green-700' : 
+                           vehicle.efficiency >= 75 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700';
+        const statusText = vehicle.efficiency >= 85 ? 'Excellent' : 
+                          vehicle.efficiency >= 75 ? 'Good' : 'Needs Attention';
+        
+        tr.innerHTML = `
+          <td class="border-b p-4">
+            <div class="font-medium cursor-pointer text-blue-600 hover:text-blue-800 hover:underline" onclick="openVehicleDetails('${vehicle.id}')">${vehicle.plate}</div>
+            <div class="text-sm text-gray-500">${vehicle.model}</div>
+          </td>
+          <td class="border-b p-4 font-semibold text-green-700">$${vehicle.revenue.toLocaleString()}</td>
+          <td class="border-b p-4 font-semibold text-red-700">$${vehicle.expenses.toLocaleString()}</td>
+          <td class="border-b p-4 font-semibold text-blue-700">
+            $${vehicle.profit.toLocaleString()}
+            <div class="text-xs text-gray-500">${profitMargin}% margin</div>
+          </td>
+          <td class="border-b p-4">
+            <div class="flex items-center">
+              <div class="w-12 h-2 bg-gray-200 rounded-full mr-2">
+                <div class="h-2 bg-blue-500 rounded-full" style="width: ${vehicle.efficiency}%"></div>
+              </div>
+              <span class="text-sm font-medium">${vehicle.efficiency}%</span>
+            </div>
+          </td>
+          <td class="border-b p-4 text-center font-medium">${vehicle.trips}</td>
+          <td class="border-b p-4">
+            <span class="px-2 py-1 rounded text-xs font-medium ${statusColor}">
+              ${statusText}
+            </span>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      console.log('✅ Vehicles performance table populated');
+    }
+    
+    function populateDriversPerformanceTable() {
+      console.log(`👥 Populating drivers performance table for ${getPeriodLabel()}...`);
+      
+      const tbody = document.getElementById('drivers-performance-table');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      
+      const drivers = getCurrentDriverData();
+      drivers.forEach(driver => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        const profitMargin = ((driver.profit / driver.revenue) * 100).toFixed(1);
+        const ratingStars = '★'.repeat(Math.floor(driver.rating)) + '☆'.repeat(5 - Math.floor(driver.rating));
+        
+        tr.innerHTML = `
+          <td class="border-b p-4">
+            <div class="font-medium cursor-pointer text-blue-600 hover:text-blue-800 hover:underline" onclick="openDriverDetails('${driver.id}')">${driver.name}</div>
+            <div class="text-sm text-gray-500">${driver.id}</div>
+          </td>
+          <td class="border-b p-4 font-semibold text-green-700">$${driver.revenue.toLocaleString()}</td>
+          <td class="border-b p-4 font-semibold text-red-700">$${driver.expenses.toLocaleString()}</td>
+          <td class="border-b p-4 font-semibold text-blue-700">
+            $${driver.profit.toLocaleString()}
+            <div class="text-xs text-gray-500">${profitMargin}% margin</div>
+          </td>
+          <td class="border-b p-4">
+            <div class="flex items-center">
+              <div class="w-12 h-2 bg-gray-200 rounded-full mr-2">
+                <div class="h-2 bg-green-500 rounded-full" style="width: ${driver.efficiency}%"></div>
+              </div>
+              <span class="text-sm font-medium">${driver.efficiency}%</span>
+            </div>
+          </td>
+          <td class="border-b p-4 text-center font-medium">${driver.trips}</td>
+          <td class="border-b p-4">
+            <div class="flex items-center">
+              <span class="text-yellow-500 mr-1">${ratingStars}</span>
+              <span class="text-sm text-gray-600">(${driver.rating})</span>
+            </div>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      console.log('✅ Drivers performance table populated');
+    }
+    
+    function updateFleetOverviewCards() {
+      const vehicles = getCurrentVehicleData();
+      const drivers = getCurrentDriverData();
+      
+      const totalTrips = vehicles.reduce((sum, v) => sum + (v.trips || 0), 0);
+      const avgEfficiency = vehicles.length > 0 ? 
+        Math.round(vehicles.reduce((sum, v) => sum + (v.efficiency || 0), 0) / vehicles.length) : 0;
+      
+      document.getElementById('fleet-vehicles').textContent = vehicles.length;
+      document.getElementById('fleet-drivers').textContent = drivers.length;
+      document.getElementById('fleet-trips').textContent = totalTrips.toLocaleString();
+      document.getElementById('fleet-efficiency').textContent = `${avgEfficiency}%`;
+    }
+
+    // Vehicle and Driver Detail Modals
+    let currentModalVehicleId = null;
+    let currentModalDriverId = null;
+    let modalPeriod = 'current-month'; // Default modal period
+    
+    function updateVehicleModalContent(vehicleId, selectedPeriod = modalPeriod) {
+      modalPeriod = selectedPeriod;
+      
+      // Get vehicle data for the selected period
+      const periodData = financeData.performanceData[selectedPeriod];
+      if (!periodData) return;
+      
+      const vehicleProfile = financeData.vehicleProfiles.find(v => v.id === vehicleId);
+      const vehiclePerformance = periodData.vehicles.find(v => v.id === vehicleId);
+      
+      if (!vehicleProfile || !vehiclePerformance) return;
+      
+      const vehicle = { ...vehicleProfile, ...vehiclePerformance };
+      const periodLabel = periodData.label;
+      
+      const title = document.getElementById('vehicle-modal-title');
+      const content = document.getElementById('vehicle-modal-content');
+      const periodSelect = document.getElementById('vehicle-modal-period');
+      
+      // Update period selector
+      if (periodSelect) {
+        periodSelect.value = selectedPeriod;
+      }
+      
+      title.textContent = `${vehicle.plate} - ${vehicle.model} (${periodLabel})`;
+      
+      const profitMargin = vehicle.revenue > 0 ? ((vehicle.profit / vehicle.revenue) * 100).toFixed(1) : '0.0';
+      const statusColor = vehicle.efficiency >= 85 ? 'text-green-600' : 
+                         vehicle.efficiency >= 75 ? 'text-yellow-600' : 'text-red-600';
+      const statusText = vehicle.efficiency >= 85 ? 'Excellent' : 
+                        vehicle.efficiency >= 75 ? 'Good' : 'Needs Attention';
+      
+      // Get comparison data for previous period
+      const prevPeriod = selectedPeriod === 'current-month' ? 'last-month' : 'current-month';
+      const prevData = financeData.performanceData[prevPeriod];
+      const prevVehicle = prevData ? prevData.vehicles.find(v => v.id === vehicleId) : null;
+      
+      let comparisonHTML = '';
+      if (prevVehicle) {
+        const revenueChange = vehicle.revenue - prevVehicle.revenue;
+        const profitChange = vehicle.profit - prevVehicle.profit;
+        const efficiencyChange = vehicle.efficiency - prevVehicle.efficiency;
+        
+        comparisonHTML = `
+          <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+            <h5 class="font-bold text-sm text-gray-800 mb-2">Compared to ${prevData.label}</h5>
+            <div class="grid grid-cols-3 gap-3 text-xs">
+              <div>
+                <span class="font-medium">Revenue:</span>
+                <span class="${revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}">
+                  ${revenueChange >= 0 ? '+' : ''}$${revenueChange.toLocaleString()}
+                </span>
+              </div>
+              <div>
+                <span class="font-medium">Profit:</span>
+                <span class="${profitChange >= 0 ? 'text-green-600' : 'text-red-600'}">
+                  ${profitChange >= 0 ? '+' : ''}$${profitChange.toLocaleString()}
+                </span>
+              </div>
+              <div>
+                <span class="font-medium">Efficiency:</span>
+                <span class="${efficiencyChange >= 0 ? 'text-green-600' : 'text-red-600'}">
+                  ${efficiencyChange >= 0 ? '+' : ''}${efficiencyChange.toFixed(1)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      content.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Vehicle Info -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="font-bold text-gray-900 mb-3">Vehicle Information</h4>
+            <div class="space-y-2">
+              <div><span class="font-medium">Plate Number:</span> ${vehicle.plate}</div>
+              <div><span class="font-medium">Model:</span> ${vehicle.model} (${vehicle.year || 'N/A'})</div>
+              <div><span class="font-medium">Capacity:</span> ${vehicle.capacity || 'N/A'}</div>
+              <div><span class="font-medium">Vehicle ID:</span> ${vehicle.id}</div>
+              <div><span class="font-medium">Total Trips:</span> ${vehicle.trips || 0}</div>
+              <div><span class="font-medium">Avg Distance:</span> ${vehicle.avgDistance || 0} km</div>
+              <div class="flex items-center">
+                <span class="font-medium mr-2">Efficiency:</span>
+                <div class="w-20 h-2 bg-gray-200 rounded-full mr-2">
+                  <div class="h-2 bg-blue-500 rounded-full" style="width: ${vehicle.efficiency || 0}%"></div>
+                </div>
+                <span class="${statusColor} font-medium">${vehicle.efficiency || 0}% (${statusText})</span>
+              </div>
+            </div>
+            ${comparisonHTML}
+          </div>
+          
+          <!-- Financial Summary -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="font-bold text-gray-900 mb-3">Financial Summary</h4>
+            <div class="space-y-2">
+              <div class="flex justify-between">
+                <span class="font-medium">Revenue:</span>
+                <span class="text-green-600 font-bold">$${(vehicle.revenue || 0).toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-medium">Expenses:</span>
+                <span class="text-red-600 font-bold">$${(vehicle.expenses || 0).toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-medium">Fuel Costs:</span>
+                <span class="text-orange-600 font-bold">$${(vehicle.fuelCost || 0).toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between border-t pt-2">
+                <span class="font-medium">Net Profit:</span>
+                <span class="text-blue-600 font-bold">$${(vehicle.profit || 0).toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-medium">Profit Margin:</span>
+                <span class="font-medium">${profitMargin}%</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-medium">Pending:</span>
+                <span class="text-yellow-600 font-bold">$${(vehicle.pending || 0).toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Performance Metrics -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-green-100 p-4 rounded-lg text-center">
+            <div class="text-2xl font-bold text-green-700">$${vehicle.trips > 0 ? ((vehicle.revenue || 0) / vehicle.trips).toFixed(0) : '0'}</div>
+            <div class="text-sm text-gray-600">Revenue per Trip</div>
+          </div>
+          <div class="bg-blue-100 p-4 rounded-lg text-center">
+            <div class="text-2xl font-bold text-blue-700">$${vehicle.trips > 0 ? ((vehicle.profit || 0) / vehicle.trips).toFixed(0) : '0'}</div>
+            <div class="text-sm text-gray-600">Profit per Trip</div>
+          </div>
+          <div class="bg-purple-100 p-4 rounded-lg text-center">
+            <div class="text-2xl font-bold text-purple-700">${vehicle.avgDistance > 0 ? ((vehicle.fuelCost || 0) / vehicle.avgDistance * 100).toFixed(1) : '0'}</div>
+            <div class="text-sm text-gray-600">Fuel Cost per 100km</div>
+          </div>
+          <div class="bg-yellow-100 p-4 rounded-lg text-center">
+            <div class="text-2xl font-bold text-yellow-700">${selectedPeriod === 'last-7-days' ? ((vehicle.trips || 0) / 7).toFixed(1) : ((vehicle.trips || 0) / 30).toFixed(1)}</div>
+            <div class="text-sm text-gray-600">${selectedPeriod === 'last-7-days' ? 'Trips per Day' : 'Trips per Day (Avg)'}</div>
+          </div>
+        </div>
+      `;
+    }
+    
+    function openVehicleDetails(vehicleId) {
+      currentModalVehicleId = vehicleId;
+      modalPeriod = currentPeriod; // Start with current main period
+      
+      const modal = document.getElementById('vehicle-details-modal');
+      updateVehicleModalContent(vehicleId, modalPeriod);
+      modal.classList.remove('hidden');
+    }
+    
+    function updateDriverModalContent(driverId, selectedPeriod = modalPeriod) {
+      modalPeriod = selectedPeriod;
+      
+      // Get driver data for the selected period
+      const periodData = financeData.performanceData[selectedPeriod];
+      if (!periodData) return;
+      
+      const driverProfile = financeData.driverProfiles.find(d => d.id === driverId);
+      const driverPerformance = periodData.drivers.find(d => d.id === driverId);
+      
+      if (!driverProfile || !driverPerformance) return;
+      
+      const driver = { ...driverProfile, ...driverPerformance };
+      const periodLabel = periodData.label;
+      
+      const title = document.getElementById('driver-modal-title');
+      const content = document.getElementById('driver-modal-content');
+      const periodSelect = document.getElementById('driver-modal-period');
+      
+      // Update period selector
+      if (periodSelect) {
+        periodSelect.value = selectedPeriod;
+      }
+      
+      title.textContent = `${driver.name} - Driver Profile (${periodLabel})`;
+      
+      const profitMargin = driver.revenue > 0 ? ((driver.profit / driver.revenue) * 100).toFixed(1) : '0.0';
+      const ratingStars = '★'.repeat(Math.floor(driver.rating || 0)) + '☆'.repeat(5 - Math.floor(driver.rating || 0));
+      const ratingColor = (driver.rating || 0) >= 4.5 ? 'text-green-600' : 
+                         (driver.rating || 0) >= 4.0 ? 'text-yellow-600' : 'text-red-600';
+      
+      // Get comparison data for previous period  
+      const prevPeriod = selectedPeriod === 'current-month' ? 'last-month' : 'current-month';
+      const prevData = financeData.performanceData[prevPeriod];
+      const prevDriver = prevData ? prevData.drivers.find(d => d.id === driverId) : null;
+      
+      let comparisonHTML = '';
+      if (prevDriver) {
+        const revenueChange = driver.revenue - prevDriver.revenue;
+        const profitChange = driver.profit - prevDriver.profit;
+        const ratingChange = driver.rating - prevDriver.rating;
+        
+        comparisonHTML = `
+          <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+            <h5 class="font-bold text-sm text-gray-800 mb-2">Compared to ${prevData.label}</h5>
+            <div class="grid grid-cols-3 gap-3 text-xs">
+              <div>
+                <span class="font-medium">Revenue:</span>
+                <span class="${revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}">
+                  ${revenueChange >= 0 ? '+' : ''}$${revenueChange.toLocaleString()}
+                </span>
+              </div>
+              <div>
+                <span class="font-medium">Profit:</span>
+                <span class="${profitChange >= 0 ? 'text-green-600' : 'text-red-600'}">
+                  ${profitChange >= 0 ? '+' : ''}$${profitChange.toLocaleString()}
+                </span>
+              </div>
+              <div>
+                <span class="font-medium">Rating:</span>
+                <span class="${ratingChange >= 0 ? 'text-green-600' : 'text-red-600'}">
+                  ${ratingChange >= 0 ? '+' : ''}${ratingChange.toFixed(1)}★
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      content.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Driver Info -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="font-bold text-gray-900 mb-3">Driver Information</h4>
+            <div class="space-y-2">
+              <div><span class="font-medium">Name:</span> ${driver.name}</div>
+              <div><span class="font-medium">Driver ID:</span> ${driver.id}</div>
+              <div><span class="font-medium">License:</span> ${driver.license || 'N/A'}</div>
+              <div><span class="font-medium">Experience:</span> ${driver.experience || 0} years</div>
+              <div><span class="font-medium">Join Date:</span> ${driver.joinDate || 'N/A'}</div>
+              <div><span class="font-medium">Total Trips:</span> ${driver.trips || 0}</div>
+              <div><span class="font-medium">Working Hours:</span> ${driver.hours || 0}h</div>
+              <div><span class="font-medium">Avg Speed:</span> ${driver.avgSpeed || 0} km/h</div>
+              <div class="flex items-center">
+                <span class="font-medium mr-2">Rating:</span>
+                <span class="text-yellow-500 mr-2">${ratingStars}</span>
+                <span class="${ratingColor} font-medium">(${driver.rating || 0}/5.0)</span>
+              </div>
+              <div class="flex items-center">
+                <span class="font-medium mr-2">Efficiency:</span>
+                <div class="w-20 h-2 bg-gray-200 rounded-full mr-2">
+                  <div class="h-2 bg-green-500 rounded-full" style="width: ${driver.efficiency || 0}%"></div>
+                </div>
+                <span class="font-medium">${driver.efficiency || 0}%</span>
+              </div>
+            </div>
+            ${comparisonHTML}
+          </div>
+          
+          <!-- Financial Summary -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="font-bold text-gray-900 mb-3">Financial Summary</h4>
+            <div class="space-y-2">
+              <div class="flex justify-between">
+                <span class="font-medium">Revenue:</span>
+                <span class="text-green-600 font-bold">$${(driver.revenue || 0).toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-medium">Expenses:</span>
+                <span class="text-red-600 font-bold">$${(driver.expenses || 0).toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between border-t pt-2">
+                <span class="font-medium">Net Profit:</span>
+                <span class="text-blue-600 font-bold">$${(driver.profit || 0).toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-medium">Profit Margin:</span>
+                <span class="font-medium">${profitMargin}%</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-medium">Pending:</span>
+                <span class="text-yellow-600 font-bold">$${(driver.pending || 0).toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Performance Metrics -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-green-100 p-4 rounded-lg text-center">
+            <div class="text-2xl font-bold text-green-700">$${driver.trips > 0 ? ((driver.revenue || 0) / driver.trips).toFixed(0) : '0'}</div>
+            <div class="text-sm text-gray-600">Revenue per Trip</div>
+          </div>
+          <div class="bg-blue-100 p-4 rounded-lg text-center">
+            <div class="text-2xl font-bold text-blue-700">$${driver.trips > 0 ? ((driver.profit || 0) / driver.trips).toFixed(0) : '0'}</div>
+            <div class="text-sm text-gray-600">Profit per Trip</div>
+          </div>
+          <div class="bg-purple-100 p-4 rounded-lg text-center">
+            <div class="text-2xl font-bold text-purple-700">$${driver.hours > 0 ? ((driver.revenue || 0) / driver.hours).toFixed(0) : '0'}</div>
+            <div class="text-sm text-gray-600">Revenue per Hour</div>
+          </div>
+          <div class="bg-yellow-100 p-4 rounded-lg text-center">
+            <div class="text-2xl font-bold text-yellow-700">${selectedPeriod === 'last-7-days' ? ((driver.trips || 0) / 7).toFixed(1) : ((driver.trips || 0) / 30).toFixed(1)}</div>
+            <div class="text-sm text-gray-600">${selectedPeriod === 'last-7-days' ? 'Trips per Day' : 'Trips per Day (Avg)'}</div>
+          </div>
+        </div>
+      `;
+    }
+    
+    function openDriverDetails(driverId) {
+      currentModalDriverId = driverId;
+      modalPeriod = currentPeriod; // Start with current main period
+      
+      const modal = document.getElementById('driver-details-modal');
+      updateDriverModalContent(driverId, modalPeriod);
+      modal.classList.remove('hidden');
+    }
+    
+    function initializeDetailModals() {
+      console.log('📋 Initializing detail modals...');
+      
+      // Close vehicle modal
+      const closeVehicleBtn = document.getElementById('close-vehicle-modal');
+      const vehicleModal = document.getElementById('vehicle-details-modal');
+      
+      if (closeVehicleBtn) {
+        closeVehicleBtn.addEventListener('click', () => {
+          vehicleModal.classList.add('hidden');
+        });
+      }
+      
+      // Close driver modal
+      const closeDriverBtn = document.getElementById('close-driver-modal');
+      const driverModal = document.getElementById('driver-details-modal');
+      
+      if (closeDriverBtn) {
+        closeDriverBtn.addEventListener('click', () => {
+          driverModal.classList.add('hidden');
+        });
+      }
+      
+      // Vehicle modal period selector
+      const vehiclePeriodSelect = document.getElementById('vehicle-modal-period');
+      if (vehiclePeriodSelect) {
+        vehiclePeriodSelect.addEventListener('change', function() {
+          if (currentModalVehicleId) {
+            updateVehicleModalContent(currentModalVehicleId, this.value);
+          }
+        });
+      }
+      
+      // Driver modal period selector
+      const driverPeriodSelect = document.getElementById('driver-modal-period');
+      if (driverPeriodSelect) {
+        driverPeriodSelect.addEventListener('change', function() {
+          if (currentModalDriverId) {
+            updateDriverModalContent(currentModalDriverId, this.value);
+          }
+        });
+      }
+      
+      // Close modals on background click
+      if (vehicleModal) {
+        vehicleModal.addEventListener('click', (e) => {
+          if (e.target === vehicleModal) {
+            vehicleModal.classList.add('hidden');
+          }
+        });
+      }
+      
+      if (driverModal) {
+        driverModal.addEventListener('click', (e) => {
+          if (e.target === driverModal) {
+            driverModal.classList.add('hidden');
+          }
+        });
+      }
+      
+      console.log('✅ Detail modals initialized');
+    }
+
+    // Initialize Dashboard
+    function initializeDashboard() {
+      console.log('🔄 Initializing dashboard...');
+      
+      // Initialize all features
+      initializeNavigation();
+      initializeModals();
+      initializeSearchAndFilter();
+      initializeExports();
+      initializeReceivables();
+      initializePayables();
+      initializeChartOfAccounts();
+      initializeFleetAnalytics();
+      initializeDetailModals();
+      
+      // Populate data
+      populateRecentTransactions();
+      populateTransactionsTable();
+      populateExpenseTracking();
+      populateInvoicesTable();
+      populateReceivablesTable();
+      populatePayablesTable();
+      populateChartOfAccountsTable();
+
+      
+      // Enhanced chart loading with multiple fallbacks
+      let chartAttempts = 0;
+      const maxAttempts = 50; // 5 seconds of attempts
+      
+      function waitForChartJS() {
+        chartAttempts++;
+        const canvas = document.getElementById('financeChart');
+        
+        console.log(`📊 Chart loading attempt ${chartAttempts}/${maxAttempts}`);
+        console.log('Chart.js available:', typeof Chart !== 'undefined');
+        console.log('Canvas found:', !!canvas);
+        
+        if (typeof Chart !== 'undefined' && canvas && !canvas.hasAttribute('data-chart-created')) {
+          console.log('✅ All conditions met - creating chart...');
+          createFinancialChart();
+          return;
+        }
+        
+        if (chartAttempts < maxAttempts) {
+          setTimeout(waitForChartJS, 100);
+        } else {
+          console.warn('❌ Chart creation failed after maximum attempts, using fallback');
+          createChartFallback();
+        }
+      }
+      
+      // Start checking immediately - multiple triggers
+      setTimeout(waitForChartJS, 50);   // Very quick first attempt
+      setTimeout(waitForChartJS, 200);  // Second attempt
+      setTimeout(waitForChartJS, 500);  // Third attempt
+      setTimeout(waitForChartJS, 1000); // Fourth attempt
+      
+      // Also try on next tick
+      setTimeout(() => {
+        if (!document.getElementById('financeChart')?.hasAttribute('data-chart-created')) {
+          console.log('🔄 Next tick attempt...');
+          waitForChartJS();
+        }
+      }, 0);
+      
+      console.log('✅ Dashboard initialization complete');
+    }
+
+    // Start when DOM is ready
+    document.addEventListener('DOMContentLoaded', initializeDashboard);
+    
+    // Additional fallback: Try again on window load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const canvas = document.getElementById('financeChart');
+        if (canvas && !canvas.hasAttribute('data-chart-created')) {
+          console.log('🔄 Window load fallback - attempting chart creation...');
+          if (typeof Chart !== 'undefined') {
+            createFinancialChart();
+          } else {
+            console.warn('⚠️ Chart.js still not loaded on window load');
+            createChartFallback();
+          }
+        }
+      }, 100);
+    });
+
+    // Global functions for testing
+    window.testDashboard = function() {
+      console.log('🧪 Testing dashboard functions...');
+      populateRecentTransactions();
+      populateTransactionsTable();
+      createFinancialChart();
+      console.log('🧪 Test complete');
+    };
+
+    // Test chart specifically
+    window.testChart = function() {
+      console.log('📊 Testing horizontal bar chart creation...');
+      console.log('Chart.js available:', typeof Chart !== 'undefined');
+      console.log('Canvas element found:', !!document.getElementById('financeChart'));
+      console.log('Finance data:', financeData.metrics);
+      createFinancialChart();
+    };
+
+    // Test navigation function
+    window.testNavigation = function(tabName) {
+      const tab = document.querySelector(`[data-tab="${tabName}"]`);
+      if (tab) {
+        console.log(`Testing navigation to ${tabName}`);
+        tab.click();
+      } else {
+        console.error(`Tab not found: ${tabName}`);
+      }
+    };
+
+    // Test Chart of Accounts function
+    window.testChartOfAccounts = function() {
+      console.log('🧪 Testing Chart of Accounts...');
+      
+      // Test navigation to accounts section
+      window.testNavigation('accounts');
+      
+      setTimeout(() => {
+        // Test sub-tab navigation
+        const chartTab = document.querySelector('[data-subtab="chart-accounts"]');
+        console.log('Chart of Accounts sub-tab found:', !!chartTab);
+        
+        if (chartTab) {
+          console.log('🔘 Clicking Chart of Accounts sub-tab...');
+          chartTab.click();
+          
+          setTimeout(() => {
+            // Test table population
+            console.log('📋 Testing table population...');
+            populateChartOfAccountsTable();
+            
+            // Check if data is visible
+            const tbody = document.getElementById('chart-accounts-table');
+            console.log('Table body found:', !!tbody);
+            console.log('Table rows count:', tbody?.children.length || 0);
+            console.log('Chart data:', financeData.ledger.chartOfAccounts.length, 'accounts');
+          }, 100);
+        }
+      }, 100);
+    };
+    
+    // Quick test function for Chart of Accounts table only
+    window.testChartTable = function() {
+      console.log('🧪 Testing Chart of Accounts table population only...');
+      populateChartOfAccountsTable();
+      const tbody = document.getElementById('chart-accounts-table');
+      console.log('Rows created:', tbody?.children.length || 0);
+    };
+    
+    // Test Fleet Analytics function
+    window.testFleetAnalytics = function() {
+      console.log('🧪 Testing Fleet Analytics...');
+      
+      // Navigate to fleet analytics
+      window.testNavigation('fleet-analytics');
+      
+      setTimeout(() => {
+        console.log(`📊 Checking Fleet Analytics data for ${getPeriodLabel()}...`);
+        const vehicles = getCurrentVehicleData();
+        const drivers = getCurrentDriverData();
+        console.log('Vehicles:', vehicles.length);
+        console.log('Drivers:', drivers.length);
+        
+        // Test table population
+        populateVehiclesPerformanceTable();
+        populateDriversPerformanceTable();
+        updateFleetOverviewCards();
+        
+        const vehicleRows = document.getElementById('vehicles-performance-table')?.children.length || 0;
+        const driverRows = document.getElementById('drivers-performance-table')?.children.length || 0;
+        
+        console.log('Vehicle table rows:', vehicleRows);
+        console.log('Driver table rows:', driverRows);
+        console.log('✅ Fleet Analytics test complete');
+      }, 500);
+    };
+    
+    // Test Vehicle and Driver Modals
+    window.testModals = function() {
+      console.log('🧪 Testing Vehicle and Driver Modals...');
+      
+      // Test vehicle modal
+      const vehicles = getCurrentVehicleData();
+      if (vehicles.length > 0) {
+        console.log('Testing vehicle modal with:', vehicles[0].plate);
+        openVehicleDetails(vehicles[0].id);
+        
+        setTimeout(() => {
+          // Close vehicle modal
+          document.getElementById('close-vehicle-modal').click();
+          
+          // Test driver modal
+          const drivers = getCurrentDriverData();
+          if (drivers.length > 0) {
+            console.log('Testing driver modal with:', drivers[0].name);
+            openDriverDetails(drivers[0].id);
+            
+            setTimeout(() => {
+              // Close driver modal
+              document.getElementById('close-driver-modal').click();
+              console.log('✅ Modal tests complete');
+            }, 2000);
+          }
+        }, 2000);
+      }
+    };
+    
+    // Test Modal Time Filters
+    window.testModalFilters = function() {
+      console.log('🧪 Testing Modal Time Filters...');
+      
+      const vehicles = getCurrentVehicleData();
+      if (vehicles.length > 0) {
+        console.log('Opening vehicle modal and testing period switching...');
+        openVehicleDetails(vehicles[0].id);
+        
+        // Test different periods
+        const periods = ['current-month', 'last-month', 'last-7-days', 'ytd'];
+        let index = 0;
+        
+        const testNextPeriod = () => {
+          if (index < periods.length) {
+            const period = periods[index];
+            console.log(`Testing period: ${period}`);
+            
+            const periodSelect = document.getElementById('vehicle-modal-period');
+            if (periodSelect) {
+              periodSelect.value = period;
+              periodSelect.dispatchEvent(new Event('change'));
+            }
+            
+            index++;
+            setTimeout(testNextPeriod, 1500);
+          } else {
+            console.log('✅ Modal filter tests complete');
+            document.getElementById('close-vehicle-modal').click();
+          }
+        };
+        
+        setTimeout(testNextPeriod, 1000);
+      }
+    };
+
+  </script>
+
+
+
+  <!-- Feedback Submission Modal -->
+  <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <i class="fas fa-comment-dots text-orange-600"></i>
+          Submit Feedback & Suggestions
+        </h3>
+        <button id="close-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="mb-6">
+        <p class="text-gray-600 text-sm leading-relaxed">
+          Help us improve the accountant dashboard system! Share your thoughts on the financial reporting, analytics, budgeting features, or suggest new functionality. Your feedback is valuable and will be reviewed by our development team (It is just me :) ).
+        </p>
+      </div>
+
+      <form id="feedback-form" class="space-y-6">
+        <!-- Name Field -->
+        <div>
+          <label for="feedback-name" class="block text-sm font-medium text-gray-700 mb-2">
+            Your Name <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="feedback-name" 
+            name="name"
+            required
+            placeholder="Enter your full name"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+          >
+        </div>
+
+        <!-- Feedback/Note Field -->
+        <div>
+          <label for="feedback-note" class="block text-sm font-medium text-gray-700 mb-2">
+            Feedback & Comments <span class="text-red-500">*</span>
+          </label>
+          <textarea 
+            id="feedback-note" 
+            name="note"
+            required
+            rows="8"
+            placeholder="Please describe your feedback, suggestions, or issues in detail. Be specific about what you liked, what could be improved, or what new features you'd like to see..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical"
+          ></textarea>
+          <div class="mt-1 text-xs text-gray-500">
+            <span id="char-count">0</span>/1000 characters
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-4">
+          <button 
+            type="submit" 
+            id="submit-feedback-btn"
+            class="flex-1 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:ring-4 focus:ring-orange-500/20 transition-all font-medium flex items-center justify-center gap-2"
+          >
+            <i class="fas fa-paper-plane"></i>
+            Submit Feedback
+          </button>
+          <button 
+            type="button" 
+            id="cancel-feedback-btn"
+            class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-4 focus:ring-gray-500/20 transition-all font-medium"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <!-- Success Message -->
+      <div id="feedback-success" class="hidden text-center py-8">
+        <div class="mb-4">
+          <i class="fas fa-check-circle text-5xl text-green-500"></i>
+        </div>
+        <h4 class="text-xl font-bold text-gray-900 mb-2">Feedback Submitted Successfully!</h4>
+        <p class="text-gray-600 mb-4">Thank you for your valuable feedback. Our team will review it and get back to you if needed.</p>
+        <button id="submit-another-feedback" class="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+          Submit Another Feedback
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Feedback Modal -->
+  <div id="view-feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <i class="fas fa-comments text-orange-600"></i>
+          Submitted Feedback & Comments
+        </h3>
+        <button id="close-view-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Feedback Controls -->
+      <div class="mb-6 flex flex-wrap gap-3">
+        <button id="refresh-feedback" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+          <i class="fas fa-sync mr-1"></i> Refresh
+        </button>
+        <button id="export-feedback" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
+          <i class="fas fa-download mr-1"></i> Export JSON
+        </button>
+        <button id="clear-feedback" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
+          <i class="fas fa-trash mr-1"></i> Clear All
+        </button>
+      </div>
+
+      <!-- Feedback List -->
+      <div id="feedback-list" class="space-y-4 max-h-96 overflow-y-auto">
+        <!-- Feedback items will be populated here -->
+        <div class="text-center py-8 text-gray-500">
+          <i class="fas fa-comments text-4xl mb-3"></i>
+          <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== FEEDBACK SYSTEM =====
+    class FeedbackManager {
+      constructor() {
+        this.storage = window.feedbackStorage;
+        this.setupEventListeners();
+      }
+
+      setupEventListeners() {
+        // Feedback toggle button
+        const feedbackToggle = document.getElementById('feedback-toggle');
+        if (feedbackToggle) {
+          feedbackToggle.addEventListener('click', () => this.openFeedbackModal());
+        }
+
+        // Modal controls
+        const closeFeedbackModal = document.getElementById('close-feedback-modal');
+        if (closeFeedbackModal) {
+          closeFeedbackModal.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        const cancelFeedbackBtn = document.getElementById('cancel-feedback-btn');
+        if (cancelFeedbackBtn) {
+          cancelFeedbackBtn.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        // Form submission
+        const feedbackForm = document.getElementById('feedback-form');
+        if (feedbackForm) {
+          feedbackForm.addEventListener('submit', (e) => this.handleSubmitFeedback(e));
+        }
+
+        // Character counter
+        const feedbackNote = document.getElementById('feedback-note');
+        if (feedbackNote) {
+          feedbackNote.addEventListener('input', () => this.updateCharacterCount());
+        }
+
+        // Submit another feedback
+        const submitAnotherBtn = document.getElementById('submit-another-feedback');
+        if (submitAnotherBtn) {
+          submitAnotherBtn.addEventListener('click', () => this.resetFeedbackForm());
+        }
+
+        // Feedback controls
+        const refreshBtn = document.getElementById('refresh-feedback');
+        const exportBtn = document.getElementById('export-feedback');
+        const clearBtn = document.getElementById('clear-feedback');
+
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', () => this.loadFeedback());
+        }
+        if (exportBtn) {
+          exportBtn.addEventListener('click', () => this.exportFeedback());
+        }
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => this.clearAllFeedback());
+        }
+      }
+
+      openFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          
+          // Focus on first input
+          const nameInput = document.getElementById('feedback-name');
+          if (nameInput) {
+            setTimeout(() => nameInput.focus(), 100);
+          }
+        }
+      }
+
+      closeFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      }
+
+      openViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          this.loadFeedback();
+        }
+      }
+
+      closeViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      }
+
+      updateCharacterCount() {
+        const textarea = document.getElementById('feedback-note');
+        const counter = document.getElementById('char-count');
+        if (textarea && counter) {
+          const count = textarea.value.length;
+          counter.textContent = count;
+          
+          if (count > 1000) {
+            counter.style.color = '#ef4444';
+            textarea.value = textarea.value.substring(0, 1000);
+            counter.textContent = '1000';
+          } else {
+            counter.style.color = '#6b7280';
+          }
+        }
+      }
+
+      async handleSubmitFeedback(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+        submitBtn.disabled = true;
+
+        try {
+          const formData = new FormData(e.target);
+          const feedbackData = {
+            id: Date.now().toString(),
+            name: formData.get('name'),
+            note: formData.get('note'),
+            timestamp: new Date().toISOString(),
+            system: 'Accountant Dashboard System'
+          };
+
+          // Validate required fields
+          if (!feedbackData.name || !feedbackData.note) {
+            throw new Error('Please fill in all required fields');
+          }
+
+          // Save using the feedback storage system
+          const success = this.storage.saveFeedback(feedbackData);
+          if (!success) {
+            throw new Error('Failed to save feedback to storage');
+          }
+          
+          // Show success message
+          this.showSuccessMessage();
+          
+        } catch (error) {
+          console.error('Error submitting feedback:', error);
+          alert('Error submitting feedback: ' + error.message);
+          
+          // Restore button state
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        }
+      }
+
+      showSuccessMessage() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        
+        if (form && success) {
+          form.classList.add('hidden');
+          success.classList.remove('hidden');
+        }
+      }
+
+      resetFeedbackForm() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        
+        if (form) {
+          form.reset();
+          form.classList.remove('hidden');
+        }
+        
+        if (success) {
+          success.classList.add('hidden');
+        }
+        
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Feedback';
+          submitBtn.disabled = false;
+        }
+
+        // Reset character counter
+        const counter = document.getElementById('char-count');
+        if (counter) {
+          counter.textContent = '0';
+        }
+      }
+
+      loadFeedback() {
+        const feedbackList = document.getElementById('feedback-list');
+        if (!feedbackList) return;
+
+        // Get all feedback from storage
+        const allFeedback = this.storage.getAllFeedback();
+
+        // Sort by timestamp (newest first)
+        allFeedback.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (allFeedback.length === 0) {
+          feedbackList.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-comments text-4xl mb-3"></i>
+              <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Render feedback items
+        feedbackList.innerHTML = allFeedback.map(item => this.renderFeedbackItem(item)).join('');
+      }
+
+      renderFeedbackItem(feedback) {
+        const date = new Date(feedback.timestamp).toLocaleDateString();
+        const time = new Date(feedback.timestamp).toLocaleTimeString();
+
+        return `
+          <div class="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+            <div class="flex items-start gap-3 mb-3">
+              <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <span class="text-orange-600 font-semibold">${feedback.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900">${feedback.name}</h4>
+                <p class="text-xs text-gray-500">${date} at ${time}</p>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <p class="text-gray-700 leading-relaxed">${feedback.note}</p>
+            </div>
+          </div>
+        `;
+      }
+
+      exportFeedback() {
+        try {
+          this.storage.exportFeedback();
+          this.showNotification('Feedback exported successfully!', 'success');
+        } catch (error) {
+          console.error('Error exporting feedback:', error);
+          this.showNotification('Error exporting feedback', 'error');
+        }
+      }
+
+      clearAllFeedback() {
+        if (confirm('Are you sure you want to clear all feedback? This action cannot be undone.')) {
+          this.storage.clearAllFeedback();
+          this.loadFeedback();
+          this.showNotification('All feedback cleared successfully!', 'success');
+        }
+      }
+
+      showNotification(message, type = 'info') {
+        // Create a simple notification
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+          type === 'success' ? 'bg-green-500 text-white' :
+          type === 'error' ? 'bg-red-500 text-white' :
+          'bg-blue-500 text-white'
+        }`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 3000);
+      }
+    }
+
+    // Initialize feedback system
+    let feedbackManager;
+    document.addEventListener('DOMContentLoaded', function() {
+      feedbackManager = new FeedbackManager();
+    });
+  </script>
+  
+</body>
+
+</html>

@@ -1,0 +1,2007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Driver Dashboard - Lynx Lite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  
+  <!-- Feedback Storage System -->
+  <script src="feedback-storage.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
+      color: #1f2937;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s ease;
+    }
+
+    body.dark-mode {
+      background: linear-gradient(to bottom, #111827, #1f2937);
+      color: #d1d5db;
+    }
+    body.dark-mode header {
+      background: #1f2937;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    }
+    body.dark-mode .widget-card {
+      background: linear-gradient(145deg, #1f2937, #111827);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      color: #d1d5db;
+    }
+    body.dark-mode .nav-tab {
+      background: #374151;
+      color: #d1d5db;
+    }
+    body.dark-mode .nav-tab.active {
+      background: #3b82f6;
+      color: #fff;
+    }
+    body.dark-mode .status-indicator {
+      border: 1px solid #374151;
+    }
+    body.dark-mode .alert-card {
+      background: #78350f;
+      color: #fed7aa;
+    }
+    body.dark-mode .eco-tip {
+      background: #064e3b;
+      color: #6ee7b7;
+    }
+    body.dark-mode .bg-gray-100 {
+      background: #1f2937 !important;
+    }
+    body.dark-mode .text-gray-500 {
+      color: #9ca3af !important;
+    }
+    body.dark-mode .text-gray-900 {
+      color: #d1d5db !important;
+    }
+    body.dark-mode .border-gray-200 {
+      border-color: #374151 !important;
+    }
+    body.dark-mode .bg-blue-600 {
+      background: #3b82f6 !important;
+    }
+    body.dark-mode .bg-gray-200 {
+      background: #374151 !important;
+    }
+
+    .widget-card {
+      background: linear-gradient(145deg, #ffffff, #f9fafb);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+      border-radius: 12px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .widget-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .nav-tab {
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      background: #f3f4f6;
+      margin-right: 0.5rem;
+    }
+    .nav-tab.active {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .status-indicator {
+      font-weight: 600;
+      border-radius: 6px;
+      padding: 0.2rem 0.7rem;
+      margin-right: 0.5rem;
+      display: inline-block;
+    }
+    .status-indicator.normal { background: #d1fae5; color: #065f46; }
+    .status-indicator.warning { background: #fef9c3; color: #92400e; }
+    .status-indicator.error { background: #fee2e2; color: #991b1b; }
+
+    .alert-card { background: #fef9c3; color: #92400e; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    .eco-tip { background: #d1fae5; color: #065f46; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    .sos-btn { background: #dc2626; color: #fff; border-radius: 8px; padding: 0.75rem 1.5rem; font-weight: 600; }
+    
+
+
+    .notification-tray {
+      position: fixed;
+      right: 0;
+      top: 80px;
+      width: 320px;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      padding: 1rem;
+      z-index: 40;
+      transition: transform 0.3s ease;
+      transform: translateX(100%);
+    }
+    .notification-tray.active {
+      transform: translateX(0);
+    }
+
+    .map-placeholder {
+      height: 200px;
+      background: #e5e7eb;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b7280;
+    }
+
+
+
+    @media (max-width: 768px) {
+      main { padding: 1.5rem; }
+      .nav-tab { padding: 0.5rem 1rem; font-size: 0.9rem; }
+      .widget-card { padding: 1.5rem; }
+      .max-w-7xl { max-width: 100%; }
+      .grid-cols-3 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .grid-cols-3, .grid-cols-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+  <header class="bg-white shadow flex justify-between items-center px-6 py-4 z-30 fixed top-0 left-0 w-full" aria-label="Driver Dashboard Header">
+    <div class="flex items-center space-x-4">
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Driver Dashboard</h1>
+      <span id="welcome-message" class="ml-4 text-lg font-medium text-blue-700">Welcome, Driver Name</span>
+    </div>
+    <div class="flex items-center space-x-4">
+      <!-- Emergency SOS Button -->
+      <button id="emergency-sos-btn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center shadow-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-red-300" aria-label="Emergency SOS">
+        <i class="fas fa-exclamation-triangle mr-2 text-lg animate-pulse"></i>
+        SOS
+      </button>
+      
+      <!-- Incident Reporting Button -->
+      <button id="incident-report-btn" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center shadow-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-orange-300" aria-label="Report Incident">
+        <i class="fas fa-file-medical-alt mr-2"></i>
+        Report
+      </button>
+      
+      <button id="notification-toggle" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Notifications">
+        <i class="fas fa-bell text-xl"></i>
+        <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 hidden">0</span>
+      </button>
+
+      <button id="dark-mode-toggle" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Toggle Dark Mode">
+        <i class="fas fa-moon text-xl"></i>
+      </button>
+      
+      <!-- Feedback Button -->
+      <div class="text-center">
+        <button id="feedback-toggle" class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all hover:scale-105 shadow-lg flex items-center gap-2 font-medium" title="Submit Feedback">
+          <i class="fas fa-comment-dots text-lg"></i>
+          Submit Feedback
+        </button>
+        <p class="text-xs text-gray-500 mt-1">Feedback automatically sent to Google Sheets</p>
+      </div>
+      <div class="relative">
+        <button id="user-menu-button" class="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-blue-700" aria-label="User Menu">
+          <i class="fas fa-user"></i>
+        </button>
+        <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-20">
+          <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"><i class="fas fa-user-circle w-6 mr-2"></i>My Profile</a>
+          <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"><i class="fas fa-key w-6 mr-2"></i>Change Password</a>
+          <div class="border-t border-gray-200 my-1"></div>
+          <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"><i class="fas fa-sign-out-alt w-6 mr-2"></i>Log Out</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Tray -->
+  <div id="notification-tray" class="notification-tray">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">Notifications</h3>
+    <div id="notifications-list" class="space-y-2"></div>
+    <button id="clear-notifications" class="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 w-full">Clear All</button>
+  </div>
+
+  <!-- Emergency SOS Modal -->
+  <div id="sos-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 border-4 border-red-500">
+      <div class="text-center">
+        <div class="mb-4">
+          <i class="fas fa-exclamation-triangle text-red-600 text-6xl animate-pulse"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-red-600 mb-4">EMERGENCY SOS</h2>
+        <p class="text-gray-700 mb-6">Are you experiencing an emergency? This will immediately alert:</p>
+        <div class="text-left bg-gray-50 p-4 rounded-lg mb-6">
+          <ul class="space-y-2 text-sm">
+            <li class="flex items-center"><i class="fas fa-phone text-green-600 mr-2"></i>Fleet Dispatch Center</li>
+            <li class="flex items-center"><i class="fas fa-ambulance text-red-600 mr-2"></i>Emergency Services (911)</li>
+            <li class="flex items-center"><i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>GPS Location Shared</li>
+            <li class="flex items-center"><i class="fas fa-users text-purple-600 mr-2"></i>Emergency Contacts</li>
+          </ul>
+        </div>
+        
+        <div class="mb-4">
+          <label for="emergency-type" class="block text-sm font-medium text-gray-700 mb-2">Emergency Type:</label>
+          <select id="emergency-type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="medical">Medical Emergency</option>
+            <option value="accident">Vehicle Accident</option>
+            <option value="breakdown">Vehicle Breakdown</option>
+            <option value="threat">Security Threat</option>
+            <option value="fire">Fire</option>
+            <option value="other">Other Emergency</option>
+          </select>
+        </div>
+        
+        <div class="mb-6">
+          <label for="emergency-details" class="block text-sm font-medium text-gray-700 mb-2">Brief Description (Optional):</label>
+          <textarea id="emergency-details" class="w-full border border-gray-300 rounded-lg px-3 py-2" rows="3" placeholder="Describe the situation briefly..."></textarea>
+        </div>
+        
+        <div class="flex space-x-3">
+          <button id="confirm-sos" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-bold text-lg transition-colors">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            SEND SOS
+          </button>
+          <button id="cancel-sos" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors">
+            Cancel
+          </button>
+        </div>
+        
+        <p class="text-xs text-gray-500 mt-4">
+          <i class="fas fa-info-circle mr-1"></i>
+          This action will be logged and emergency services may be contacted immediately.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Screen Navigation Modal -->
+  <div id="fullscreen-nav-modal" class="fixed inset-0 bg-gray-900 z-50 hidden">
+    <div class="h-full flex flex-col">
+      <!-- Navigation Header -->
+      <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
+        <div class="flex items-center">
+          <i class="fas fa-route mr-3 text-xl"></i>
+          <div>
+            <h2 class="text-lg font-bold">GPS Navigation</h2>
+            <p class="text-sm opacity-90" id="nav-status">Active Route</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button id="voice-guidance-toggle" class="bg-blue-700 hover:bg-blue-800 px-3 py-2 rounded-lg text-sm">
+            <i class="fas fa-volume-up mr-1"></i>Voice: ON
+          </button>
+          <button id="minimize-navigation-btn" class="bg-blue-700 hover:bg-blue-800 px-3 py-2 rounded-lg text-sm">
+            <i class="fas fa-compress mr-1"></i>Minimize
+          </button>
+        </div>
+      </div>
+      
+      <!-- Main Navigation Content -->
+      <div class="flex-1 flex">
+        <!-- Left Sidebar - Route Details -->
+        <div class="w-80 bg-white border-r border-gray-200 flex flex-col">
+          <!-- Next Instruction -->
+          <div class="bg-blue-50 p-4 border-b">
+            <div class="flex items-center mb-2">
+              <div class="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center mr-3">
+                <i class="fas fa-arrow-right text-lg" id="next-direction-icon"></i>
+              </div>
+              <div>
+                <p class="font-bold text-gray-900" id="next-instruction">Turn right onto Oak Avenue</p>
+                <p class="text-sm text-gray-600" id="next-distance">in 800 meters</p>
+              </div>
+            </div>
+            <div class="bg-white rounded-lg p-3 mt-3">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">ETA:</span>
+                <span class="font-medium" id="live-eta">2:45 PM</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Distance:</span>
+                <span class="font-medium" id="live-distance">8.2 km</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-600">Time:</span>
+                <span class="font-medium" id="live-time">15 min</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Upcoming Directions -->
+          <div class="p-4 border-b">
+            <h3 class="font-semibold text-gray-900 mb-3">Upcoming Directions</h3>
+            <div class="space-y-3" id="upcoming-directions">
+              <div class="flex items-center text-sm">
+                <i class="fas fa-arrow-right text-gray-400 w-6 mr-2"></i>
+                <span class="text-gray-600">Turn right onto Oak Ave (800m)</span>
+              </div>
+              <div class="flex items-center text-sm">
+                <i class="fas fa-arrow-left text-gray-400 w-6 mr-2"></i>
+                <span class="text-gray-600">Turn left onto Pine St (1.2km)</span>
+              </div>
+              <div class="flex items-center text-sm">
+                <i class="fas fa-arrow-up text-gray-400 w-6 mr-2"></i>
+                <span class="text-gray-600">Continue straight (2.1km)</span>
+              </div>
+              <div class="flex items-center text-sm">
+                <i class="fas fa-flag text-green-600 w-6 mr-2"></i>
+                <span class="text-gray-600">Arrive at destination (3.8km)</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Traffic & Alerts -->
+          <div class="p-4 border-b">
+            <h3 class="font-semibold text-gray-900 mb-3">Traffic & Alerts</h3>
+            <div class="space-y-2">
+              <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div class="flex items-center">
+                  <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                  <span class="text-sm font-medium text-yellow-800">Light Traffic Ahead</span>
+                </div>
+                <p class="text-xs text-yellow-700 mt-1">2-3 minute delay on Highway 15</p>
+              </div>
+              <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div class="flex items-center">
+                  <i class="fas fa-info-circle text-green-600 mr-2"></i>
+                  <span class="text-sm font-medium text-green-800">Optimal Route</span>
+                </div>
+                <p class="text-xs text-green-700 mt-1">Current route is fastest available</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Quick Actions -->
+          <div class="p-4 mt-auto">
+            <div class="grid grid-cols-2 gap-2">
+              <button class="bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-lg text-sm">
+                <i class="fas fa-route mr-1"></i>Reroute
+              </button>
+              <button class="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-sm">
+                <i class="fas fa-stop mr-1"></i>End Nav
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Main Map Area -->
+        <div class="flex-1 relative bg-gray-100">
+          <!-- Simulated Full Map -->
+          <div class="h-full bg-gradient-to-br from-blue-50 via-green-50 to-blue-100 relative overflow-hidden">
+            <!-- Map Controls -->
+            <div class="absolute top-4 right-4 z-10 space-y-2">
+              <button class="bg-white hover:bg-gray-50 p-2 rounded-lg shadow-md">
+                <i class="fas fa-plus text-gray-600"></i>
+              </button>
+              <button class="bg-white hover:bg-gray-50 p-2 rounded-lg shadow-md">
+                <i class="fas fa-minus text-gray-600"></i>
+              </button>
+              <button class="bg-white hover:bg-gray-50 p-2 rounded-lg shadow-md">
+                <i class="fas fa-location-arrow text-gray-600"></i>
+              </button>
+              <button class="bg-white hover:bg-gray-50 p-2 rounded-lg shadow-md">
+                <i class="fas fa-layer-group text-gray-600"></i>
+              </button>
+            </div>
+            
+            <!-- Center Message -->
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="text-center bg-white bg-opacity-90 p-8 rounded-xl shadow-lg">
+                <i class="fas fa-map text-6xl text-blue-600 mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Interactive Navigation Map</h3>
+                <p class="text-gray-600 mb-4">Real-time GPS navigation with turn-by-turn directions</p>
+                <div class="text-sm text-gray-500">
+                  <p>• Live traffic updates</p>
+                  <p>• Voice guidance</p>
+                  <p>• Alternative routes</p>
+                  <p>• Points of interest</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Simulated Route Elements -->
+            <div class="absolute top-1/4 left-1/4 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+              <i class="fas fa-map-marker-alt text-white text-lg"></i>
+            </div>
+            <div class="absolute bottom-1/4 right-1/4 w-12 h-12 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
+              <i class="fas fa-flag text-white text-lg"></i>
+            </div>
+            
+            <!-- Speed and Current Info Overlay -->
+            <div class="absolute bottom-4 left-4 bg-black bg-opacity-80 text-white rounded-lg p-4">
+              <div class="flex items-center space-x-4">
+                <div class="text-center">
+                  <div class="text-2xl font-bold" id="current-speed">45</div>
+                  <div class="text-xs opacity-75">km/h</div>
+                </div>
+                <div class="border-l border-gray-500 pl-4">
+                  <div class="text-sm">Speed Limit: <span class="font-bold">50 km/h</span></div>
+                  <div class="text-xs opacity-75">Next: Turn right in 800m</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+
+
+  <main class="pt-24 px-6 max-w-7xl mx-auto">
+
+    <nav class="flex mb-8 overflow-x-auto">
+      <div class="nav-tab active" data-tab="dashboard">My Dashboard</div>
+      <div class="nav-tab" data-tab="trips">Trips</div>
+      <div class="nav-tab" data-tab="vehicle-status">Vehicle Status</div>
+      <div class="nav-tab" data-tab="performance">Performance</div>
+      <div class="nav-tab" data-tab="messages">Messages</div>
+      <div class="nav-tab" data-tab="help">Help & Support</div>
+    </nav>
+
+    <section id="dashboard-section" class="widget-card p-8">
+      <!-- Dashboard now only shows summary/profile -->
+      <div id="driver-profile-history" class="mb-6 widget-section">
+        <h2 class="text-xl font-bold text-gray-900 mb-2 flex items-center"><i class="fas fa-user text-gray-700 mr-2"></i>My Profile & History</h2>
+        <div class="mb-2"><strong>Assigned Vehicle:</strong> <span id="profile-vehicle">VEH-123 | Plate: ABC-456</span></div>
+        <div class="mb-2"><strong>Odometer:</strong> <span id="profile-odometer">25,000 km</span></div>
+        <div class="mb-2"><strong>Insurance Status:</strong> <span id="profile-insurance">Valid</span></div>
+        <div class="mb-2"><strong>Completed Inspections:</strong> <span id="profile-inspections">12</span></div>
+        <div class="mb-2"><strong>License Number:</strong> <span id="profile-license">D123456</span></div>
+        <div class="mb-2"><strong>License Expiry:</strong> <span id="profile-license-expiry">2026-05-30</span></div>
+        <div class="mb-2"><strong>Contact Info:</strong> <span id="profile-contact">john.doe@lynxlite.com | +1-555-123-4567</span></div>
+        <div class="mb-2"><strong>Safe Driving Score (Avg):</strong> <span id="profile-safe-score">85/100</span></div>
+        <div class="mb-2"><strong>Assigned Trips (Upcoming):</strong> <span id="profile-upcoming-trips">2</span></div>
+        <div class="mb-2"><strong>Last Maintenance:</strong> <span id="profile-last-maintenance">2025-06-15</span></div>
+        <div class="mb-2"><strong>Vehicle Status:</strong> <span id="profile-vehicle-status">Active</span></div>
+        <div class="mb-2"><strong>Past Trips:</strong></div>
+        <ul id="profile-past-trips" class="list-disc pl-5 text-sm">
+          <li>2025-07-15: Route A - 120 km - Completed</li>
+          <li>2025-07-14: Route B - 85 km - Completed</li>
+          <li>2025-07-13: Route C - 60 km - Completed</li>
+        </ul>
+      </div>
+
+      <!-- Fleet Manager Messages Widget -->
+      <div id="fleet-manager-messages" class="mb-6 widget-card p-6 bg-orange-50 border border-orange-200 rounded-xl">
+        <h2 class="text-xl font-bold text-orange-700 mb-4 flex items-center">
+          <i class="fas fa-bell text-orange-600 mr-2"></i>
+          Fleet Manager Messages
+          <span id="message-count-badge" class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1 hidden">0</span>
+        </h2>
+        <div id="fleet-messages-list" class="space-y-3">
+          <!-- Messages will be populated by JavaScript -->
+        </div>
+        <div id="no-messages" class="text-gray-600 text-sm">
+          <i class="fas fa-check-circle text-green-600 mr-1"></i>
+          No new messages from fleet manager
+        </div>
+      </div>
+
+      <!-- GPS Navigation Widget -->
+      <div id="gps-navigation-widget" class="mb-6 widget-card p-6 bg-blue-50 border border-blue-200 rounded-xl">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold text-blue-700 flex items-center">
+            <i class="fas fa-route text-blue-600 mr-2"></i>
+            GPS Navigation
+          </h2>
+          <div class="flex space-x-2">
+            <button id="refresh-route-btn" class="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors">
+              <i class="fas fa-sync-alt mr-1"></i>Refresh
+            </button>
+            <button id="expand-navigation-btn" class="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors">
+              <i class="fas fa-expand mr-1"></i>Full Screen
+            </button>
+          </div>
+        </div>
+        
+        <!-- Compact Navigation View -->
+        <div id="compact-nav-view">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <!-- Current Location -->
+            <div class="bg-white rounded-lg p-4 border border-blue-100">
+              <div class="flex items-center mb-2">
+                <i class="fas fa-map-marker-alt text-green-600 mr-2"></i>
+                <span class="font-semibold text-gray-700">Current Location</span>
+              </div>
+              <p class="text-sm text-gray-600" id="current-location">123 Main Street, Downtown</p>
+              <p class="text-xs text-gray-500" id="current-coordinates">40.7128° N, 74.0060° W</p>
+            </div>
+            
+            <!-- Next Destination -->
+            <div class="bg-white rounded-lg p-4 border border-blue-100">
+              <div class="flex items-center mb-2">
+                <i class="fas fa-flag-checkered text-red-600 mr-2"></i>
+                <span class="font-semibold text-gray-700">Next Destination</span>
+              </div>
+              <p class="text-sm text-gray-600" id="next-destination">456 Oak Avenue, Warehouse District</p>
+              <p class="text-xs text-gray-500" id="destination-eta">ETA: 15 minutes (8.2 km)</p>
+            </div>
+          </div>
+          
+          <!-- Route Information -->
+          <div class="bg-white rounded-lg p-4 border border-blue-100 mb-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-semibold text-gray-700 flex items-center">
+                <i class="fas fa-road text-blue-600 mr-2"></i>
+                Route Overview
+              </h3>
+              <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                Optimal Route
+              </span>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div class="text-lg font-bold text-blue-600" id="total-distance">24.7 km</div>
+                <div class="text-xs text-gray-500">Total Distance</div>
+              </div>
+              <div>
+                <div class="text-lg font-bold text-green-600" id="estimated-time">42 min</div>
+                <div class="text-xs text-gray-500">Est. Time</div>
+              </div>
+              <div>
+                <div class="text-lg font-bold text-orange-600" id="traffic-status">Light</div>
+                <div class="text-xs text-gray-500">Traffic</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Mini Map Placeholder -->
+          <div class="bg-gray-200 rounded-lg h-32 flex items-center justify-center mb-4 relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-100 to-green-100"></div>
+            <div class="relative z-10 text-center">
+              <i class="fas fa-map text-3xl text-gray-500 mb-2"></i>
+              <p class="text-sm text-gray-600">Interactive Map</p>
+              <p class="text-xs text-gray-500">Click "Full Screen" for detailed view</p>
+            </div>
+            <!-- Simulated route line -->
+            <div class="absolute top-4 left-4 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+              <i class="fas fa-map-marker-alt text-white text-xs"></i>
+            </div>
+            <div class="absolute bottom-4 right-4 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+              <i class="fas fa-flag text-white text-xs"></i>
+            </div>
+            <div class="absolute top-8 left-12 w-20 h-1 bg-blue-500 transform rotate-45"></div>
+          </div>
+          
+          <!-- Navigation Actions -->
+          <div class="grid grid-cols-2 gap-3">
+            <button id="start-navigation-btn" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+              <i class="fas fa-play mr-2"></i>Start Navigation
+            </button>
+            <button id="alternative-routes-btn" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+              <i class="fas fa-route mr-2"></i>Alt. Routes
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <section id="trips-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-route text-blue-600 mr-2"></i>Trips & Actions</h2>
+      <div id="assigned-trips" class="mb-6 widget-section">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Assigned Trips / Routes</h3>
+        <div id="trips-list" class="space-y-2 mb-2"></div>
+        <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" id="view-map-btn"><i class="fas fa-map-marked-alt mr-2"></i>View Route Map</button>
+      </div>
+      <div id="trip-status-actions" class="mb-6 widget-section">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Trip Status</h3>
+        <div class="flex space-x-2 mb-2">
+          <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" id="start-trip-btn">Start Trip</button>
+          <button class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600" id="inprogress-trip-btn">In Progress</button>
+          <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" id="complete-trip-btn">Complete Trip</button>
+          <button class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" id="report-delay-btn">Report Delay/Issue</button>
+        </div>
+        <div id="trip-issue-form" class="hidden mb-2">
+          <input type="text" id="trip-issue-desc" class="border border-gray-300 rounded-lg px-3 py-2 mb-2 w-full" placeholder="Describe issue or delay...">
+          <button class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" id="submit-trip-issue">Submit Issue</button>
+        </div>
+      </div>
+      <div id="fuel-log" class="mb-6 widget-section">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Fuel Entry / Refueling Log</h3>
+        <form id="fuel-form" class="space-y-2 mb-2">
+          <input type="number" id="fuel-qty" class="border border-gray-300 rounded-lg px-3 py-2" placeholder="Fuel Quantity (L)">
+          <input type="number" id="fuel-cost" class="border border-gray-300 rounded-lg px-3 py-2" placeholder="Cost ($)">
+          <input type="file" id="fuel-receipt" class="border border-gray-300 rounded-lg px-3 py-2">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Log Fuel</button>
+        </form>
+        <div id="fuel-status-msg" class="text-sm text-green-600"></div>
+      </div>
+      <div id="issue-reporting" class="mb-6 widget-section">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Report Issue</h3>
+        <form id="issue-form" class="space-y-2 mb-2">
+          <select id="issue-type" class="border border-gray-300 rounded-lg px-3 py-2">
+            <option value="mechanical">Mechanical Problem</option>
+            <option value="accident">Accident/Incident</option>
+            <option value="delay">Late Arrival/Rerouting</option>
+          </select>
+          <input type="text" id="issue-desc" class="border border-gray-300 rounded-lg px-3 py-2" placeholder="Describe the issue">
+          <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Report</button>
+        </form>
+        <div id="issue-status-msg" class="text-sm text-green-600"></div>
+      </div>
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">Trip History</h3>
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="p-2 text-left">Date</th>
+            <th class="p-2 text-left">Distance (km)</th>
+            <th class="p-2 text-left">Duration</th>
+            <th class="p-2 text-left">Status</th>
+          </tr>
+        </thead>
+        <tbody id="trips-table"></tbody>
+      </table>
+    </section>
+
+    <section id="vehicle-status-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-car text-blue-600 mr-2"></i>Vehicle Status & Inspection</h2>
+      <div id="detailed-status" class="space-y-4 mb-6"></div>
+      <div id="vehicle-checklist" class="mb-6 widget-section">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Pre-Trip Inspection</h3>
+        <form id="pretrip-form" class="space-y-2 mb-2">
+          <label class="flex items-center"><input type="checkbox" id="check-tires" class="mr-2">Tires</label>
+          <label class="flex items-center"><input type="checkbox" id="check-brakes" class="mr-2">Brakes</label>
+          <label class="flex items-center"><input type="checkbox" id="check-lights" class="mr-2">Lights</label>
+          <label class="flex items-center"><input type="checkbox" id="check-fluid" class="mr-2">Fluid Levels</label>
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Submit Inspection</button>
+        </form>
+        <div id="inspection-status" class="text-sm text-green-600"></div>
+      </div>
+      <div id="upload-docs" class="mb-6 widget-section">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Upload Photos / Documents</h3>
+        <form id="upload-form" class="space-y-2 mb-2">
+          <input type="file" id="upload-photo" class="border border-gray-300 rounded-lg px-3 py-2">
+          <input type="text" id="upload-desc" class="border border-gray-300 rounded-lg px-3 py-2" placeholder="Description (e.g., fuel receipt, accident)">
+          <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Upload</button>
+        </form>
+        <div id="upload-status" class="text-sm text-green-600"></div>
+      </div>
+    </section>
+
+    <section id="performance-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-tachometer-alt text-green-600 mr-2"></i>Driver Performance & Metrics</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-green-50 rounded-lg p-4 flex flex-col items-center">
+          <span class="font-semibold text-gray-700 mb-1">Safe Driving Score</span>
+          <span id="safe-score" class="text-2xl font-bold text-green-600">85/100</span>
+        </div>
+        <div class="bg-blue-50 rounded-lg p-4 flex flex-col items-center">
+          <span class="font-semibold text-gray-700 mb-1">Avg. Fuel Efficiency</span>
+          <span id="fuel-efficiency" class="text-2xl font-bold text-blue-600">7.2 L/100km</span>
+        </div>
+        <div class="bg-yellow-50 rounded-lg p-4 flex flex-col items-center">
+          <span class="font-semibold text-gray-700 mb-1">Incidents (12 mo)</span>
+          <span id="incident-count" class="text-2xl font-bold text-yellow-600">1</span>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-lg p-4 shadow">
+          <span class="font-semibold text-gray-700 mb-2 block">Monthly Safe Driving Trend</span>
+          <div class="space-y-2">
+            <div class="flex justify-between"><span>Jan:</span><span class="font-bold text-green-600">80/100</span></div>
+            <div class="flex justify-between"><span>Feb:</span><span class="font-bold text-green-600">82/100</span></div>
+            <div class="flex justify-between"><span>Mar:</span><span class="font-bold text-green-600">85/100</span></div>
+            <div class="flex justify-between"><span>Apr:</span><span class="font-bold text-green-600">84/100</span></div>
+            <div class="flex justify-between"><span>May:</span><span class="font-bold text-green-600">86/100</span></div>
+            <div class="flex justify-between"><span>Jun:</span><span class="font-bold text-green-600">85/100</span></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-lg p-4 shadow">
+          <span class="font-semibold text-gray-700 mb-2 block">Score Breakdown</span>
+          <div class="space-y-2">
+            <div class="flex justify-between items-center">
+              <span>Current Score:</span>
+              <span class="font-bold text-green-600">85/100</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+              <div class="bg-green-500 h-3 rounded-full" style="width: 85%;"></div>
+            </div>
+            <div class="text-xs text-gray-600">Above average performance</div>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-lg p-4 shadow">
+          <span class="font-semibold text-gray-700 mb-2 block">Eco-Driving Tips</span>
+          <ul class="list-disc pl-5 text-green-700 text-sm">
+            <li>Maintain steady speed to improve fuel efficiency.</li>
+            <li>Avoid harsh braking and acceleration.</li>
+            <li>Check tire pressure regularly.</li>
+            <li>Reduce idling time.</li>
+          </ul>
+        </div>
+        <div class="bg-white rounded-lg p-4 shadow">
+          <span class="font-semibold text-gray-700 mb-2 block">Recent Achievements</span>
+          <ul class="list-disc pl-5 text-blue-700 text-sm">
+            <li>Zero incidents in last 6 months</li>
+            <li>Top 10% safe driver in fleet</li>
+            <li>Consistent fuel efficiency above target</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="messages-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-envelope text-blue-600 mr-2"></i>All Messages & Notifications</h2>
+      <div id="all-messages" class="space-y-2 mb-6"></div>
+      <div id="driver-notifications" class="mb-6 widget-section">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Notifications & Alerts</h3>
+        <ul id="driver-notifications-list" class="space-y-2"></ul>
+      </div>
+    </section>
+
+    <section id="help-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-question-circle text-purple-600 mr-2"></i>Help & Support</h2>
+      <div class="space-y-4">
+        <div>
+          <h3 class="font-semibold">Contact Support</h3>
+          <p class="text-sm text-gray-600">Email: support@lynxlite.com | Phone: 1-800-LYNX-LITE</p>
+        </div>
+        <div>
+          <h3 class="font-semibold">FAQs</h3>
+          <ul class="list-disc pl-5 text-sm text-gray-600">
+            <li>How to log ELD?</li>
+            <li>How to report an issue?</li>
+            <li>How to use voice commands?</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+
+
+    // Simulated driver and vehicle data
+    const driverData = {
+      name: 'John Doe',
+      safeScore: 85,
+      hosRemaining: '8h remaining',
+      vehicle: {
+        fuel: 75,
+        engineTemp: 95,
+        tirePressure: 32,
+        battery: 90,
+        mileage: 25000
+      },
+      trip: {
+        eta: '45 min',
+        distance: '30 km',
+        traffic: 'Low',
+        timeline: 'Start: 08:00 | Stop 1: 08:30 | Stop 2: 09:00 | End: 09:45'
+      }
+    };
+
+    let alerts = [
+      { id: 'ALERT-001', message: 'Maintenance Due: Oil Change in 500 km', severity: 'warning', timestamp: new Date() },
+      { id: 'ALERT-002', message: 'Check tire pressure', severity: 'warning', timestamp: new Date() }
+    ];
+
+    let messages = [
+      { id: 'MSG-001', content: 'Please confirm delivery at Stop 2.', timestamp: new Date(), status: 'unread' },
+      { id: 'MSG-002', content: 'New route assigned.', timestamp: new Date(), status: 'unread' }
+    ];
+
+    // Fleet manager messages - these require acknowledgment
+    let fleetManagerMessages = [
+      { 
+        id: 'FM-001', 
+        content: 'URGENT: New safety protocols effective immediately. All drivers must review emergency procedures before next shift. Failure to acknowledge may result in temporary suspension.', 
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+        priority: 'high',
+        status: 'unread',
+        acknowledged: false
+      },
+      { 
+        id: 'FM-002', 
+        content: 'Reminder: Vehicle inspection due before your next trip. Complete within 24 hours. Contact maintenance if any issues found.', 
+        timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+        priority: 'medium',
+        status: 'unread',
+        acknowledged: false
+      },
+      { 
+        id: 'FM-003', 
+        content: 'Route modification: Highway 101 construction begins Monday. Use alternate Route 205. Updated GPS coordinates sent to your device.', 
+        timestamp: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
+        priority: 'medium',
+        status: 'unread',
+        acknowledged: false
+      },
+      { 
+        id: 'FM-004', 
+        content: 'Weather Alert: Heavy rain expected in your delivery area from 2-6 PM. Exercise extreme caution, reduce speed, and increase following distance.', 
+        timestamp: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
+        priority: 'high',
+        status: 'unread',
+        acknowledged: false
+      },
+      { 
+        id: 'FM-005', 
+        content: 'Fuel prices updated: New preferred stations list available. Check fuel card limits - daily limit increased to $300.', 
+        timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
+        priority: 'low',
+        status: 'unread',
+        acknowledged: false
+      },
+      { 
+        id: 'FM-006', 
+        content: 'Customer complaint received regarding delivery ETA communication. Please ensure all customers receive 30-minute arrival notifications.', 
+        timestamp: new Date(Date.now() - 90 * 60 * 1000), // 1.5 hours ago
+        priority: 'medium',
+        status: 'unread',
+        acknowledged: false
+      },
+      { 
+        id: 'FM-007', 
+        content: 'CRITICAL: Vehicle VEH-123 has been flagged for immediate brake inspection. Do not operate until cleared by maintenance team.', 
+        timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+        priority: 'high',
+        status: 'unread',
+        acknowledged: false
+      },
+      { 
+        id: 'FM-008', 
+        content: 'Positive feedback: Customer praised your professional service on Route A yesterday. Keep up the excellent work!', 
+        timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+        priority: 'low',
+        status: 'unread',
+        acknowledged: false
+      }
+    ];
+
+    let notifications = [...alerts, ...messages.map(m => ({ ...m, type: 'message' }))];
+    let tripHistory = [
+      { date: '2025-07-15', distance: 120, duration: '2h 30m', status: 'Completed' },
+      { date: '2025-07-14', distance: 85, duration: '1h 45m', status: 'Completed' }
+    ];
+
+    // Update dashboard content
+    function updateDashboard() {
+      document.getElementById('welcome-message').textContent = `Welcome, ${driverData.name}`;
+      // Update performance section if visible
+      const safeScoreEl = document.getElementById('safe-score');
+      if (safeScoreEl) {
+        safeScoreEl.textContent = `${driverData.safeScore}/100`;
+      }
+      // Update fleet manager messages
+      renderFleetManagerMessages();
+    }
+
+    // Render fleet manager messages
+    function renderFleetManagerMessages() {
+      console.log('Rendering fleet manager messages...', fleetManagerMessages.length, 'total messages');
+      
+      const messagesList = document.getElementById('fleet-messages-list');
+      const messageBadge = document.getElementById('message-count-badge');
+      const noMessagesDiv = document.getElementById('no-messages');
+      
+      // Filter unacknowledged messages
+      const unacknowledgedMessages = fleetManagerMessages.filter(msg => !msg.acknowledged);
+      console.log('Unacknowledged messages:', unacknowledgedMessages.length);
+      
+      // Update badge count
+      if (unacknowledgedMessages.length > 0) {
+        messageBadge.textContent = unacknowledgedMessages.length;
+        messageBadge.classList.remove('hidden');
+        noMessagesDiv.style.display = 'none';
+        messagesList.style.display = 'block';
+      } else {
+        messageBadge.classList.add('hidden');
+        noMessagesDiv.style.display = 'block';
+        messagesList.style.display = 'none';
+      }
+      
+      // Clear existing messages
+      messagesList.innerHTML = '';
+      
+      // Render each unacknowledged message
+      unacknowledgedMessages.forEach(msg => {
+        const messageDiv = document.createElement('div');
+        const timeAgo = getTimeAgo(msg.timestamp);
+        
+        // Define priority-specific styles
+        let borderClass, iconClass, textClass;
+        if (msg.priority === 'high') {
+          borderClass = 'border-red-500';
+          iconClass = 'text-red-500';
+          textClass = 'text-red-600';
+        } else if (msg.priority === 'medium') {
+          borderClass = 'border-orange-500';
+          iconClass = 'text-orange-500';
+          textClass = 'text-orange-600';
+        } else {
+          borderClass = 'border-blue-500';
+          iconClass = 'text-blue-500';
+          textClass = 'text-blue-600';
+        }
+        
+        messageDiv.className = `bg-white border-l-4 ${borderClass} rounded-lg p-4 shadow-sm mb-3`;
+        messageDiv.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center mb-2">
+                <i class="fas fa-exclamation-triangle ${iconClass} mr-2"></i>
+                <span class="text-xs font-semibold ${textClass} uppercase tracking-wide">${msg.priority} Priority</span>
+                <span class="ml-2 text-xs text-gray-500">${timeAgo}</span>
+              </div>
+              <p class="text-gray-900 text-sm leading-relaxed">${msg.content}</p>
+            </div>
+          </div>
+          <div class="mt-3 flex justify-end">
+            <button 
+              class="acknowledge-btn px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
+              data-message-id="${msg.id}"
+            >
+              <i class="fas fa-check mr-1"></i>
+              Acknowledge
+            </button>
+          </div>
+        `;
+        
+        messagesList.appendChild(messageDiv);
+      });
+    }
+
+    // Helper function to get time ago
+    function getTimeAgo(timestamp) {
+      const now = new Date();
+      const diffMs = now - timestamp;
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return timestamp.toLocaleDateString();
+    }
+
+    // Render notifications
+    function renderNotifications() {
+      const list = document.getElementById('notifications-list');
+      const count = document.getElementById('notification-count');
+      list.innerHTML = '';
+      notifications.forEach(n => {
+        const div = document.createElement('div');
+        div.className = `p-2 rounded-lg ${n.type === 'message' ? 'bg-blue-50' : n.severity === 'warning' ? 'bg-yellow-50' : 'bg-red-50'}`;
+        div.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span>${n.message || n.content}</span>
+            <span class="text-xs text-gray-400">${new Date(n.timestamp).toLocaleTimeString()}</span>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+      count.textContent = notifications.length;
+      count.classList.toggle('hidden', notifications.length === 0);
+    }
+
+    // Render alerts
+    function renderAlerts() {
+      const list = document.getElementById('alerts-list');
+      list.innerHTML = '';
+      alerts.forEach(alert => {
+        const div = document.createElement('div');
+        div.className = `alert-card flex items-center justify-between`;
+        div.innerHTML = `
+          <span><i class="fas fa-exclamation-circle mr-2"></i>${alert.message}</span>
+          <div class="flex space-x-2">
+            <button class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 log-eld" data-id="${alert.id}">Log ELD</button>
+            <button class="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 clear-alert" data-id="${alert.id}">Clear</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+      const clearAllBtn = document.getElementById('clear-all-alerts');
+      if (clearAllBtn) clearAllBtn.classList.toggle('hidden', alerts.length === 0);
+    }
+
+    // Render messages
+    function renderMessages() {
+      const list = document.getElementById('messages-list');
+      const allMessages = document.getElementById('all-messages');
+      list.innerHTML = '';
+      allMessages.innerHTML = '';
+      messages.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = 'bg-white border border-gray-200 rounded-lg p-4';
+        div.innerHTML = `
+          <div class="flex justify-between items-center mb-2">
+            <span class="font-semibold">Message:</span>
+            <span class="text-xs text-gray-400">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+          </div>
+          <div class="mb-2">${msg.content}</div>
+          <div class="flex space-x-2">
+            <button class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 reply-message" data-id="${msg.id}">Reply</button>
+            <button class="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 acknowledge-message" data-id="${msg.id}">Acknowledge</button>
+          </div>
+        `;
+        list.appendChild(div.cloneNode(true));
+        allMessages.appendChild(div);
+      });
+    }
+
+    // Render trip history
+    function renderTripHistory() {
+      const tbody = document.getElementById('trips-table');
+      tbody.innerHTML = '';
+      tripHistory.forEach(trip => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2">${trip.date}</td>
+          <td class="p-2">${trip.distance}</td>
+          <td class="p-2">${trip.duration}</td>
+          <td class="p-2">${trip.status}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Render detailed vehicle status
+    function renderDetailedStatus() {
+      const div = document.getElementById('detailed-status');
+      div.innerHTML = `
+        <div>Fuel Level: ${driverData.vehicle.fuel}%</div>
+        <div>Engine Temperature: ${driverData.vehicle.engineTemp}°C</div>
+        <div>Tire Pressure: ${driverData.vehicle.tirePressure} psi</div>
+        <div>Battery: ${driverData.vehicle.battery}%</div>
+        <div>Mileage: ${driverData.vehicle.mileage.toLocaleString()} km</div>
+      `;
+    }
+
+
+
+
+
+    // User Profile Dropdown
+    const userMenuButton = document.getElementById('user-menu-button');
+    const userMenu = document.getElementById('user-menu');
+    userMenuButton.addEventListener('click', () => userMenu.classList.toggle('hidden'));
+    window.addEventListener('click', (e) => {
+      if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
+        userMenu.classList.add('hidden');
+      }
+    });
+
+    // Navigation Tabs
+    const tabs = document.querySelectorAll('.nav-tab');
+    const sections = document.querySelectorAll('section');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        tabs.forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        sections.forEach(s => s.classList.add('hidden'));
+        document.getElementById(`${this.dataset.tab}-section`).classList.remove('hidden');
+      });
+    });
+
+    // Notification Tray
+    const notificationToggle = document.getElementById('notification-toggle');
+    const notificationTray = document.getElementById('notification-tray');
+    notificationToggle.addEventListener('click', () => {
+      notificationTray.classList.toggle('active');
+    });
+    document.getElementById('clear-notifications').addEventListener('click', () => {
+      notifications = [];
+      renderNotifications();
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Alert Actions
+    document.getElementById('alerts-list').addEventListener('click', (e) => {
+      if (e.target.classList.contains('log-eld')) {
+        alert('ELD log submitted for alert.');
+        notifications.push({
+          id: `NOTIF-${Date.now()}`,
+          message: 'ELD log submitted for alert',
+          severity: 'normal',
+          timestamp: new Date()
+        });
+        renderNotifications();
+      } else if (e.target.classList.contains('clear-alert')) {
+        const id = e.target.dataset.id;
+        alerts = alerts.filter(a => a.id !== id);
+        renderAlerts();
+        renderNotifications();
+      }
+    });
+
+    // Message Actions
+    document.getElementById('messages-list').addEventListener('click', (e) => {
+      if (e.target.classList.contains('reply-message')) {
+        alert('Reply sent to dispatch.');
+        const id = e.target.dataset.id;
+        messages = messages.map(m => m.id === id ? { ...m, status: 'replied' } : m);
+        notifications = notifications.map(n => n.id === id ? { ...n, status: 'replied' } : n);
+        renderMessages();
+        renderNotifications();
+      } else if (e.target.classList.contains('acknowledge-message')) {
+        const id = e.target.dataset.id;
+        messages = messages.map(m => m.id === id ? { ...m, status: 'acknowledged' } : m);
+        notifications = notifications.map(n => n.id === id ? { ...n, status: 'acknowledged' } : n);
+        renderMessages();
+        renderNotifications();
+      }
+    });
+
+    document.getElementById('all-messages').addEventListener('click', (e) => {
+      if (e.target.classList.contains('reply-message')) {
+        alert('Reply sent to dispatch.');
+        const id = e.target.dataset.id;
+        messages = messages.map(m => m.id === id ? { ...m, status: 'replied' } : m);
+        notifications = notifications.map(n => n.id === id ? { ...n, status: 'replied' } : n);
+        renderMessages();
+        renderNotifications();
+      } else if (e.target.classList.contains('acknowledge-message')) {
+        const id = e.target.dataset.id;
+        messages = messages.map(m => m.id === id ? { ...m, status: 'acknowledged' } : m);
+        notifications = notifications.map(n => n.id === id ? { ...n, status: 'acknowledged' } : n);
+        renderMessages();
+        renderNotifications();
+      }
+    });
+
+
+
+    // Fleet Manager Message Acknowledgment
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('acknowledge-btn')) {
+        const messageId = e.target.dataset.messageId;
+        
+        // Find and acknowledge the message
+        fleetManagerMessages = fleetManagerMessages.map(msg => 
+          msg.id === messageId ? { ...msg, acknowledged: true, status: 'acknowledged' } : msg
+        );
+        
+        // Show confirmation
+        const messageDiv = e.target.closest('.bg-white');
+        messageDiv.style.opacity = '0.5';
+        e.target.innerHTML = '<i class="fas fa-check mr-1"></i>Acknowledged';
+        e.target.disabled = true;
+        e.target.classList.remove('bg-green-600', 'hover:bg-green-700');
+        e.target.classList.add('bg-gray-400', 'cursor-not-allowed');
+        
+        // Update display after a short delay
+        setTimeout(() => {
+          renderFleetManagerMessages();
+          
+          // Add to notifications for fleet manager
+          notifications.push({
+            id: `ACK-${Date.now()}`,
+            message: `Fleet manager message acknowledged: ${messageId}`,
+            severity: 'normal',
+            timestamp: new Date()
+          });
+          renderNotifications();
+          
+          // Show success message
+          alert('Message acknowledged. Fleet manager has been notified.');
+        }, 1000);
+      }
+    });
+
+    // Emergency SOS Functionality
+    const sosModal = document.getElementById('sos-modal');
+    const emergencySosBtn = document.getElementById('emergency-sos-btn');
+    const confirmSosBtn = document.getElementById('confirm-sos');
+    const cancelSosBtn = document.getElementById('cancel-sos');
+    const emergencyTypeSelect = document.getElementById('emergency-type');
+    const emergencyDetailsTextarea = document.getElementById('emergency-details');
+
+    // Show SOS modal
+    emergencySosBtn.addEventListener('click', () => {
+      sosModal.classList.remove('hidden');
+      // Reset form
+      emergencyTypeSelect.value = 'medical';
+      emergencyDetailsTextarea.value = '';
+      // Focus on the emergency type dropdown
+      emergencyTypeSelect.focus();
+    });
+
+    // Cancel SOS
+    cancelSosBtn.addEventListener('click', () => {
+      sosModal.classList.add('hidden');
+    });
+
+    // Confirm and send SOS
+    confirmSosBtn.addEventListener('click', () => {
+      const emergencyType = emergencyTypeSelect.value;
+      const emergencyDetails = emergencyDetailsTextarea.value.trim();
+      const timestamp = new Date();
+      
+      // Simulate emergency alert
+      const sosAlert = {
+        id: `SOS-${Date.now()}`,
+        type: 'emergency',
+        emergencyType: emergencyType,
+        details: emergencyDetails,
+        timestamp: timestamp,
+        location: 'GPS: 40.7128° N, 74.0060° W', // Simulated GPS
+        driverName: driverData.name,
+        vehicleId: 'VEH-123',
+        status: 'active'
+      };
+      
+      // Hide modal immediately
+      sosModal.classList.add('hidden');
+      
+      // Show immediate confirmation
+      alert(`🚨 EMERGENCY SOS SENT!\n\nType: ${emergencyType.charAt(0).toUpperCase() + emergencyType.slice(1)}\nTime: ${timestamp.toLocaleString()}\nLocation: GPS coordinates shared\n\n✅ Fleet Dispatch notified\n✅ Emergency services alerted\n✅ Emergency contacts informed\n\nHelp is on the way!`);
+      
+      // Add to notifications
+      notifications.push({
+        id: `NOTIF-SOS-${Date.now()}`,
+        message: `🚨 Emergency SOS sent - ${emergencyType}`,
+        severity: 'error',
+        timestamp: timestamp,
+        type: 'alert'
+      });
+      
+      // Add to alerts
+      alerts.push({
+        id: `ALERT-SOS-${Date.now()}`,
+        message: `Emergency SOS activated: ${emergencyType}${emergencyDetails ? ' - ' + emergencyDetails : ''}`,
+        severity: 'error',
+        timestamp: timestamp
+      });
+      
+      // Update displays
+      renderNotifications();
+      renderAlerts();
+      
+      // Log emergency event
+      console.log('EMERGENCY SOS ACTIVATED:', sosAlert);
+      
+      // In a real system, this would:
+      // 1. Send GPS coordinates to dispatch
+      // 2. Trigger automated 911 call
+      // 3. Alert emergency contacts
+      // 4. Stream vehicle data to command center
+      // 5. Enable two-way communication
+    });
+
+    // Close modal on outside click
+    sosModal.addEventListener('click', (e) => {
+      if (e.target === sosModal) {
+        sosModal.classList.add('hidden');
+      }
+    });
+
+    // Keyboard shortcuts for emergency
+    document.addEventListener('keydown', (e) => {
+      // Ctrl + Shift + E for emergency
+      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+        e.preventDefault();
+        emergencySosBtn.click();
+      }
+      
+      // Escape to close SOS modal
+      if (e.key === 'Escape' && !sosModal.classList.contains('hidden')) {
+        sosModal.classList.add('hidden');
+      }
+    });
+
+    // Dark Mode Toggle
+    document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      const isDarkMode = document.body.classList.contains('dark-mode');
+      localStorage.setItem('darkMode', isDarkMode);
+      document.getElementById('dark-mode-toggle').innerHTML = `<i class="fas fa-${isDarkMode ? 'sun' : 'moon'} text-xl"></i>`;
+    });
+
+    // GPS Navigation Functionality
+    const fullscreenNavModal = document.getElementById('fullscreen-nav-modal');
+    const expandNavBtn = document.getElementById('expand-navigation-btn');
+    const minimizeNavBtn = document.getElementById('minimize-navigation-btn');
+    const startNavBtn = document.getElementById('start-navigation-btn');
+    const refreshRouteBtn = document.getElementById('refresh-route-btn');
+    const altRoutesBtn = document.getElementById('alternative-routes-btn');
+    const voiceGuidanceToggle = document.getElementById('voice-guidance-toggle');
+
+    let navigationActive = false;
+    let voiceGuidanceEnabled = true;
+
+    // Navigation data
+    const navigationData = {
+      currentLocation: {
+        address: '123 Main Street, Downtown',
+        coordinates: '40.7128° N, 74.0060° W'
+      },
+      destination: {
+        address: '456 Oak Avenue, Warehouse District',
+        coordinates: '40.7589° N, 73.9851° W'
+      },
+      route: {
+        totalDistance: '24.7 km',
+        estimatedTime: '42 min',
+        trafficStatus: 'Light',
+        eta: '2:45 PM'
+      },
+      nextInstruction: {
+        direction: 'Turn right onto Oak Avenue',
+        distance: 'in 800 meters',
+        icon: 'fas fa-arrow-right'
+      }
+    };
+
+    // Expand to full screen navigation
+    expandNavBtn.addEventListener('click', () => {
+      fullscreenNavModal.classList.remove('hidden');
+      updateNavigationDisplay();
+    });
+
+    // Minimize navigation
+    minimizeNavBtn.addEventListener('click', () => {
+      fullscreenNavModal.classList.add('hidden');
+    });
+
+    // Start navigation
+    startNavBtn.addEventListener('click', () => {
+      if (!navigationActive) {
+        navigationActive = true;
+        startNavBtn.innerHTML = '<i class="fas fa-stop mr-2"></i>Stop Navigation';
+        startNavBtn.className = 'bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors';
+        
+        // Show navigation started notification
+        notifications.push({
+          id: `NAV-${Date.now()}`,
+          message: `🗺️ Navigation started to ${navigationData.destination.address}`,
+          severity: 'normal',
+          timestamp: new Date(),
+          type: 'alert'
+        });
+        
+        renderNotifications();
+        
+        // Simulate navigation updates
+        startNavigationSimulation();
+        
+        alert('🗺️ Navigation Started!\n\nDestination: ' + navigationData.destination.address + '\nETA: ' + navigationData.route.eta + '\n\n✅ Voice guidance enabled\n✅ Real-time traffic updates\n✅ Alternative routes available');
+      } else {
+        navigationActive = false;
+        startNavBtn.innerHTML = '<i class="fas fa-play mr-2"></i>Start Navigation';
+        startNavBtn.className = 'bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors';
+        
+        notifications.push({
+          id: `NAV-${Date.now()}`,
+          message: '🛑 Navigation stopped',
+          severity: 'normal',
+          timestamp: new Date(),
+          type: 'alert'
+        });
+        
+        renderNotifications();
+        alert('Navigation stopped.');
+      }
+    });
+
+    // Refresh route
+    refreshRouteBtn.addEventListener('click', () => {
+      // Simulate route refresh
+      const trafficOptions = ['Light', 'Moderate', 'Heavy'];
+      const timeOptions = ['38 min', '42 min', '47 min'];
+      const distanceOptions = ['23.1 km', '24.7 km', '26.3 km'];
+      
+      navigationData.route.trafficStatus = trafficOptions[Math.floor(Math.random() * trafficOptions.length)];
+      navigationData.route.estimatedTime = timeOptions[Math.floor(Math.random() * timeOptions.length)];
+      navigationData.route.totalDistance = distanceOptions[Math.floor(Math.random() * distanceOptions.length)];
+      
+      updateNavigationDisplay();
+      
+      notifications.push({
+        id: `NAV-${Date.now()}`,
+        message: `🔄 Route updated - ${navigationData.route.estimatedTime} (${navigationData.route.trafficStatus} traffic)`,
+        severity: 'normal',
+        timestamp: new Date(),
+        type: 'alert'
+      });
+      
+      renderNotifications();
+      alert('Route refreshed with latest traffic data!');
+    });
+
+    // Alternative routes
+    altRoutesBtn.addEventListener('click', () => {
+      const altRoutes = [
+        { name: 'Fastest Route', time: '42 min', distance: '24.7 km', traffic: 'Light' },
+        { name: 'Shortest Route', time: '38 min', distance: '21.3 km', traffic: 'Moderate' },
+        { name: 'Avoid Highways', time: '47 min', distance: '26.1 km', traffic: 'Light' }
+      ];
+      
+      let routeText = 'Available Alternative Routes:\n\n';
+      altRoutes.forEach((route, index) => {
+        routeText += `${index + 1}. ${route.name}\n   Time: ${route.time} | Distance: ${route.distance}\n   Traffic: ${route.traffic}\n\n`;
+      });
+      
+      alert(routeText + 'Current route is optimal for your delivery schedule.');
+    });
+
+    // Voice guidance toggle
+    voiceGuidanceToggle.addEventListener('click', () => {
+      voiceGuidanceEnabled = !voiceGuidanceEnabled;
+      voiceGuidanceToggle.innerHTML = voiceGuidanceEnabled 
+        ? '<i class="fas fa-volume-up mr-1"></i>Voice: ON'
+        : '<i class="fas fa-volume-mute mr-1"></i>Voice: OFF';
+      
+      alert(voiceGuidanceEnabled ? 'Voice guidance enabled' : 'Voice guidance disabled');
+    });
+
+    // Update navigation display
+    function updateNavigationDisplay() {
+      document.getElementById('total-distance').textContent = navigationData.route.totalDistance;
+      document.getElementById('estimated-time').textContent = navigationData.route.estimatedTime;
+      document.getElementById('traffic-status').textContent = navigationData.route.trafficStatus;
+      document.getElementById('current-location').textContent = navigationData.currentLocation.address;
+      document.getElementById('current-coordinates').textContent = navigationData.currentLocation.coordinates;
+      document.getElementById('next-destination').textContent = navigationData.destination.address;
+      document.getElementById('destination-eta').textContent = `ETA: ${navigationData.route.estimatedTime} (${navigationData.route.totalDistance})`;
+      
+      // Update fullscreen navigation if visible
+      if (!fullscreenNavModal.classList.contains('hidden')) {
+        document.getElementById('next-instruction').textContent = navigationData.nextInstruction.direction;
+        document.getElementById('next-distance').textContent = navigationData.nextInstruction.distance;
+        document.getElementById('live-eta').textContent = navigationData.route.eta;
+        document.getElementById('live-distance').textContent = navigationData.route.totalDistance;
+        document.getElementById('live-time').textContent = navigationData.route.estimatedTime;
+      }
+    }
+
+    // Simulate navigation updates
+    function startNavigationSimulation() {
+      if (!navigationActive) return;
+      
+      setInterval(() => {
+        if (!navigationActive) return;
+        
+        // Simulate position updates
+        const distances = ['800m', '650m', '500m', '350m', '200m', '100m'];
+        const currentDistanceIndex = distances.indexOf(navigationData.nextInstruction.distance.replace('in ', ''));
+        
+        if (currentDistanceIndex < distances.length - 1) {
+          navigationData.nextInstruction.distance = 'in ' + distances[currentDistanceIndex + 1];
+        } else {
+          // Move to next instruction
+          const instructions = [
+            { direction: 'Turn right onto Oak Avenue', distance: 'in 800m', icon: 'fas fa-arrow-right' },
+            { direction: 'Turn left onto Pine Street', distance: 'in 1.2km', icon: 'fas fa-arrow-left' },
+            { direction: 'Continue straight', distance: 'in 2.1km', icon: 'fas fa-arrow-up' },
+            { direction: 'Arrive at destination', distance: 'in 500m', icon: 'fas fa-flag' }
+          ];
+          
+          const currentInstructionIndex = instructions.findIndex(inst => inst.direction === navigationData.nextInstruction.direction);
+          if (currentInstructionIndex < instructions.length - 1) {
+            navigationData.nextInstruction = instructions[currentInstructionIndex + 1];
+          }
+        }
+        
+        updateNavigationDisplay();
+        
+        // Simulate voice guidance
+        if (voiceGuidanceEnabled && Math.random() < 0.3) {
+          console.log('🗣️ Voice Guidance:', navigationData.nextInstruction.direction, navigationData.nextInstruction.distance);
+        }
+      }, 5000); // Update every 5 seconds
+    }
+
+    // Load dark mode preference
+    if (localStorage.getItem('darkMode') === 'true') {
+      document.body.classList.add('dark-mode');
+      document.getElementById('dark-mode-toggle').innerHTML = '<i class="fas fa-sun text-xl"></i>';
+    }
+
+    // Simulated WebSocket for real-time updates
+    function simulateWebSocketUpdates() {
+      setInterval(() => {
+        driverData.vehicle.fuel = Math.max(10, driverData.vehicle.fuel - Math.random() * 5);
+        driverData.vehicle.engineTemp = 90 + Math.random() * 15;
+        driverData.vehicle.tirePressure = 30 + Math.random() * 5;
+        driverData.vehicle.battery = Math.max(10, driverData.vehicle.battery - Math.random() * 5);
+        driverData.vehicle.mileage += Math.floor(Math.random() * 10);
+        driverData.safeScore = Math.min(100, Math.max(50, driverData.safeScore + (Math.random() - 0.5) * 5));
+        driverData.hosRemaining = `${Math.max(0, parseInt(driverData.hosRemaining) - 0.5)}h remaining`;
+        updateDashboard();
+        if (Math.random() < 0.3) {
+          const newAlert = {
+            id: `ALERT-${Date.now()}`,
+            message: `Maintenance: ${['Oil Change', 'Tire Rotation', 'Brake Check'][Math.floor(Math.random() * 3)]} due soon`,
+            severity: 'warning',
+            timestamp: new Date()
+          };
+          alerts.push(newAlert);
+          notifications.push(newAlert);
+          renderAlerts();
+          renderNotifications();
+        }
+        
+        // Occasionally add new fleet manager messages (5% chance)
+        if (Math.random() < 0.05) {
+          const newFleetMessage = {
+            id: `FM-${Date.now()}`,
+            content: `${['Route update required for tomorrow.', 'New delivery instructions received.', 'Weather advisory: Exercise caution on Route 15.', 'Fuel prices updated in system.'][Math.floor(Math.random() * 4)]}`,
+            timestamp: new Date(),
+            priority: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+            status: 'unread',
+            acknowledged: false
+          };
+          fleetManagerMessages.push(newFleetMessage);
+          renderFleetManagerMessages();
+        }
+      }, 30000); // Update every 30 seconds
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      updateDashboard();
+      renderAlerts();
+      renderMessages();
+      renderNotifications();
+      renderTripHistory();
+      renderDetailedStatus();
+      renderFleetManagerMessages(); // Explicitly call this to ensure it renders
+      updateNavigationDisplay(); // Initialize navigation display
+      simulateWebSocketUpdates();
+    });
+  </script>
+
+
+
+  <!-- Feedback Submission Modal -->
+  <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <i class="fas fa-comment-dots text-orange-600"></i>
+          Submit Feedback & Suggestions
+        </h3>
+        <button id="close-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="mb-6">
+        <p class="text-gray-600 text-sm leading-relaxed">
+          Help us improve the driver dashboard system! Share your thoughts on the design, features, usability, or suggest new functionality. Your feedback is valuable and will be reviewed by our development team.
+        </p>
+      </div>
+
+      <form id="feedback-form" class="space-y-6">
+        <!-- Name Field -->
+        <div>
+          <label for="feedback-name" class="block text-sm font-medium text-gray-700 mb-2">
+            Your Name <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="feedback-name" 
+            name="name"
+            required
+            placeholder="Enter your full name"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+          >
+        </div>
+
+        <!-- Feedback/Note Field -->
+        <div>
+          <label for="feedback-note" class="block text-sm font-medium text-gray-700 mb-2">
+            Feedback & Comments <span class="text-red-500">*</span>
+          </label>
+          <textarea 
+            id="feedback-note" 
+            name="note"
+            required
+            rows="8"
+            placeholder="Please describe your feedback, suggestions, or issues in detail. Be specific about what you liked, what could be improved, or what new features you'd like to see..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical"
+          ></textarea>
+          <div class="mt-1 text-xs text-gray-500">
+            <span id="char-count">0</span>/1000 characters
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-4">
+          <button 
+            type="submit" 
+            id="submit-feedback-btn"
+            class="flex-1 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:ring-4 focus:ring-orange-500/20 transition-all font-medium flex items-center justify-center gap-2"
+          >
+            <i class="fas fa-paper-plane"></i>
+            Submit Feedback
+          </button>
+          <button 
+            type="button" 
+            id="cancel-feedback-btn"
+            class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-4 focus:ring-gray-500/20 transition-all font-medium"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <!-- Success Message -->
+      <div id="feedback-success" class="hidden text-center py-8">
+        <div class="mb-4">
+          <i class="fas fa-check-circle text-5xl text-green-500"></i>
+        </div>
+        <h4 class="text-xl font-bold text-gray-900 mb-2">Feedback Submitted Successfully!</h4>
+        <p class="text-gray-600 mb-4">Thank you for your valuable feedback. Our team will review it and get back to you if needed.</p>
+        <button id="submit-another-feedback" class="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+          Submit Another Feedback
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Feedback Modal -->
+  <div id="view-feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <i class="fas fa-comments text-orange-600"></i>
+          Submitted Feedback & Comments
+        </h3>
+        <button id="close-view-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Feedback Controls -->
+      <div class="mb-6 flex flex-wrap gap-3">
+        <button id="refresh-feedback" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+          <i class="fas fa-sync mr-1"></i> Refresh
+        </button>
+        <button id="export-feedback" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
+          <i class="fas fa-download mr-1"></i> Export JSON
+        </button>
+        <button id="clear-feedback" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
+          <i class="fas fa-trash mr-1"></i> Clear All
+        </button>
+      </div>
+
+      <!-- Feedback List -->
+      <div id="feedback-list" class="space-y-4 max-h-96 overflow-y-auto">
+        <!-- Feedback items will be populated here -->
+        <div class="text-center py-8 text-gray-500">
+          <i class="fas fa-comments text-4xl mb-3"></i>
+          <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== FEEDBACK SYSTEM =====
+    class FeedbackManager {
+      constructor() {
+        this.storage = window.feedbackStorage;
+        this.setupEventListeners();
+      }
+
+      setupEventListeners() {
+        // Feedback toggle button
+        const feedbackToggle = document.getElementById('feedback-toggle');
+        if (feedbackToggle) {
+          feedbackToggle.addEventListener('click', () => this.openFeedbackModal());
+        }
+
+        // Modal controls
+        const closeFeedbackModal = document.getElementById('close-feedback-modal');
+        if (closeFeedbackModal) {
+          closeFeedbackModal.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        const cancelFeedbackBtn = document.getElementById('cancel-feedback-btn');
+        if (cancelFeedbackBtn) {
+          cancelFeedbackBtn.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        // Form submission
+        const feedbackForm = document.getElementById('feedback-form');
+        if (feedbackForm) {
+          feedbackForm.addEventListener('submit', (e) => this.handleSubmitFeedback(e));
+        }
+
+        // Character counter
+        const feedbackNote = document.getElementById('feedback-note');
+        if (feedbackNote) {
+          feedbackNote.addEventListener('input', () => this.updateCharacterCount());
+        }
+
+        // Submit another feedback
+        const submitAnotherBtn = document.getElementById('submit-another-feedback');
+        if (submitAnotherBtn) {
+          submitAnotherBtn.addEventListener('click', () => this.resetFeedbackForm());
+        }
+
+        // Feedback controls
+        const refreshBtn = document.getElementById('refresh-feedback');
+        const exportBtn = document.getElementById('export-feedback');
+        const clearBtn = document.getElementById('clear-feedback');
+
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', () => this.loadFeedback());
+        }
+        if (exportBtn) {
+          exportBtn.addEventListener('click', () => this.exportFeedback());
+        }
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => this.clearAllFeedback());
+        }
+      }
+
+      openFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          
+          // Focus on first input
+          const nameInput = document.getElementById('feedback-name');
+          if (nameInput) {
+            setTimeout(() => nameInput.focus(), 100);
+          }
+        }
+      }
+
+      closeFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      }
+
+      openViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          this.loadFeedback();
+        }
+      }
+
+      closeViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      }
+
+      updateCharacterCount() {
+        const textarea = document.getElementById('feedback-note');
+        const counter = document.getElementById('char-count');
+        if (textarea && counter) {
+          const count = textarea.value.length;
+          counter.textContent = count;
+          
+          if (count > 1000) {
+            counter.style.color = '#ef4444';
+            textarea.value = textarea.value.substring(0, 1000);
+            counter.textContent = '1000';
+          } else {
+            counter.style.color = '#6b7280';
+          }
+        }
+      }
+
+      async handleSubmitFeedback(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+        submitBtn.disabled = true;
+
+        try {
+          const formData = new FormData(e.target);
+          const feedbackData = {
+            id: Date.now().toString(),
+            name: formData.get('name'),
+            note: formData.get('note'),
+            timestamp: new Date().toISOString(),
+            system: 'Driver Dashboard System'
+          };
+
+          // Validate required fields
+          if (!feedbackData.name || !feedbackData.note) {
+            throw new Error('Please fill in all required fields');
+          }
+
+          // Save using the feedback storage system
+          const success = this.storage.saveFeedback(feedbackData);
+          if (!success) {
+            throw new Error('Failed to save feedback to storage');
+          }
+          
+          // Show success message
+          this.showSuccessMessage();
+          
+        } catch (error) {
+          console.error('Error submitting feedback:', error);
+          alert('Error submitting feedback: ' + error.message);
+          
+          // Restore button state
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        }
+      }
+
+      showSuccessMessage() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        
+        if (form && success) {
+          form.classList.add('hidden');
+          success.classList.remove('hidden');
+        }
+      }
+
+      resetFeedbackForm() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        
+        if (form) {
+          form.reset();
+          form.classList.remove('hidden');
+        }
+        
+        if (success) {
+          success.classList.add('hidden');
+        }
+        
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Feedback';
+          submitBtn.disabled = false;
+        }
+
+        // Reset character counter
+        const counter = document.getElementById('char-count');
+        if (counter) {
+          counter.textContent = '0';
+        }
+      }
+
+      loadFeedback() {
+        const feedbackList = document.getElementById('feedback-list');
+        if (!feedbackList) return;
+
+        // Get all feedback from storage
+        const allFeedback = this.storage.getAllFeedback();
+
+        // Sort by timestamp (newest first)
+        allFeedback.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (allFeedback.length === 0) {
+          feedbackList.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-comments text-4xl mb-3"></i>
+              <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Render feedback items
+        feedbackList.innerHTML = allFeedback.map(item => this.renderFeedbackItem(item)).join('');
+      }
+
+      renderFeedbackItem(feedback) {
+        const date = new Date(feedback.timestamp).toLocaleDateString();
+        const time = new Date(feedback.timestamp).toLocaleTimeString();
+
+        return `
+          <div class="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+            <div class="flex items-start gap-3 mb-3">
+              <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <span class="text-orange-600 font-semibold">${feedback.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900">${feedback.name}</h4>
+                <p class="text-xs text-gray-500">${date} at ${time}</p>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <p class="text-gray-700 leading-relaxed">${feedback.note}</p>
+            </div>
+          </div>
+        `;
+      }
+
+      exportFeedback() {
+        try {
+          this.storage.exportFeedback();
+          this.showNotification('Feedback exported successfully!', 'success');
+        } catch (error) {
+          console.error('Error exporting feedback:', error);
+          this.showNotification('Error exporting feedback', 'error');
+        }
+      }
+
+      clearAllFeedback() {
+        if (confirm('Are you sure you want to clear all feedback? This action cannot be undone.')) {
+          this.storage.clearAllFeedback();
+          this.loadFeedback();
+          this.showNotification('All feedback cleared successfully!', 'success');
+        }
+      }
+
+      showNotification(message, type = 'info') {
+        // Create a simple notification
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+          type === 'success' ? 'bg-green-500 text-white' :
+          type === 'error' ? 'bg-red-500 text-white' :
+          'bg-blue-500 text-white'
+        }`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 3000);
+      }
+    }
+
+    // Initialize feedback system
+    let feedbackManager;
+    document.addEventListener('DOMContentLoaded', function() {
+      feedbackManager = new FeedbackManager();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lynx Lite Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .login-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      padding: 2.5rem 2rem;
+      width: 100%;
+    }
+
+    .login-btn {
+      background: #3b82f6;
+      color: #fff;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 0.875rem 1.5rem;
+      width: 100%;
+      margin-top: 1.5rem;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .login-btn:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .login-btn:active {
+      transform: translateY(0);
+    }
+    .input-field {
+      width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      background: #fff;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    .error-msg {
+      color: #dc2626;
+      font-size: 0.875rem;
+      margin-top: 1rem;
+      text-align: center;
+      padding: 0.75rem;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+    }
+
+    /* Disclaimer Modal Styles */
+    .disclaimer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      animation: fadeIn 0.6s ease-out forwards;
+    }
+
+    .disclaimer-modal {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 900px;
+      width: 85%;
+      margin: 1rem;
+      transform: scale(0.8) translateY(20px);
+      animation: modalSlideIn 0.7s ease-out 0.3s forwards;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+    }
+
+    .disclaimer-header {
+      background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .disclaimer-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+      opacity: 0.3;
+    }
+
+    .disclaimer-header h2 {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      font-size: 1.8rem;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .disclaimer-icon {
+      position: relative;
+      z-index: 1;
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      animation: pulse 2s infinite;
+    }
+
+    .disclaimer-content {
+      padding: 2rem;
+      line-height: 1.6;
+      color: #374151;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .disclaimer-content p {
+      margin-bottom: 1.25rem;
+      font-size: 0.95rem;
+    }
+
+    .content-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .content-column {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content-column h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .feature-list, .feedback-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .feature-list li, .feedback-list li {
+      padding: 0.5rem 0;
+      position: relative;
+      padding-left: 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    .feature-list li::before {
+      content: '🔧';
+      position: absolute;
+      left: 0;
+      top: 0.5rem;
+    }
+
+    .feedback-list li::before {
+      content: '💡';
+      position: absolute;
+      left: 0;
+      top: 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .content-layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      
+      .disclaimer-modal {
+        width: 95%;
+        margin: 0.5rem;
+      }
+      
+      .disclaimer-content {
+        padding: 1.5rem;
+      }
+    }
+
+    .author-signature {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      text-align: center;
+      position: relative;
+    }
+
+    .author-signature::before {
+      content: '"';
+      position: absolute;
+      top: -10px;
+      left: 20px;
+      font-size: 3rem;
+      color: #3b82f6;
+      font-family: serif;
+    }
+
+    .author-name {
+      font-weight: 700;
+      color: #3b82f6;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .acknowledge-btn {
+      background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 1rem 2.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 1rem;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .acknowledge-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .acknowledge-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    }
+
+    .acknowledge-btn:hover::before {
+      left: 100%;
+    }
+
+    .acknowledge-btn:active {
+      transform: translateY(0);
+    }
+
+    .hidden-disclaimer {
+      display: none;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes modalSlideIn {
+      from { 
+        transform: scale(0.8) translateY(20px);
+        opacity: 0;
+      }
+      to { 
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    .disclaimer-overlay.hiding {
+      animation: fadeOut 0.5s ease-out forwards;
+    }
+  </style>
+</head>
+<body>
+  <!-- Disclaimer Modal -->
+  <div id="disclaimer-overlay" class="disclaimer-overlay">
+    <div class="disclaimer-modal">
+      <div class="disclaimer-header">
+        <div class="disclaimer-icon">
+          <i class="fas fa-info-circle"></i>
+        </div>
+        <h2>Prototype Disclaimer</h2>
+      </div>
+      <div class="disclaimer-content">
+        <p><strong>Welcome to Lynx Lite Fleet Management Prototype</strong></p>
+        
+        <p>This is a <strong>prototype demonstration</strong> of a comprehensive fleet management platform, developed as part of the ongoing efforts to create the Lynx Lite system.</p>
+        
+        <div class="author-signature">
+          <div class="author-name">Developed by Omar Qatamin</div>
+        </div>
+        
+        <p><strong>Important Notice:</strong> This work is <em>far from deployment</em> and is intended for demonstration, testing, and feedback purposes only.</p>
+        
+        <div class="content-layout">
+          <div class="content-column">
+            <h3><i class="fas fa-cogs"></i> Current Implementation</h3>
+            <ul class="feature-list">
+              <li>Simplified authentication for role-based testing</li>
+              <li>Mock data and simulated fleet operations</li>
+              <li>Prototype user interfaces and workflows</li>
+              <li>Demonstration features and functionalities</li>
+            </ul>
+          </div>
+          
+          <div class="content-column">
+            <h3><i class="fas fa-comments"></i> Feedback Requested</h3>
+            <ul class="feedback-list">
+              <li>Process flows and user workflows</li>
+              <li>Feature functionality and usability</li>
+              <li>Interface design and user experience</li>
+              <li>System architecture</li>
+            </ul>
+          </div>
+        </div>
+        
+        <p style="font-size: 0.85rem; color: #6b7280; font-style: italic; text-align: center; margin-bottom: 1.5rem;">
+          Your insights and suggestions are valuable for the continued development of this platform.
+        </p>
+        
+        <button id="acknowledge-btn" class="acknowledge-btn">
+          <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>
+          Acknowledge & Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-container">
+    <div class="login-card">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Lynx Lite</h1>
+        <p class="text-gray-600">Sign in to your account</p>
+      </div>
+      
+      <form id="login-form" autocomplete="off">
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-700 mb-2" for="username">Username</label>
+          <input id="username" type="text" class="input-field" placeholder="Enter your username" required>
+        </div>
+        
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-700 mb-2" for="password">Password</label>
+          <div class="relative">
+            <input id="password" type="password" class="input-field pr-12" placeholder="Enter your password" required>
+            <button type="button" id="toggle-password" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none" aria-label="Toggle password visibility">
+              <i class="fas fa-eye" id="password-icon"></i>
+            </button>
+          </div>
+        </div>
+        
+        <button type="submit" class="login-btn">
+          <i class="fas fa-sign-in-alt"></i>
+          <span>Sign In</span>
+        </button>
+        
+        <div id="error-msg" class="error-msg hidden"></div>
+      </form>
+    </div>
+  </div>
+  <script>
+    // Disclaimer Modal Logic
+    document.addEventListener('DOMContentLoaded', function() {
+      const disclaimerOverlay = document.getElementById('disclaimer-overlay');
+      const acknowledgeBtn = document.getElementById('acknowledge-btn');
+      
+      // Check if user has already acknowledged the disclaimer
+      const hasAcknowledged = sessionStorage.getItem('disclaimerAcknowledged');
+      
+      if (hasAcknowledged) {
+        disclaimerOverlay.classList.add('hidden-disclaimer');
+      }
+      
+      // Handle acknowledge button click
+      acknowledgeBtn.addEventListener('click', function() {
+        // Store acknowledgment in session storage
+        sessionStorage.setItem('disclaimerAcknowledged', 'true');
+        
+        // Add hiding animation
+        disclaimerOverlay.classList.add('hiding');
+        
+        // Remove the modal after animation completes
+        setTimeout(function() {
+          disclaimerOverlay.classList.add('hidden-disclaimer');
+        }, 500);
+      });
+      
+      // Prevent clicking outside modal to close (force acknowledgment)
+      disclaimerOverlay.addEventListener('click', function(e) {
+        if (e.target === disclaimerOverlay) {
+          // Optional: Add a subtle shake animation to indicate they must acknowledge
+          const modal = disclaimerOverlay.querySelector('.disclaimer-modal');
+          modal.style.animation = 'none';
+          modal.offsetHeight; // Trigger reflow
+          modal.style.animation = 'modalSlideIn 0.3s ease-out';
+        }
+      });
+    });
+
+    // Login logic with automatic role detection
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorMsg = document.getElementById('error-msg');
+      
+      if (!username || !password) {
+        errorMsg.textContent = 'Please fill in both username and password.';
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+      
+      errorMsg.classList.add('hidden');
+      
+      // Define valid credentials for each role
+      const validCredentials = {
+        'driver': { username: 'driver', password: 'driver' },
+        'dispatcher': { username: 'dispatcher', password: 'dispatcher' },
+        'owner': { username: 'owner', password: 'owner' },
+        'accountant': { username: 'accountant', password: 'accountant' },
+        'admin': { username: 'admin', password: 'admin' },
+        'fleet_manager': { username: 'fleet', password: 'fleet' }
+      };
+      
+      // Find the role that matches the credentials
+      let authenticatedRole = null;
+      for (const [role, credentials] of Object.entries(validCredentials)) {
+        if (credentials.username === username && credentials.password === password) {
+          authenticatedRole = role;
+          break;
+        }
+      }
+      
+      if (authenticatedRole) {
+        // Successful authentication - redirect to appropriate dashboard
+        let page = '';
+        switch(authenticatedRole) {
+          case 'admin': 
+          case 'fleet_manager': 
+            page = 'index.html'; 
+            break;
+          case 'owner': 
+            page = 'owner-dashboard.html'; 
+            break;
+          case 'dispatcher': 
+            page = 'dispatcher-dashboard.html'; 
+            break;
+          case 'driver': 
+            page = 'driver-dashboard.html'; 
+            break;
+          case 'accountant': 
+            page = 'accountant-dashboard.html'; 
+            break;
+          default: 
+            page = 'index.html';
+        }
+        
+        // Store user info in session storage for the dashboard
+        sessionStorage.setItem('userRole', authenticatedRole);
+        sessionStorage.setItem('username', username);
+        sessionStorage.setItem('isAuthenticated', 'true');
+        
+        // Redirect to the appropriate page
+        window.location.href = page;
+        
+      } else {
+        // Invalid credentials
+        errorMsg.textContent = 'Invalid username or password. Please check your credentials.';
+        errorMsg.classList.remove('hidden');
+      }
+    });
+
+    // Password visibility toggle
+    document.getElementById('toggle-password').addEventListener('click', function() {
+      const passwordField = document.getElementById('password');
+      const passwordIcon = document.getElementById('password-icon');
+      const isPasswordVisible = passwordField.type === 'text';
+      
+      if (isPasswordVisible) {
+        passwordField.type = 'password';
+        passwordIcon.classList.remove('fa-eye-slash');
+        passwordIcon.classList.add('fa-eye');
+      } else {
+        passwordField.type = 'text';
+        passwordIcon.classList.remove('fa-eye');
+        passwordIcon.classList.add('fa-eye-slash');
+      }
+    });
+  </script>
+</body>
+</html>

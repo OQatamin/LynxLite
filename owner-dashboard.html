@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Dashboard - Lynx Lite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
+      color: #1f2937;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s ease;
+    }
+
+    body.dark-mode {
+      background: linear-gradient(to bottom, #111827, #1f2937);
+      color: #d1d5db;
+    }
+    body.dark-mode header {
+      background: #1f2937;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    }
+    body.dark-mode .widget-card {
+      background: linear-gradient(145deg, #1f2937, #111827);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      color: #d1d5db;
+    }
+    body.dark-mode .nav-tab {
+      background: #374151;
+      color: #d1d5db;
+    }
+    body.dark-mode .nav-tab.active {
+      background: #3b82f6;
+      color: #fff;
+    }
+    body.dark-mode .bg-blue-100 { background: #1e3a8a !important; }
+    body.dark-mode .bg-green-100 { background: #064e3b !important; }
+    body.dark-mode .bg-yellow-100 { background: #78350f !important; }
+    body.dark-mode .bg-purple-100 { background: #4c1d95 !important; }
+    body.dark-mode .bg-red-100 { background: #7f1d1d !important; }
+    body.dark-mode .text-gray-700 { color: #9ca3af !important; }
+    body.dark-mode .text-gray-900 { color: #d1d5db !important; }
+    body.dark-mode .border-gray-200 { border-color: #374151 !important; }
+    body.dark-mode .bg-gray-200 { background: #374151 !important; }
+
+    .widget-card {
+      background: linear-gradient(145deg, #ffffff, #f9fafb);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+      border-radius: 12px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .widget-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .nav-tab {
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      background: #f3f4f6;
+      margin-right: 0.5rem;
+    }
+    .nav-tab.active {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(31,41,55,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      transition: opacity 0.3s ease;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      width: 400px;
+    }
+
+    .notification-tray {
+      position: fixed;
+      right: 0;
+      top: 80px;
+      width: 320px;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      padding: 1rem;
+      z-index: 40;
+      transition: transform 0.3s ease;
+      transform: translateX(100%);
+    }
+    .notification-tray.active {
+      transform: translateX(0);
+    }
+
+    .sortable .widget-section {
+      cursor: move;
+      border: 1px dashed #d1d5db;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .table th, .table td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+    .table th {
+      background: #f3f4f6;
+      font-weight: 600;
+    }
+    .table tr:hover {
+      background: #f1f5f9;
+    }
+
+    @media (max-width: 768px) {
+      main { padding: 1.5rem; }
+      .nav-tab { padding: 0.5rem 1rem; font-size: 0.9rem; }
+      .widget-card { padding: 1.5rem; }
+      .max-w-7xl { max-width: 100%; }
+      .grid-cols-4 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .grid-cols-4, .grid-cols-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+  <header class="bg-white shadow flex justify-between items-center px-6 py-4 z-30 fixed top-0 left-0 w-full" aria-label="Owner Dashboard Header">
+    <div class="flex items-center space-x-4">
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Owner Dashboard</h1>
+      <span id="welcome-message" class="ml-4 text-lg font-medium text-blue-700">Welcome, Business Owner</span>
+    </div>
+    <div class="flex items-center space-x-4">
+      <button id="notification-toggle" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Notifications">
+        <i class="fas fa-bell text-xl"></i>
+        <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 hidden">0</span>
+      </button>
+      <button id="customize-dashboard" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Customize</button>
+      <button id="dark-mode-toggle" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Toggle Dark Mode">
+        <i class="fas fa-moon text-xl"></i>
+      </button>
+      <div class="relative">
+        <button id="user-menu-button" class="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-blue-700" aria-label="User Menu">
+          <i class="fas fa-user"></i>
+        </button>
+        <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-20">
+          <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"><i class="fas fa-user-circle w-6 mr-2"></i>My Profile</a>
+          <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"><i class="fas fa-key w-6 mr-2"></i>Change Password</a>
+          <div class="border-t border-gray-200 my-1"></div>
+          <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"><i class="fas fa-sign-out-alt w-6 mr-2"></i>Log Out</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Tray -->
+  <div id="notification-tray" class="notification-tray">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">Notifications</h3>
+    <div id="notifications-list" class="space-y-2"></div>
+    <button id="clear-notifications" class="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 w-full">Clear All</button>
+  </div>
+
+  <!-- Customize Modal -->
+  <div id="customize-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">Customize Dashboard</h3>
+      <div id="sortable-sections" class="space-y-2">
+        <div class="widget-section" data-id="business-overview">Business Overview</div>
+        <div class="widget-section" data-id="fleet-health">Fleet Health</div>
+        <div class="widget-section" data-id="recent-alerts">Recent Alerts</div>
+        <div class="widget-section" data-id="quick-actions">Quick Actions</div>
+      </div>
+      <div class="flex justify-end space-x-2 mt-4">
+        <button id="customize-save" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save</button>
+        <button id="customize-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Vehicle Modal -->
+  <div id="add-vehicle-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">Add Vehicle</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Vehicle ID</label>
+          <input type="text" id="vehicle-id" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., VEHICLE-001">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Type</label>
+          <select id="vehicle-type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="Truck">Truck</option>
+            <option value="Van">Van</option>
+            <option value="Car">Car</option>
+          </select>
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button id="add-vehicle-submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add</button>
+          <button id="add-vehicle-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Driver Modal -->
+  <div id="add-driver-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">Add Driver</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Driver Name</label>
+          <input type="text" id="driver-name" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., John Doe">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">License Number</label>
+          <input type="text" id="driver-license" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., D123456">
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button id="add-driver-submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Add</button>
+          <button id="add-driver-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule Maintenance Modal -->
+  <div id="schedule-maintenance-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">Schedule Maintenance</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Vehicle ID</label>
+          <input type="text" id="maintenance-vehicle" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., VEHICLE-001">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Maintenance Type</label>
+          <select id="maintenance-type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="Oil Change">Oil Change</option>
+            <option value="Tire Rotation">Tire Rotation</option>
+            <option value="Brake Check">Brake Check</option>
+          </select>
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button id="schedule-maintenance-submit" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">Schedule</button>
+          <button id="schedule-maintenance-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="pt-24 px-6 max-w-7xl mx-auto">
+    <!-- Basic Owner Features (Lite Version) -->
+    <section id="owner-lite-features" class="widget-card p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-tachometer-alt text-blue-600 mr-3"></i>Dashboard Overview</h2>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-6 mb-6">
+        <div class="bg-blue-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-blue-700" id="lite-total-vehicles">120</div>
+          <div class="text-sm text-gray-700">Total Vehicles</div>
+        </div>
+        <div class="bg-green-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-green-700" id="lite-active-trips">12</div>
+          <div class="text-sm text-gray-700">Active Trips</div>
+        </div>
+        <div class="bg-yellow-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-yellow-700" id="lite-fuel-usage">2,450 L</div>
+          <div class="text-sm text-gray-700">Fuel Usage</div>
+        </div>
+        <div class="bg-red-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-red-700" id="lite-maintenance-due">5</div>
+          <div class="text-sm text-gray-700">Maintenance Due</div>
+        </div>
+        <div class="bg-purple-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-purple-700" id="lite-driver-activity">45</div>
+          <div class="text-sm text-gray-700">Driver Activity</div>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-4 mb-4">
+        <button id="change-role-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"><i class="fas fa-user-cog mr-2"></i>Change User Roles</button>
+      </div>
+    </section>
+
+    <section id="fleet-inventory-lite" class="widget-card p-8 mb-8">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-truck text-green-600 mr-3"></i>Fleet Inventory Overview</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Vehicle ID</th>
+            <th>Status</th>
+            <th>License Expiry</th>
+            <th>Registration Expiry</th>
+          </tr>
+        </thead>
+        <tbody id="lite-fleet-table"></tbody>
+      </table>
+      <div class="mt-2 text-sm text-red-600"><i class="fas fa-exclamation-triangle mr-1"></i>Expiry alerts shown for vehicles with soon-to-expire documents.</div>
+    </section>
+
+    <section id="trip-logs-lite" class="widget-card p-8 mb-8">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-route text-blue-600 mr-3"></i>Trip & Activity Logs</h2>
+      <div class="flex flex-wrap gap-4 mb-4">
+        <input type="text" id="search-trip-lite" class="border border-gray-300 rounded-lg px-3 py-2" placeholder="Search by vehicle or driver">
+        <button id="download-trip-report-lite" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"><i class="fas fa-download mr-2"></i>Download Trip Report</button>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Trip ID</th>
+            <th>Vehicle</th>
+            <th>Driver</th>
+            <th>Start</th>
+            <th>End</th>
+          </tr>
+        </thead>
+        <tbody id="lite-trip-table"></tbody>
+      </table>
+    </section>
+
+    <section id="financial-lite" class="widget-card p-8 mb-8">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-money-bill-wave text-green-600 mr-3"></i>Basic Financial View</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+        <div class="bg-blue-50 rounded-lg p-4 text-center">
+          <div class="text-lg font-bold text-blue-700" id="lite-fuel-expenses">$12,000</div>
+          <div class="text-sm text-gray-700">Fuel Expenses</div>
+        </div>
+        <div class="bg-yellow-50 rounded-lg p-4 text-center">
+          <div class="text-lg font-bold text-yellow-700" id="lite-trip-costs">$8,500</div>
+          <div class="text-sm text-gray-700">Trip Costs</div>
+        </div>
+        <div class="bg-red-50 rounded-lg p-4 text-center">
+          <div class="text-lg font-bold text-red-700" id="lite-maintenance-expenses">$3,200</div>
+          <div class="text-sm text-gray-700">Maintenance Expenses</div>
+        </div>
+      </div>
+      <div class="mt-2 text-sm text-gray-600"><i class="fas fa-info-circle mr-1"></i>Totals and alerts only. No deep invoicing or integrations in Lite.</div>
+    </section>
+
+    <section id="compliance-lite" class="widget-card p-8 mb-8">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-shield-alt text-teal-600 mr-3"></i>Compliance & Alerts</h2>
+      <ul id="lite-alerts-list" class="space-y-2 mb-4"></ul>
+      <div class="flex items-center gap-4 mb-2">
+        <label class="flex items-center"><input type="checkbox" id="toggle-insurance-alerts" class="mr-2">Insurance/Registration Alerts</label>
+        <label class="flex items-center"><input type="checkbox" id="toggle-maintenance-alerts" class="mr-2">Missed Maintenance Alerts</label>
+        <label class="flex items-center"><input type="checkbox" id="toggle-license-alerts" class="mr-2">Driver License Alerts</label>
+      </div>
+    </section>
+
+    <section id="settings-lite" class="widget-card p-8 mb-8">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-cogs text-gray-700 mr-3"></i>Settings</h2>
+      <form id="lite-settings-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Company Name</label>
+          <input type="text" id="lite-company-name" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Your Company Name">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Logo</label>
+          <input type="file" id="lite-company-logo" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700">Default Units</label>
+            <select id="lite-units" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+              <option value="km">Kilometers/Liters</option>
+              <option value="miles">Miles/Gallons</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700">Language</label>
+            <select id="lite-language" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700">Timezone</label>
+            <select id="lite-timezone" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+              <option value="UTC">UTC</option>
+              <option value="EST">EST</option>
+              <option value="CST">CST</option>
+              <option value="PST">PST</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Settings</button>
+      </form>
+    </section>
+    <nav class="flex mb-8 overflow-x-auto">
+      <div class="nav-tab active" data-tab="overview">Overview</div>
+      <div class="nav-tab" data-tab="fleet">Fleet</div>
+      <div class="nav-tab" data-tab="drivers">Drivers</div>
+      <div class="nav-tab" data-tab="reports">Reports</div>
+      <div class="nav-tab" data-tab="alerts">Alerts</div>
+      <div class="nav-tab" data-tab="settings">Settings</div>
+    </nav>
+
+    <section id="overview-section" class="widget-card p-8">
+      <div id="business-overview" class="mb-6 widget-section">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-xl font-bold text-gray-900">Business Overview</h2>
+          <div class="flex items-center space-x-2">
+            <label for="overview-period" class="text-sm text-gray-700 font-medium">Period:</label>
+            <select id="overview-period" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+              <option value="24h">Last 24h</option>
+              <option value="week">Last 7d</option>
+              <option value="month" selected>Last 30d</option>
+            </select>
+            <button id="set-goals-btn" class="ml-2 px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm">Set Goals</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-4">
+          <div class="bg-blue-100 rounded-lg p-4 text-center">
+            <div class="flex items-center justify-center space-x-2">
+              <div id="active-vehicles" class="text-2xl font-bold text-blue-700">120</div>
+              <span id="goal-active-vehicles" class="text-xs font-semibold"></span>
+            </div>
+            <div class="text-sm text-gray-700">Active Vehicles</div>
+          </div>
+          <div class="bg-green-100 rounded-lg p-4 text-center">
+            <div class="flex items-center justify-center space-x-2">
+              <div id="active-drivers" class="text-2xl font-bold text-green-700">45</div>
+              <span id="goal-active-drivers" class="text-xs font-semibold"></span>
+            </div>
+            <div class="text-sm text-gray-700">Drivers</div>
+          </div>
+          <div class="bg-yellow-100 rounded-lg p-4 text-center">
+            <div class="flex items-center justify-center space-x-2">
+              <div id="avg-efficiency" class="text-2xl font-bold text-yellow-700">8.5 km/L</div>
+              <span id="goal-avg-efficiency" class="text-xs font-semibold"></span>
+            </div>
+            <div class="text-sm text-gray-700">Avg Fuel Efficiency</div>
+          </div>
+          <div class="bg-purple-100 rounded-lg p-4 text-center">
+            <div class="flex items-center justify-center space-x-2">
+              <div id="total-distance" class="text-2xl font-bold text-purple-700">12,450 km</div>
+              <span id="goal-total-distance" class="text-xs font-semibold"></span>
+            </div>
+            <div class="text-sm text-gray-700">Total Distance</div>
+          </div>
+          <div class="bg-indigo-100 rounded-lg p-4 text-center col-span-2 md:col-span-1">
+            <div class="flex items-center justify-center space-x-2">
+              <div id="fleet-utilization" class="text-2xl font-bold text-indigo-700">--%</div>
+              <span id="goal-fleet-utilization" class="text-xs font-semibold"></span>
+            </div>
+            <div class="text-sm text-gray-700">Fleet Utilization Rate</div>
+          </div>
+          <div class="bg-red-100 rounded-lg p-4 text-center col-span-2 md:col-span-1">
+            <div class="flex items-center justify-center space-x-2">
+              <div id="vehicle-downtime" class="text-2xl font-bold text-red-700">-- hrs</div>
+              <span id="goal-vehicle-downtime" class="text-xs font-semibold"></span>
+            </div>
+            <div class="text-sm text-gray-700">Vehicle Downtime (last 30d)</div>
+          </div>
+        </div>
+  <!-- Set Goals Modal -->
+  <div id="set-goals-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">Set Fleet Goals</h3>
+      <form id="goals-form" class="space-y-3">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Active Vehicles</label>
+          <input type="number" id="goal-input-active-vehicles" class="w-full border border-gray-300 rounded-lg px-3 py-2" min="0">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Drivers</label>
+          <input type="number" id="goal-input-active-drivers" class="w-full border border-gray-300 rounded-lg px-3 py-2" min="0">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Avg Fuel Efficiency (km/L)</label>
+          <input type="number" step="0.1" id="goal-input-avg-efficiency" class="w-full border border-gray-300 rounded-lg px-3 py-2" min="0">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Total Distance (km)</label>
+          <input type="number" id="goal-input-total-distance" class="w-full border border-gray-300 rounded-lg px-3 py-2" min="0">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Fleet Utilization Rate (%)</label>
+          <input type="number" id="goal-input-fleet-utilization" class="w-full border border-gray-300 rounded-lg px-3 py-2" min="0" max="100">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Vehicle Downtime (hrs)</label>
+          <input type="number" id="goal-input-vehicle-downtime" class="w-full border border-gray-300 rounded-lg px-3 py-2" min="0">
+        </div>
+        <div class="flex justify-end space-x-2 mt-4">
+          <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Save Goals</button>
+          <button type="button" id="cancel-goals-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+        <div class="mt-4">
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Cost Analysis</h3>
+          <canvas id="costChart" height="120"></canvas>
+        </div>
+      </div>
+      <div id="fleet-health" class="mb-6 widget-section">
+        <h2 class="text-xl font-bold text-gray-900 mb-2">Fleet Health</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Fuel Level Distribution</h3>
+            <canvas id="fleetFuelChart" height="120"></canvas>
+            <p class="text-sm text-gray-600 mt-2">
+              <strong>How to read:</strong> Each axis of the spider chart represents a fuel level category (Safe, Warning, Critical). The further the point is from the center, the more vehicles are in that category. Ideally, most data should be in the "Safe" area.
+            </p>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Engine Temp Distribution</h3>
+            <canvas id="fleetTempChart" height="120"></canvas>
+            <p class="text-sm text-gray-600 mt-2">
+              <strong>How to read:</strong> Each axis of the spider chart represents an engine temperature category (Safe, Warning, Critical). The further the point is from the center, the more vehicles are in that category. Most data should be in the "Safe" area for optimal fleet health.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div id="recent-alerts" class="mb-6 widget-section">
+        <h2 class="text-xl font-bold text-gray-900 mb-2">Recent Alerts</h2>
+        <ul id="owner-alerts-list" class="space-y-2"></ul>
+      </div>
+      <div id="quick-actions" class="mb-6 widget-section">
+        <h2 class="text-xl font-bold text-gray-900 mb-2">Owner Quick Actions</h2>
+        <div class="flex space-x-4 flex-wrap gap-y-4">
+          <button id="export-report-btn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+            <i class="fas fa-file-export mr-2"></i>Export Report
+          </button>
+          <button id="analyze-costs-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+            <i class="fas fa-chart-line mr-2"></i>Analyze Fleet Costs
+          </button>
+          <button id="set-goals-quick-btn" class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700">
+            <i class="fas fa-bullseye mr-2"></i>Set/Review Fleet Goals
+          </button>
+          <button id="view-compliance-btn" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">
+            <i class="fas fa-shield-alt mr-2"></i>View Compliance Status
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section id="fleet-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-truck text-blue-600 mr-3"></i>Fleet Management</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-blue-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-blue-700" id="fleet-total-vehicles">120</div>
+          <div class="text-sm text-gray-700">Total Vehicles</div>
+        </div>
+        <div class="bg-green-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-green-700" id="fleet-active">90</div>
+          <div class="text-sm text-gray-700">Active</div>
+        </div>
+        <div class="bg-yellow-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-yellow-700" id="fleet-maintenance-due">5</div>
+          <div class="text-sm text-gray-700">Maintenance Due</div>
+        </div>
+        <div class="bg-red-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-red-700" id="fleet-expiry-alerts">3</div>
+          <div class="text-sm text-gray-700">Document Expiry Alerts</div>
+        </div>
+      </div>
+      <table class="table mb-4">
+        <thead>
+          <tr>
+            <th>Vehicle ID</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Fuel Level</th>
+            <th>Last Maintenance</th>
+            <th>License Expiry</th>
+            <th>Registration Expiry</th>
+          </tr>
+        </thead>
+        <tbody id="fleet-table"></tbody>
+      </table>
+      <div class="mt-2 text-sm text-red-600"><i class="fas fa-exclamation-triangle mr-1"></i>Expiry alerts shown for vehicles with soon-to-expire documents. Schedule maintenance and renewals proactively.</div>
+    </section>
+
+    <section id="drivers-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-user-tie text-green-600 mr-3"></i>Driver Management</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-green-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-green-700" id="drivers-total">45</div>
+          <div class="text-sm text-gray-700">Total Drivers</div>
+        </div>
+        <div class="bg-blue-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-blue-700" id="drivers-compliant">42</div>
+          <div class="text-sm text-gray-700">Compliant</div>
+        </div>
+        <div class="bg-yellow-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-yellow-700" id="drivers-license-alerts">2</div>
+          <div class="text-sm text-gray-700">License Expiry Alerts</div>
+        </div>
+        <div class="bg-red-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-red-700" id="drivers-safety-alerts">1</div>
+          <div class="text-sm text-gray-700">Safety Score Alerts</div>
+        </div>
+      </div>
+      <table class="table mb-4">
+        <thead>
+          <tr>
+            <th>Driver Name</th>
+            <th>License</th>
+            <th>HOS Status</th>
+            <th>Safe Driving Score</th>
+            <th>License Expiry</th>
+            <th>Compliance Status</th>
+          </tr>
+        </thead>
+        <tbody id="drivers-table"></tbody>
+      </table>
+      <div class="mt-2 text-sm text-yellow-600"><i class="fas fa-exclamation-circle mr-1"></i>Monitor driver compliance and safety scores. Address expiring licenses and training needs promptly.</div>
+    </section>
+
+    <section id="reports-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-file-alt text-purple-600 mr-3"></i>Reports & Analytics</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-blue-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-blue-700" id="reports-fleet-utilization">75%</div>
+          <div class="text-sm text-gray-700">Fleet Utilization</div>
+        </div>
+        <div class="bg-green-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-green-700" id="reports-compliance">98%</div>
+          <div class="text-sm text-gray-700">Compliance Rate</div>
+        </div>
+        <div class="bg-yellow-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-yellow-700" id="reports-costs">$26,000</div>
+          <div class="text-sm text-gray-700">Total Costs (Month)</div>
+        </div>
+        <div class="bg-red-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-red-700" id="reports-alerts">8</div>
+          <div class="text-sm text-gray-700">Critical Alerts</div>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Fleet Utilization</h3>
+          <canvas id="utilizationChart" height="120"></canvas>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Cost Breakdown</h3>
+          <canvas id="costBreakdownChart" height="120"></canvas>
+        </div>
+        <div>
+          <select id="report-type" class="border border-gray-300 rounded-lg px-4 py-2">
+            <option value="fleet">Fleet Report</option>
+            <option value="driver">Driver Report</option>
+            <option value="compliance">Compliance Report</option>
+          </select>
+          <button id="export-report" class="ml-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Export</button>
+        </div>
+      </div>
+      <div class="mt-2 text-sm text-gray-600"><i class="fas fa-info-circle mr-1"></i>Industry best practice: Review utilization, compliance, and cost analytics monthly. Export reports for audits and strategic planning.</div>
+    </section>
+
+    <section id="alerts-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>All Alerts & Notifications</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-red-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-red-700" id="alerts-critical">4</div>
+          <div class="text-sm text-gray-700">Critical</div>
+        </div>
+        <div class="bg-yellow-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-yellow-700" id="alerts-warning">3</div>
+          <div class="text-sm text-gray-700">Warning</div>
+        </div>
+        <div class="bg-green-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-green-700" id="alerts-normal">6</div>
+          <div class="text-sm text-gray-700">Normal</div>
+        </div>
+        <div class="bg-blue-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-blue-700" id="alerts-total">13</div>
+          <div class="text-sm text-gray-700">Total Alerts</div>
+        </div>
+      </div>
+      <ul id="all-alerts-list" class="space-y-2 mb-4"></ul>
+      <div class="mt-2 text-sm text-red-600"><i class="fas fa-exclamation-triangle mr-1"></i>Industry best practice: Address critical alerts immediately. Review warning and normal alerts daily for proactive fleet management.</div>
+    </section>
+
+    <section id="settings-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center"><i class="fas fa-cogs text-gray-700 mr-3"></i>Settings & Preferences</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-blue-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-blue-700" id="settings-maint-interval">5,000 km</div>
+          <div class="text-sm text-gray-700">Maintenance Interval</div>
+        </div>
+        <div class="bg-green-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-green-700" id="settings-email">Enabled</div>
+          <div class="text-sm text-gray-700">Email Notifications</div>
+        </div>
+        <div class="bg-yellow-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-yellow-700" id="settings-sms">Enabled</div>
+          <div class="text-sm text-gray-700">SMS Notifications</div>
+        </div>
+        <div class="bg-purple-100 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-purple-700" id="settings-user-roles">Owner</div>
+          <div class="text-sm text-gray-700">User Role</div>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Fleet Settings</h3>
+          <div class="mt-2">
+            <label class="block text-sm font-semibold text-gray-700">Maintenance Interval (km)</label>
+            <input type="number" id="maintenance-interval" class="w-full border border-gray-300 rounded-lg px-3 py-2" value="5000">
+          </div>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Notification Preferences</h3>
+          <div class="mt-2">
+            <label class="flex items-center">
+              <input type="checkbox" id="email-notifications" class="mr-2"> Email Notifications
+            </label>
+            <label class="flex items-center mt-2">
+              <input type="checkbox" id="sms-notifications" class="mr-2"> SMS Notifications
+            </label>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">User Roles & Access</h3>
+          <div class="mt-2">
+            <label class="block text-sm font-semibold text-gray-700">Role</label>
+            <select id="settings-role" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+              <option value="owner" selected>Owner</option>
+              <option value="manager">Fleet Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+        <button id="save-settings" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Settings</button>
+      </div>
+      <div class="mt-2 text-sm text-gray-600"><i class="fas fa-info-circle mr-1"></i>Industry best practice: Review and update notification, maintenance, and access settings regularly for compliance and operational efficiency.</div>
+    </section>
+  </main>
+
+  <script>
+    // Simulated fleet data
+    let fleetData = {
+      vehicles: Array.from({ length: 120 }, (_, i) => ({
+        id: `VEHICLE-${String(i + 1).padStart(3, '0')}`,
+        type: ['Truck', 'Van', 'Car'][Math.floor(Math.random() * 3)],
+        status: ['Active', 'Idle', 'Maintenance'][Math.floor(Math.random() * 3)],
+        fuel: Math.floor(Math.random() * 100),
+        engineTemp: 90 + Math.random() * 30,
+        lastMaintenance: new Date(2025, Math.floor(Math.random() * 6), 1).toISOString().split('T')[0]
+      })),
+      drivers: Array.from({ length: 45 }, (_, i) => ({
+        name: `Driver ${i + 1}`,
+        license: `D${String(i + 1).padStart(6, '0')}`,
+        hosStatus: `${Math.floor(Math.random() * 8)}h remaining`,
+        safeScore: Math.floor(70 + Math.random() * 30)
+      })),
+      alerts: [
+        { id: 'ALERT-001', message: 'VEHICLE-001: Low Fuel (<30%)', severity: 'error', timestamp: new Date() },
+        { id: 'ALERT-002', message: 'VEHICLE-023: High Engine Temp (>120°C)', severity: 'warning', timestamp: new Date() },
+        { id: 'ALERT-003', message: 'VEHICLE-045: Maintenance Due', severity: 'normal', timestamp: new Date() }
+      ],
+      metrics: {
+        activeVehicles: 120,
+        drivers: 45,
+        avgEfficiency: 8.5,
+        totalDistance: 12450,
+        costs: [5000, 5200, 4800, 5100, 5300, 4900] // Monthly costs
+      }
+    };
+
+    let notifications = [...fleetData.alerts];
+
+    // Simulated period-based metrics for demo
+    const periodMetrics = {
+      '24h': {
+        activeVehicles: Math.round(fleetData.metrics.activeVehicles * 0.7),
+        drivers: Math.round(fleetData.metrics.drivers * 0.7),
+        avgEfficiency: (fleetData.metrics.avgEfficiency * (0.95 + Math.random() * 0.1)).toFixed(1),
+        totalDistance: Math.round(fleetData.metrics.totalDistance * 0.03),
+        costs: fleetData.metrics.costs.slice(-1),
+      },
+      'week': {
+        activeVehicles: Math.round(fleetData.metrics.activeVehicles * 0.85),
+        drivers: Math.round(fleetData.metrics.drivers * 0.85),
+        avgEfficiency: (fleetData.metrics.avgEfficiency * (0.97 + Math.random() * 0.06)).toFixed(1),
+        totalDistance: Math.round(fleetData.metrics.totalDistance * 0.18),
+        costs: fleetData.metrics.costs.slice(-4),
+      },
+      'month': {
+        activeVehicles: fleetData.metrics.activeVehicles,
+        drivers: fleetData.metrics.drivers,
+        avgEfficiency: fleetData.metrics.avgEfficiency,
+        totalDistance: fleetData.metrics.totalDistance,
+        costs: fleetData.metrics.costs,
+      }
+    };
+
+    // Update overview metrics and show goals
+    function updateOverview() {
+      const period = document.getElementById('overview-period') ? document.getElementById('overview-period').value : 'month';
+      const metrics = periodMetrics[period] || periodMetrics['month'];
+      document.getElementById('active-vehicles').textContent = metrics.activeVehicles;
+      document.getElementById('active-drivers').textContent = metrics.drivers;
+      document.getElementById('avg-efficiency').textContent = `${metrics.avgEfficiency} km/L`;
+      document.getElementById('total-distance').textContent = `${metrics.totalDistance.toLocaleString()} km`;
+
+      // Fleet Utilization Rate: % of vehicles not idle or in maintenance (simulate for period)
+      const totalVehicles = fleetData.vehicles.length;
+      const activeVehicles = metrics.activeVehicles;
+      const utilization = totalVehicles > 0 ? Math.round((activeVehicles / totalVehicles) * 100) : 0;
+      document.getElementById('fleet-utilization').textContent = `${utilization}%`;
+
+      // Vehicle Downtime: simulate for period (proportional to period)
+      let downtimeHours = 0;
+      if (period === '24h') downtimeHours = Math.round((fleetData.vehicles.filter(v => v.status === 'Maintenance').length * 8) / 30);
+      else if (period === 'week') downtimeHours = Math.round((fleetData.vehicles.filter(v => v.status === 'Maintenance').length * 8) / 4);
+      else downtimeHours = fleetData.vehicles.filter(v => v.status === 'Maintenance').length * 8;
+      document.getElementById('vehicle-downtime').textContent = `${downtimeHours} hrs`;
+
+      // Show goals and status
+      const goals = JSON.parse(localStorage.getItem('fleetGoals') || '{}');
+      // Helper to set goal display and color
+      function setGoalDisplay(id, value, goal, isHigherBetter, suffix = '') {
+        const el = document.getElementById('goal-' + id);
+        if (goal === undefined || goal === null || goal === '') {
+          el.textContent = '';
+          el.className = 'text-xs font-semibold';
+          return;
+        }
+        let met = isHigherBetter ? Number(value) >= Number(goal) : Number(value) <= Number(goal);
+        el.textContent = `Goal: ${goal}${suffix}`;
+        el.className = `text-xs font-semibold ml-1 ${met ? 'text-green-600' : 'text-red-600'}`;
+      }
+      setGoalDisplay('active-vehicles', metrics.activeVehicles, goals['active-vehicles'], true);
+      setGoalDisplay('active-drivers', metrics.drivers, goals['active-drivers'], true);
+      setGoalDisplay('avg-efficiency', metrics.avgEfficiency, goals['avg-efficiency'], true, ' km/L');
+      setGoalDisplay('total-distance', metrics.totalDistance, goals['total-distance'], true, ' km');
+      setGoalDisplay('fleet-utilization', utilization, goals['fleet-utilization'], true, '%');
+      setGoalDisplay('vehicle-downtime', downtimeHours, goals['vehicle-downtime'], false, ' hrs');
+    }
+    // Set Goals Modal logic
+    const setGoalsBtn = document.getElementById('set-goals-btn');
+    const setGoalsModal = document.getElementById('set-goals-modal');
+    const cancelGoalsBtn = document.getElementById('cancel-goals-btn');
+    const goalsForm = document.getElementById('goals-form');
+
+    setGoalsBtn.addEventListener('click', () => {
+      // Load current goals
+      const goals = JSON.parse(localStorage.getItem('fleetGoals') || '{}');
+      document.getElementById('goal-input-active-vehicles').value = goals['active-vehicles'] ?? '';
+      document.getElementById('goal-input-active-drivers').value = goals['active-drivers'] ?? '';
+      document.getElementById('goal-input-avg-efficiency').value = goals['avg-efficiency'] ?? '';
+      document.getElementById('goal-input-total-distance').value = goals['total-distance'] ?? '';
+      document.getElementById('goal-input-fleet-utilization').value = goals['fleet-utilization'] ?? '';
+      document.getElementById('goal-input-vehicle-downtime').value = goals['vehicle-downtime'] ?? '';
+      setGoalsModal.classList.remove('hidden');
+    });
+    cancelGoalsBtn.addEventListener('click', () => {
+      setGoalsModal.classList.add('hidden');
+    });
+    goalsForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const goals = {
+        'active-vehicles': document.getElementById('goal-input-active-vehicles').value,
+        'active-drivers': document.getElementById('goal-input-active-drivers').value,
+        'avg-efficiency': document.getElementById('goal-input-avg-efficiency').value,
+        'total-distance': document.getElementById('goal-input-total-distance').value,
+        'fleet-utilization': document.getElementById('goal-input-fleet-utilization').value,
+        'vehicle-downtime': document.getElementById('goal-input-vehicle-downtime').value
+      };
+      localStorage.setItem('fleetGoals', JSON.stringify(goals));
+      setGoalsModal.classList.add('hidden');
+      updateOverview();
+    });
+
+    // Render alerts
+    function renderAlerts() {
+      const list = document.getElementById('owner-alerts-list');
+      const allList = document.getElementById('all-alerts-list');
+      list.innerHTML = '';
+      allList.innerHTML = '';
+      fleetData.alerts.forEach(alert => {
+        const li = document.createElement('li');
+        li.className = `rounded-lg p-4 ${alert.severity === 'error' ? 'bg-red-100 text-red-700' : alert.severity === 'warning' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`;
+        li.innerHTML = `
+          <div class="flex justify-between">
+            <span>${alert.message}</span>
+            <button class="clear-alert text-sm hover:underline" data-id="${alert.id}">Clear</button>
+          </div>
+        `;
+        list.appendChild(li);
+        allList.appendChild(li.cloneNode(true));
+      });
+    }
+
+    // Render notifications
+    function renderNotifications() {
+      const list = document.getElementById('notifications-list');
+      const count = document.getElementById('notification-count');
+      list.innerHTML = '';
+      notifications.forEach(n => {
+        const div = document.createElement('div');
+        div.className = `p-2 rounded-lg ${n.severity === 'error' ? 'bg-red-50' : n.severity === 'warning' ? 'bg-yellow-50' : 'bg-green-50'}`;
+        div.innerHTML = `
+          <div class="flex justify-between">
+            <span>${n.message}</span>
+            <span class="text-xs text-gray-400">${new Date(n.timestamp).toLocaleTimeString()}</span>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+      count.textContent = notifications.length;
+      count.classList.toggle('hidden', notifications.length === 0);
+    }
+
+    // Render fleet table
+    function renderFleetTable() {
+      const tbody = document.getElementById('fleet-table');
+      tbody.innerHTML = '';
+      fleetData.vehicles.forEach(v => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${v.id}</td>
+          <td>${v.type}</td>
+          <td>${v.status}</td>
+          <td>${v.fuel}%</td>
+          <td>${v.lastMaintenance}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Render drivers table
+    function renderDriversTable() {
+      const tbody = document.getElementById('drivers-table');
+      tbody.innerHTML = '';
+      fleetData.drivers.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${d.name}</td>
+          <td>${d.license}</td>
+          <td>${d.hosStatus}</td>
+          <td>${d.safeScore}/100</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Render charts
+    function renderCharts() {
+      const fuelData = [
+        fleetData.vehicles.filter(v => v.fuel >= 50).length,
+        fleetData.vehicles.filter(v => v.fuel >= 30 && v.fuel < 50).length,
+        fleetData.vehicles.filter(v => v.fuel < 30).length
+      ];
+      const tempData = [
+        fleetData.vehicles.filter(v => v.engineTemp <= 100).length,
+        fleetData.vehicles.filter(v => v.engineTemp > 100 && v.engineTemp <= 120).length,
+        fleetData.vehicles.filter(v => v.engineTemp > 120).length
+      ];
+      new Chart(document.getElementById('fleetFuelChart').getContext('2d'), {
+        type: 'radar',
+        data: {
+          labels: ['Safe', 'Warning', 'Critical'],
+          datasets: [{
+            label: 'Fuel Level Distribution',
+            data: fuelData,
+            backgroundColor: 'rgba(22, 163, 74, 0.2)',
+            borderColor: '#16a34a',
+            pointBackgroundColor: ['#16a34a', '#eab308', '#dc2626'],
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: ['#16a34a', '#eab308', '#dc2626']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'top' }, tooltip: { enabled: true } },
+          scales: {
+            r: {
+              angleLines: { display: true },
+              suggestedMin: 0,
+              suggestedMax: Math.max(...fuelData, 10)
+            }
+          }
+        }
+      });
+      new Chart(document.getElementById('fleetTempChart').getContext('2d'), {
+        type: 'radar',
+        data: {
+          labels: ['Safe', 'Warning', 'Critical'],
+          datasets: [{
+            label: 'Engine Temp Distribution',
+            data: tempData,
+            backgroundColor: 'rgba(234, 179, 8, 0.2)',
+            borderColor: '#eab308',
+            pointBackgroundColor: ['#16a34a', '#eab308', '#dc2626'],
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: ['#16a34a', '#eab308', '#dc2626']
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'top' }, tooltip: { enabled: true } },
+          scales: {
+            r: {
+              angleLines: { display: true },
+              suggestedMin: 0,
+              suggestedMax: Math.max(...tempData, 10)
+            }
+          }
+        }
+      });
+      new Chart(document.getElementById('costChart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          datasets: [{
+            label: 'Monthly Costs ($)',
+            data: fleetData.metrics.costs,
+            borderColor: '#8b5cf6',
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: false, title: { display: true, text: 'Costs ($)' } } }
+        }
+      });
+      new Chart(document.getElementById('utilizationChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: fleetData.vehicles.slice(0, 5).map(v => v.id),
+          datasets: [{
+            label: 'Utilization (%)',
+            data: fleetData.vehicles.slice(0, 5).map(() => Math.floor(Math.random() * 100)),
+            backgroundColor: '#3b82f6'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: 'Utilization (%)' } } }
+        }
+      });
+    }
+
+    // User Profile Dropdown
+    const userMenuButton = document.getElementById('user-menu-button');
+    const userMenu = document.getElementById('user-menu');
+    userMenuButton.addEventListener('click', () => userMenu.classList.toggle('hidden'));
+    window.addEventListener('click', (e) => {
+      if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
+        userMenu.classList.add('hidden');
+      }
+    });
+
+    // Navigation Tabs
+    const tabs = document.querySelectorAll('.nav-tab');
+    const sections = document.querySelectorAll('section');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        tabs.forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        sections.forEach(s => s.classList.add('hidden'));
+        document.getElementById(`${this.dataset.tab}-section`).classList.remove('hidden');
+      });
+    });
+
+    // Notification Tray
+    const notificationToggle = document.getElementById('notification-toggle');
+    const notificationTray = document.getElementById('notification-tray');
+    notificationToggle.addEventListener('click', () => {
+      notificationTray.classList.toggle('active');
+    });
+    document.getElementById('clear-notifications').addEventListener('click', () => {
+      notifications = [];
+      fleetData.alerts = [];
+      renderAlerts();
+      renderNotifications();
+    });
+
+    // Customize Dashboard
+    const customizeModal = document.getElementById('customize-modal');
+    document.getElementById('customize-dashboard').addEventListener('click', () => {
+      customizeModal.classList.remove('hidden');
+    });
+    document.getElementById('customize-cancel').addEventListener('click', () => {
+      customizeModal.classList.add('hidden');
+    });
+    document.getElementById('customize-save').addEventListener('click', () => {
+      const order = Array.from(document.querySelectorAll('#sortable-sections .widget-section')).map(el => el.dataset.id);
+      localStorage.setItem('dashboardOrder', JSON.stringify(order));
+      applyDashboardOrder();
+      customizeModal.classList.add('hidden');
+    });
+
+    // Sortable dashboard sections
+    new Sortable(document.getElementById('sortable-sections'), {
+      animation: 150,
+      handle: '.widget-section'
+    });
+
+    function applyDashboardOrder() {
+      const order = JSON.parse(localStorage.getItem('dashboardOrder')) || ['business-overview', 'fleet-health', 'recent-alerts', 'quick-actions'];
+      const section = document.getElementById('overview-section');
+      const sections = order.map(id => document.getElementById(id));
+      section.innerHTML = '';
+      sections.forEach(s => section.appendChild(s));
+    }
+
+    // Quick Actions
+    document.getElementById('add-vehicle-btn').addEventListener('click', () => {
+      document.getElementById('add-vehicle-modal').classList.remove('hidden');
+    });
+    document.getElementById('add-vehicle-cancel').addEventListener('click', () => {
+      document.getElementById('add-vehicle-modal').classList.add('hidden');
+    });
+    document.getElementById('add-vehicle-submit').addEventListener('click', () => {
+      const id = document.getElementById('vehicle-id').value;
+      const type = document.getElementById('vehicle-type').value;
+      fleetData.vehicles.push({
+        id,
+        type,
+        status: 'Active',
+        fuel: 100,
+        engineTemp: 90,
+        lastMaintenance: new Date().toISOString().split('T')[0]
+      });
+      fleetData.metrics.activeVehicles++;
+      updateOverview();
+      renderFleetTable();
+      renderCharts();
+      document.getElementById('add-vehicle-modal').classList.add('hidden');
+      notifications.push({
+        id: `NOTIF-${Date.now()}`,
+        message: `Vehicle ${id} added`,
+        severity: 'normal',
+        timestamp: new Date()
+      });
+      renderNotifications();
+    });
+
+    document.getElementById('add-driver-btn').addEventListener('click', () => {
+      document.getElementById('add-driver-modal').classList.remove('hidden');
+    });
+    document.getElementById('add-driver-cancel').addEventListener('click', () => {
+      document.getElementById('add-driver-modal').classList.add('hidden');
+    });
+    document.getElementById('add-driver-submit').addEventListener('click', () => {
+      const name = document.getElementById('driver-name').value;
+      const license = document.getElementById('driver-license').value;
+      fleetData.drivers.push({
+        name,
+        license,
+        hosStatus: '8h remaining',
+        safeScore: 80
+      });
+      fleetData.metrics.drivers++;
+      updateOverview();
+      renderDriversTable();
+      document.getElementById('add-driver-modal').classList.add('hidden');
+      notifications.push({
+        id: `NOTIF-${Date.now()}`,
+        message: `Driver ${name} added`,
+        severity: 'normal',
+        timestamp: new Date()
+      });
+      renderNotifications();
+    });
+
+    document.getElementById('schedule-maintenance-btn').addEventListener('click', () => {
+      document.getElementById('schedule-maintenance-modal').classList.remove('hidden');
+    });
+    document.getElementById('schedule-maintenance-cancel').addEventListener('click', () => {
+      document.getElementById('schedule-maintenance-modal').classList.add('hidden');
+    });
+    document.getElementById('schedule-maintenance-submit').addEventListener('click', () => {
+      const vehicle = document.getElementById('maintenance-vehicle').value;
+      const type = document.getElementById('maintenance-type').value;
+      fleetData.alerts.push({
+        id: `ALERT-${Date.now()}`,
+        message: `${vehicle}: ${type} scheduled`,
+        severity: 'normal',
+        timestamp: new Date()
+      });
+      notifications.push({
+        id: `NOTIF-${Date.now()}`,
+        message: `${vehicle}: ${type} scheduled`,
+        severity: 'normal',
+        timestamp: new Date()
+      });
+      renderAlerts();
+      renderNotifications();
+      document.getElementById('schedule-maintenance-modal').classList.add('hidden');
+    });
+
+    // Clear Alerts
+    document.getElementById('owner-alerts-list').addEventListener('click', (e) => {
+      if (e.target.classList.contains('clear-alert')) {
+        const id = e.target.dataset.id;
+        fleetData.alerts = fleetData.alerts.filter(a => a.id !== id);
+        notifications = notifications.filter(n => n.id !== id);
+        renderAlerts();
+        renderNotifications();
+      }
+    });
+    document.getElementById('all-alerts-list').addEventListener('click', (e) => {
+      if (e.target.classList.contains('clear-alert')) {
+        const id = e.target.dataset.id;
+        fleetData.alerts = fleetData.alerts.filter(a => a.id !== id);
+        notifications = notifications.filter(n => n.id !== id);
+        renderAlerts();
+        renderNotifications();
+      }
+    });
+
+    // Export Data
+    document.getElementById('export-report-btn').addEventListener('click', () => {
+      document.getElementById('export-report').click();
+    });
+    document.getElementById('export-report').addEventListener('click', () => {
+      const reportType = document.getElementById('report-type').value;
+      if (reportType === 'fleet') {
+        const csvContent = [
+          'Vehicle ID,Type,Status,Fuel Level,Last Maintenance',
+          ...fleetData.vehicles.map(v => `${v.id},${v.type},${v.status},${v.fuel},${v.lastMaintenance}`)
+        ].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'fleet_report.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } else if (reportType === 'driver') {
+        const csvContent = [
+          'Driver Name,License,HOS Status,Safe Driving Score',
+          ...fleetData.drivers.map(d => `${d.name},${d.license},${d.hosStatus},${d.safeScore}`)
+        ].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'driver_report.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } else if (reportType === 'compliance') {
+        const element = document.getElementById('reports-section');
+        const opt = {
+          margin: 0.5,
+          filename: 'compliance_report.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        html2pdf().from(element).set(opt).save();
+      }
+    });
+
+    // Settings
+    document.getElementById('save-settings').addEventListener('click', () => {
+      const interval = document.getElementById('maintenance-interval').value;
+      const email = document.getElementById('email-notifications').checked;
+      const sms = document.getElementById('sms-notifications').checked;
+      alert(`Settings saved: Maintenance Interval=${interval}km, Email=${email}, SMS=${sms}`);
+    });
+
+    // Dark Mode Toggle
+    document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      const isDarkMode = document.body.classList.contains('dark-mode');
+      localStorage.setItem('darkMode', isDarkMode);
+      document.getElementById('dark-mode-toggle').innerHTML = `<i class="fas fa-${isDarkMode ? 'sun' : 'moon'} text-xl"></i>`;
+    });
+
+    // Load dark mode preference
+    if (localStorage.getItem('darkMode') === 'true') {
+      document.body.classList.add('dark-mode');
+      document.getElementById('dark-mode-toggle').innerHTML = '<i class="fas fa-sun text-xl"></i>';
+    }
+
+    // Simulated WebSocket for real-time updates
+    function simulateWebSocketUpdates() {
+      setInterval(() => {
+        fleetData.vehicles.forEach(v => {
+          v.fuel = Math.max(10, v.fuel - Math.random() * 5);
+          v.engineTemp = 90 + Math.random() * 30;
+          v.status = ['Active', 'Idle', 'Maintenance'][Math.floor(Math.random() * 3)];
+        });
+        fleetData.metrics.avgEfficiency = (7 + Math.random() * 3).toFixed(1);
+        fleetData.metrics.totalDistance += Math.floor(Math.random() * 100);
+        if (Math.random() < 0.3) {
+          const newAlert = {
+            id: `ALERT-${Date.now()}`,
+            message: `VEHICLE-${String(Math.floor(Math.random() * 120) + 1).padStart(3, '0')}: ${['Low Fuel (<30%)', 'High Engine Temp (>120°C)', 'Maintenance Due'][Math.floor(Math.random() * 3)]}`,
+            severity: ['error', 'warning', 'normal'][Math.floor(Math.random() * 3)],
+            timestamp: new Date()
+          };
+          fleetData.alerts.push(newAlert);
+          notifications.push(newAlert);
+        }
+        updateOverview();
+        renderFleetTable();
+        renderDriversTable();
+        renderAlerts();
+        renderNotifications();
+        renderCharts();
+      }, 30000); // Update every 30 seconds
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      updateOverview();
+      renderAlerts();
+      renderNotifications();
+      renderFleetTable();
+      renderDriversTable();
+      renderCharts();
+      applyDashboardOrder();
+      simulateWebSocketUpdates();
+
+      // Period selector event
+      const periodSelect = document.getElementById('overview-period');
+      if (periodSelect) {
+        periodSelect.addEventListener('change', () => {
+          updateOverview();
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>

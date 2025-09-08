@@ -1,0 +1,2901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Driver Activity Report - Lynx Lite Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Feedback Storage System -->
+  <script src="feedback-storage.js"></script>
+  
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(to bottom, #f9fafb, #e5e7eb);
+      color: #1f2937;
+    }
+    .max-w-7xl { 
+      max-width: 100%; 
+    }
+    .widget-card {
+      background: linear-gradient(145deg, #ffffff, #f9fafb);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+      border-radius: 12px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .widget-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2rem;
+    }
+    .report-table th, .report-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+    .report-table th {
+      background: #f3f4f6;
+      font-weight: 600;
+      color: #374151;
+    }
+    .report-table tr:hover {
+      background: #f1f5f9;
+    }
+    @media (max-width: 768px) {
+      .widget-card { padding: 1.5rem; }
+      .report-table th, .report-table td { padding: 0.5rem; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+  <header class="bg-white shadow flex justify-between items-center px-6 py-4 z-30 fixed top-0 left-0 w-full" aria-label="Driver Activity Header">
+    <div class="flex items-center space-x-4">
+      <a href="index.html" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Back to Dashboard">
+        <i class="fas fa-arrow-left text-xl"></i>
+      </a>
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Driver Activity Report</h1>
+    </div>
+    <div class="flex items-center space-x-4">
+      <button id="export-driver-activity" class="text-blue-600 hover:text-blue-700 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-300" aria-label="Export Driver Activity" tabindex="0">
+        <i class="fas fa-download mr-2"></i>Export CSV
+      </button>
+      
+      <!-- Feedback Button -->
+      <div class="text-center">
+        <button id="feedback-toggle" class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all hover:scale-105 shadow-lg flex items-center gap-2 font-medium" title="Submit Feedback">
+          <i class="fas fa-comment-dots text-lg"></i>
+          Submit Feedback
+        </button>
+        <p class="text-xs text-gray-500 mt-1">Feedback automatically sent to Google Sheets</p>
+      </div>
+    </div>
+  </header>
+  <main class="pt-24 px-6 max-w-7xl mx-auto">
+    <div class="widget-card p-8">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+          <i class="fas fa-user-clock text-blue-600 mr-2"></i>Driver Activity Overview
+        </h2>
+      </div>
+             <!-- Driver Performance Dashboard -->
+       <div class="mb-8">
+         <div class="flex items-center justify-between mb-6">
+           <h3 class="text-xl font-bold text-gray-900 flex items-center">
+             <i class="fas fa-chart-line text-purple-600 mr-2"></i>Driver Performance Dashboard
+           </h3>
+           <div class="flex space-x-2">
+             <select id="performance-period" class="border border-gray-300 px-3 py-1 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+               <option value="7d">Last 7 Days</option>
+               <option value="30d">Last 30 Days</option>
+               <option value="90d">Last 90 Days</option>
+             </select>
+             <button id="refresh-performance" class="px-3 py-1 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors">
+               <i class="fas fa-sync-alt mr-1"></i>Refresh
+             </button>
+           </div>
+         </div>
+
+         <!-- Fleet Overview Summary -->
+         <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg border border-indigo-200 mb-6">
+           <div class="flex items-center justify-between">
+             <div>
+               <h4 class="text-lg font-semibold text-indigo-800 mb-2">Fleet Performance Overview</h4>
+               <p class="text-sm text-indigo-600">Overall driver performance metrics for the entire fleet</p>
+             </div>
+             <div class="text-right">
+               <p class="text-sm text-indigo-600">Total Drivers: <span class="font-semibold">50</span></p>
+               <p class="text-sm text-indigo-600">Active Drivers: <span class="font-semibold">50</span></p>
+             </div>
+           </div>
+         </div>
+
+          <!-- Performance Summary Statistics -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+              <h5 class="text-sm font-semibold text-gray-700 mb-2">Performance Distribution</h5>
+              <div class="space-y-2">
+                <div class="flex justify-between text-xs">
+                  <span class="text-green-600">Excellent (90+)</span>
+                  <span id="excellent-count" class="font-semibold">0</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span class="text-blue-600">Good (80-89)</span>
+                  <span id="good-count" class="font-semibold">0</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span class="text-yellow-600">Fair (70-79)</span>
+                  <span id="fair-count" class="font-semibold">0</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span class="text-red-600">Poor (<70)</span>
+                  <span id="poor-count" class="font-semibold">0</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+              <h5 class="text-sm font-semibold text-gray-700 mb-2">Key Metrics</h5>
+              <div class="space-y-2">
+                <div class="flex justify-between text-xs">
+                  <span>Avg Hours/Driver</span>
+                  <span id="avg-hours" class="font-semibold">0</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span>Total Distance</span>
+                  <span id="total-distance" class="font-semibold">0 km</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span>Total Harsh Events</span>
+                  <span id="total-harsh" class="font-semibold">0</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span>Best Performer</span>
+                  <span id="best-performer" class="font-semibold text-green-600">-</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+              <h5 class="text-sm font-semibold text-gray-700 mb-2">Trends</h5>
+              <div class="space-y-2">
+                <div class="flex justify-between text-xs">
+                  <span>Safety Trend</span>
+                  <span id="safety-trend" class="font-semibold text-green-600">↗</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span>Efficiency Trend</span>
+                  <span id="efficiency-trend" class="font-semibold text-green-600">↗</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span>Compliance Trend</span>
+                  <span id="compliance-trend" class="font-semibold text-green-600">↗</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span>Reliability Trend</span>
+                  <span id="reliability-trend" class="font-semibold text-green-600">↗</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        <!-- Performance Scorecards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                     <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+             <div class="flex items-center justify-between mb-2">
+               <h4 class="text-sm font-semibold text-blue-800" id="safety-title">Fleet Safety Score</h4>
+               <i class="fas fa-shield-alt text-blue-600"></i>
+             </div>
+             <p id="driver-safety-score" class="text-2xl font-bold text-blue-700">87/100</p>
+             <p class="text-xs text-blue-600 mt-1" id="safety-subtitle">Average safety metrics</p>
+             <div class="mt-2">
+               <div class="w-full bg-blue-200 rounded-full h-2">
+                 <div id="safety-score-bar" class="bg-blue-600 h-2 rounded-full" style="width: 87%"></div>
+               </div>
+             </div>
+           </div>
+
+           <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+             <div class="flex items-center justify-between mb-2">
+               <h4 class="text-sm font-semibold text-green-800" id="efficiency-title">Fleet Efficiency Rating</h4>
+               <i class="fas fa-leaf text-green-600"></i>
+             </div>
+             <p id="driver-efficiency-rating" class="text-2xl font-bold text-green-700">82/100</p>
+             <p class="text-xs text-green-600 mt-1" id="efficiency-subtitle">Average fuel efficiency</p>
+             <div class="mt-2">
+               <div class="w-full bg-green-200 rounded-full h-2">
+                 <div id="efficiency-rating-bar" class="bg-green-600 h-2 rounded-full" style="width: 82%"></div>
+               </div>
+             </div>
+           </div>
+
+           <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+             <div class="flex items-center justify-between mb-2">
+               <h4 class="text-sm font-semibold text-purple-800" id="compliance-title">Fleet Compliance Score</h4>
+               <i class="fas fa-clipboard-check text-purple-600"></i>
+             </div>
+             <p id="driver-compliance-score" class="text-2xl font-bold text-purple-700">94/100</p>
+             <p class="text-xs text-purple-600 mt-1" id="compliance-subtitle">Average policy adherence</p>
+             <div class="mt-2">
+               <div class="w-full bg-purple-200 rounded-full h-2">
+                 <div id="compliance-score-bar" class="bg-purple-600 h-2 rounded-full" style="width: 94%"></div>
+               </div>
+             </div>
+           </div>
+
+           <div class="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
+             <div class="flex items-center justify-between mb-2">
+               <h4 class="text-sm font-semibold text-orange-800" id="reliability-title">Fleet Reliability</h4>
+               <i class="fas fa-clock text-orange-600"></i>
+             </div>
+             <p id="driver-reliability" class="text-2xl font-bold text-orange-700">89/100</p>
+             <p class="text-xs text-orange-600 mt-1" id="reliability-subtitle">Average on-time performance</p>
+             <div class="mt-2">
+               <div class="w-full bg-orange-200 rounded-full h-2">
+                 <div id="reliability-bar" class="bg-orange-600 h-2 rounded-full" style="width: 89%"></div>
+               </div>
+             </div>
+           </div>
+        </div>
+
+        <!-- Driver Performance Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-chart-bar text-blue-600 mr-2"></i>Driver Performance Trends
+            </h4>
+            <canvas id="driverPerformanceChart" height="200"></canvas>
+          </div>
+
+          <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-chart-pie text-green-600 mr-2"></i>Safety Score Distribution
+            </h4>
+            <canvas id="driverSafetyChart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Total Driving Hours</h3>
+          <canvas id="hoursChart" height="120"></canvas>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Harsh Events</h3>
+          <canvas id="harshChart" height="120"></canvas>
+        </div>
+      </div>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Driver Activity</h3>
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Recent Driver Activity</h3>
+          <div class="flex items-center space-x-4">
+            <label for="activity-period" class="text-sm font-medium text-gray-700">Period:</label>
+            <select id="activity-period" class="border border-gray-300 px-3 py-1 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+              <option value="7">Last 7 Days</option>
+              <option value="14">Last 14 Days</option>
+              <option value="30" selected>Last 30 Days</option>
+              <option value="90">Last 90 Days</option>
+              <option value="all">All Time</option>
+            </select>
+          </div>
+        </div>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Driver</th>
+            <th>Vehicle ID</th>
+            <th>Total Hours</th>
+            <th>Distance (km)</th>
+              <th>Trips</th>
+            <th>Harsh Events</th>
+            <th>Safe Driving Score</th>
+            <th>Last Updated</th>
+              <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="driver-activity-table-body">
+          <!-- Activity rows will be inserted here -->
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Driver Details Modal -->
+  <div id="driver-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <div>
+          <h3 class="text-xl font-bold text-gray-900" id="modal-driver-name">Driver Details</h3>
+          <p class="text-sm text-gray-600" id="modal-driver-vehicle">Vehicle: -</p>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-2">
+            <label for="modal-period" class="text-sm font-medium text-gray-700">Period:</label>
+            <select id="modal-period" class="border border-gray-300 px-3 py-1 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="7">Last 7 Days</option>
+              <option value="14">Last 14 Days</option>
+              <option value="30" selected>Last 30 Days</option>
+              <option value="90">Last 90 Days</option>
+              <option value="all">All Time</option>
+            </select>
+          </div>
+          <button id="close-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="p-6">
+        <!-- Driver Performance Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-sm font-semibold text-blue-800">Safety Score</h4>
+              <i class="fas fa-shield-alt text-blue-600"></i>
+            </div>
+            <p id="modal-safety-score" class="text-2xl font-bold text-blue-700">0/100</p>
+            <div class="mt-2">
+              <div class="w-full bg-blue-200 rounded-full h-2">
+                <div id="modal-safety-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-sm font-semibold text-green-800">Efficiency Rating</h4>
+              <i class="fas fa-leaf text-green-600"></i>
+            </div>
+            <p id="modal-efficiency-score" class="text-2xl font-bold text-green-700">0/100</p>
+            <div class="mt-2">
+              <div class="w-full bg-green-200 rounded-full h-2">
+                <div id="modal-efficiency-bar" class="bg-green-600 h-2 rounded-full" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-sm font-semibold text-purple-800">Compliance Score</h4>
+              <i class="fas fa-clipboard-check text-purple-600"></i>
+            </div>
+            <p id="modal-compliance-score" class="text-2xl font-bold text-purple-700">0/100</p>
+            <div class="mt-2">
+              <div class="w-full bg-purple-200 rounded-full h-2">
+                <div id="modal-compliance-bar" class="bg-purple-600 h-2 rounded-full" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-sm font-semibold text-orange-800">Reliability</h4>
+              <i class="fas fa-clock text-orange-600"></i>
+            </div>
+            <p id="modal-reliability-score" class="text-2xl font-bold text-orange-700">0/100</p>
+            <div class="mt-2">
+              <div class="w-full bg-orange-200 rounded-full h-2">
+                <div id="modal-reliability-bar" class="bg-orange-600 h-2 rounded-full" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h4>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Fuel Efficiency</span>
+                <span id="modal-fuel-efficiency" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Route Optimization</span>
+                <span id="modal-route-optimization" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Policy Adherence</span>
+                <span id="modal-policy-adherence" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Documentation</span>
+                <span id="modal-documentation" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">On-Time Performance</span>
+                <span id="modal-on-time-performance" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Vehicle Care</span>
+                <span id="modal-vehicle-care" class="font-semibold">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">Activity Summary</h4>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Total Hours</span>
+                <span id="modal-total-hours" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Total Distance</span>
+                <span id="modal-total-distance" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Total Trips</span>
+                <span id="modal-total-trips" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Harsh Events</span>
+                <span id="modal-harsh-events" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Average Speed</span>
+                <span id="modal-avg-speed" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Last Updated</span>
+                <span id="modal-last-updated" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Performance Rank</span>
+                <span id="modal-performance-rank" class="font-semibold text-blue-600">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Driver Information -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <!-- Driver Profile -->
+          <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-user text-blue-600 mr-2"></i>Driver Profile
+            </h4>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">License Number</span>
+                <span id="modal-license-number" class="font-semibold text-sm">DL-2024-001</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">License Expiry</span>
+                <span id="modal-license-expiry" class="font-semibold text-sm">2026-03-15</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Hire Date</span>
+                <span id="modal-hire-date" class="font-semibold text-sm">2023-01-15</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Experience</span>
+                <span id="modal-experience" class="font-semibold text-sm">2 years</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Training Status</span>
+                <span id="modal-training-status" class="font-semibold text-sm text-green-600">Current</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Medical Certificate</span>
+                <span id="modal-medical-status" class="font-semibold text-sm text-green-600">Valid</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trip History -->
+          <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-route text-green-600 mr-2"></i>Recent Trips
+            </h4>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Today's Trips</span>
+                <span id="modal-today-trips" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">This Week</span>
+                <span id="modal-week-trips" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">This Month</span>
+                <span id="modal-month-trips" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Avg Trip Duration</span>
+                <span id="modal-avg-trip-duration" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Longest Trip</span>
+                <span id="modal-longest-trip" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Completion Rate</span>
+                <span id="modal-completion-rate" class="font-semibold text-green-600">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alerts & Issues -->
+          <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>Alerts & Issues
+            </h4>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Active Alerts</span>
+                <span id="modal-active-alerts" class="font-semibold text-red-600">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Speed Violations</span>
+                <span id="modal-speed-violations" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Idle Time</span>
+                <span id="modal-idle-time" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Maintenance Due</span>
+                <span id="modal-maintenance-due" class="font-semibold">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Last Incident</span>
+                <span id="modal-last-incident" class="font-semibold text-sm">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Risk Level</span>
+                <span id="modal-risk-level" class="font-semibold text-green-600">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Performance Trends -->
+        <div class="bg-white p-4 rounded-lg shadow border border-gray-200 mb-6">
+          <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-chart-line text-purple-600 mr-2"></i>Performance Trends (Last 30 Days)
+          </h4>
+          <canvas id="modalTrendChart" height="150"></canvas>
+        </div>
+
+                 <!-- Recent Activity Log -->
+         <div class="bg-white p-4 rounded-lg shadow border border-gray-200 mb-6">
+           <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center" id="modal-activity-log-title">
+             <i class="fas fa-history text-gray-600 mr-2"></i>Recent Activity Log (Last 30 Days)
+           </h4>
+           <div id="modal-activity-log" class="space-y-2 max-h-40 overflow-y-auto">
+             <!-- Activity log entries will be populated here -->
+           </div>
+         </div>
+
+                 <!-- Recommendations -->
+         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+           <h4 class="text-lg font-semibold text-blue-900 mb-3">Performance Insights & Recommendations</h4>
+           <div id="modal-recommendations" class="text-sm text-blue-800">
+             <!-- Recommendations will be populated here -->
+           </div>
+           <div id="recommendation-actions" class="mt-4 pt-4 border-t border-blue-200">
+             <div class="flex items-center justify-between mb-4">
+               <span class="text-sm text-blue-700 font-medium">Action Required:</span>
+               <div class="flex space-x-2">
+                 <button id="send-all-recommendations" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs transition-colors">
+                   <i class="fas fa-paper-plane mr-1"></i>Send All
+                 </button>
+                 <button id="dismiss-all-recommendations" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-xs transition-colors">
+                   <i class="fas fa-times mr-1"></i>Dismiss All
+                 </button>
+               </div>
+             </div>
+             
+             <!-- Custom Message Section -->
+             <div class="mt-4 pt-4 border-t border-blue-200">
+               <div class="flex items-center mb-3">
+                 <i class="fas fa-comment text-blue-600 mr-2"></i>
+                 <span class="text-sm text-blue-700 font-medium">Send Custom Message to Driver</span>
+               </div>
+               <div class="flex space-x-2">
+                 <textarea id="custom-message-input" placeholder="Type your custom message here..." class="flex-1 border border-blue-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" rows="3"></textarea>
+                 <button id="send-custom-message" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm transition-colors self-end">
+                   <i class="fas fa-paper-plane mr-1"></i>Send
+                 </button>
+               </div>
+               <div class="mt-2 text-xs text-blue-600">
+                 <i class="fas fa-info-circle mr-1"></i>
+                 This message will be sent directly to the driver's device or dashboard
+               </div>
+             </div>
+           </div>
+         </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-end p-6 border-t border-gray-200">
+        <div class="flex items-center space-x-3">
+          <select id="export-format" class="border border-gray-300 px-3 py-2 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="json">JSON</option>
+            <option value="csv">CSV</option>
+            <option value="txt">Text Report</option>
+            <option value="pdf">PDF Report</option>
+          </select>
+          <button id="export-driver-report" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+            <i class="fas fa-download mr-2"></i>Export Report
+          </button>
+        </div>
+        <button id="close-modal-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors ml-3">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+  <script>
+         // Enhanced driver activity data with performance metrics - 50 drivers
+    const driverActivity = [
+       {
+         driver: 'Driver 1',
+         vehicleId: 'VEHICLE-001',
+         hours: 8.5,
+         distance: 120,
+         trips: 12,
+         harshEvents: 2,
+         score: 85,
+         lastUpdated: '2024-01-15T10:30:00',
+         safetyScore: 88,
+         efficiencyRating: 92,
+         complianceScore: 85,
+         reliability: 90,
+         fuelEfficiency: 8.2,
+         routeOptimization: 94,
+         policyAdherence: 87,
+         documentation: 83,
+         onTimePerformance: 92,
+         vehicleCare: 88
+       },
+       {
+         driver: 'Driver 2',
+         vehicleId: 'VEHICLE-002',
+         hours: 7.2,
+         distance: 95,
+         trips: 8,
+         harshEvents: 1,
+         score: 92,
+         lastUpdated: '2024-01-15T09:45:00',
+         safetyScore: 94,
+         efficiencyRating: 88,
+         complianceScore: 91,
+         reliability: 89,
+         fuelEfficiency: 7.8,
+         routeOptimization: 89,
+         policyAdherence: 93,
+         documentation: 89,
+         onTimePerformance: 87,
+         vehicleCare: 91
+       },
+       {
+         driver: 'Driver 3',
+         vehicleId: 'VEHICLE-003',
+         hours: 9.1,
+         distance: 145,
+         trips: 15,
+         harshEvents: 3,
+         score: 78,
+         lastUpdated: '2024-01-15T11:15:00',
+         safetyScore: 82,
+         efficiencyRating: 85,
+         complianceScore: 79,
+         reliability: 84,
+         fuelEfficiency: 8.5,
+         routeOptimization: 87,
+         policyAdherence: 81,
+         documentation: 77,
+         onTimePerformance: 86,
+         vehicleCare: 83
+       },
+       {
+         driver: 'Driver 4',
+         vehicleId: 'VEHICLE-004',
+         hours: 6.8,
+         distance: 88,
+         trips: 6,
+         harshEvents: 0,
+         score: 95,
+         lastUpdated: '2024-01-15T08:30:00',
+         safetyScore: 96,
+         efficiencyRating: 94,
+         complianceScore: 95,
+         reliability: 94,
+         fuelEfficiency: 7.2,
+         routeOptimization: 96,
+         policyAdherence: 97,
+         documentation: 93,
+         onTimePerformance: 95,
+         vehicleCare: 96
+       },
+       {
+         driver: 'Driver 5',
+         vehicleId: 'VEHICLE-005',
+         hours: 8.9,
+         distance: 132,
+         trips: 11,
+         harshEvents: 2,
+         score: 87,
+         lastUpdated: '2024-01-15T10:00:00',
+         safetyScore: 89,
+         efficiencyRating: 91,
+         complianceScore: 86,
+         reliability: 88,
+         fuelEfficiency: 8.0,
+         routeOptimization: 92,
+         policyAdherence: 88,
+         documentation: 84,
+         onTimePerformance: 90,
+         vehicleCare: 87
+       }
+     ];
+
+     // Add remaining 45 drivers with trips data
+     for (let i = 6; i <= 50; i++) {
+       const baseHours = 6 + Math.random() * 4; // 6-10 hours
+       const baseDistance = 80 + Math.random() * 120; // 80-200 km
+       const trips = Math.floor(5 + Math.random() * 12); // 5-16 trips
+       const harshEvents = Math.floor(Math.random() * 4); // 0-3 harsh events
+       const score = 75 + Math.floor(Math.random() * 20); // 75-95 score
+       
+       driverActivity.push({
+         driver: `Driver ${i}`,
+         vehicleId: `VEHICLE-${String(i).padStart(3, '0')}`,
+         hours: Math.round(baseHours * 10) / 10,
+         distance: Math.round(baseDistance),
+         trips: trips,
+         harshEvents: harshEvents,
+         score: score,
+         lastUpdated: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+         safetyScore: score + Math.floor(Math.random() * 10) - 5,
+         efficiencyRating: score + Math.floor(Math.random() * 10) - 5,
+         complianceScore: score + Math.floor(Math.random() * 10) - 5,
+         reliability: score + Math.floor(Math.random() * 10) - 5,
+         fuelEfficiency: 7 + Math.random() * 3,
+         routeOptimization: score + Math.floor(Math.random() * 10) - 5,
+         policyAdherence: score + Math.floor(Math.random() * 10) - 5,
+         documentation: score + Math.floor(Math.random() * 10) - 5,
+         onTimePerformance: score + Math.floor(Math.random() * 10) - 5,
+         vehicleCare: score + Math.floor(Math.random() * 10) - 5
+       });
+     }
+
+    // Render table
+    function renderDriverActivityTable(data) {
+      const tbody = document.getElementById('driver-activity-table-body');
+      tbody.innerHTML = '';
+      data.forEach(activity => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${activity.driver}</td>
+          <td>${activity.vehicleId}</td>
+          <td>${activity.hours}</td>
+          <td>${activity.distance}</td>
+          <td>${activity.trips}</td>
+          <td>${activity.harshEvents}</td>
+          <td><span class="score-badge px-2 py-1 rounded-full text-sm ${activity.score >= 90 ? 'bg-green-100 text-green-800' : activity.score >= 80 ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}">${activity.score}</span></td>
+          <td>${new Date(activity.lastUpdated).toLocaleString()}</td>
+          <td>
+            <button class="view-details-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm" data-driver="${activity.driver}">
+              View Details
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      
+      // Add event listeners to the new buttons
+      addModalEventListeners();
+    }
+
+    // Filter data by period
+    function filterDataByPeriod(data, period) {
+      const now = new Date();
+      const filteredData = data.filter(activity => {
+        const activityDate = new Date(activity.lastUpdated);
+        const daysDiff = (now - activityDate) / (1000 * 60 * 60 * 24);
+        
+        switch(period) {
+          case '7': return daysDiff <= 7;
+          case '14': return daysDiff <= 14;
+          case '30': return daysDiff <= 30;
+          case '90': return daysDiff <= 90;
+          case 'all': return true;
+          default: return daysDiff <= 30;
+        }
+      });
+      
+      return filteredData;
+    }
+
+    // Render charts
+    function renderCharts(data) {
+      // Fleet-wide aggregated data for trends
+      const fleetData = {
+        totalHours: data.reduce((sum, d) => sum + d.hours, 0),
+        totalDistance: data.reduce((sum, d) => sum + d.distance, 0),
+        totalHarshEvents: data.reduce((sum, d) => sum + d.harshEvents, 0),
+        avgSafetyScore: Math.round(data.reduce((sum, d) => sum + d.safetyScore, 0) / data.length),
+        avgEfficiencyRating: Math.round(data.reduce((sum, d) => sum + d.efficiencyRating, 0) / data.length),
+        avgComplianceScore: Math.round(data.reduce((sum, d) => sum + d.complianceScore, 0) / data.length),
+        avgReliability: Math.round(data.reduce((sum, d) => sum + d.reliability, 0) / data.length)
+      };
+      
+      // Generate more realistic time-based trend data (last 30 days)
+      const trendDays = 30;
+      const trendData = [];
+      const today = new Date();
+      
+      // Base values for more realistic scaling
+      const baseDailyHours = Math.round(fleetData.totalHours / 30); // Average daily hours
+      const baseDailyHarshEvents = Math.round(fleetData.totalHarshEvents / 30); // Average daily harsh events
+      
+      for (let i = trendDays - 1; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        
+        // More realistic daily variations
+        const dayOfWeek = date.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const isMonday = dayOfWeek === 1;
+        const isFriday = dayOfWeek === 5;
+        
+        // Realistic factors based on day of week
+        let dayFactor = 1.0;
+        if (isWeekend) dayFactor = 0.4; // Much lower on weekends
+        else if (isMonday) dayFactor = 0.8; // Lower on Mondays
+        else if (isFriday) dayFactor = 1.1; // Higher on Fridays
+        
+        // Add seasonal variation (slight decrease in winter months)
+        const month = date.getMonth();
+        const seasonalFactor = month >= 11 || month <= 1 ? 0.9 : 1.0; // Winter months
+        
+        // Realistic random variation (±15% for hours, ±25% for harsh events)
+        const hoursVariation = 0.85 + (Math.random() * 0.3);
+        const harshVariation = 0.75 + (Math.random() * 0.5);
+        
+        trendData.push({
+          date: date.toLocaleDateString(),
+          totalHours: Math.round(baseDailyHours * dayFactor * seasonalFactor * hoursVariation),
+          harshEvents: Math.round(baseDailyHarshEvents * dayFactor * harshVariation),
+          safetyScore: Math.max(70, Math.min(100, fleetData.avgSafetyScore + (Math.random() - 0.5) * 8)),
+          efficiencyRating: Math.max(70, Math.min(100, fleetData.avgEfficiencyRating + (Math.random() - 0.5) * 8))
+        });
+      }
+      
+      const labels = trendData.map(d => d.date);
+      const hoursData = trendData.map(d => d.totalHours);
+      const harshData = trendData.map(d => d.harshEvents);
+      
+      // Fleet Total Driving Hours Trend
+      new Chart(document.getElementById('hoursChart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Fleet Total Hours',
+            data: hoursData,
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderColor: '#3b82f6',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 2,
+            pointHoverRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { 
+            legend: { display: false },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              callbacks: {
+                title: function(context) {
+                  return `Date: ${context[0].label}`;
+                },
+                label: function(context) {
+                  return `Fleet Hours: ${context.parsed.y}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Total Hours' }
+            },
+            x: {
+              title: { display: true, text: 'Date' },
+              ticks: {
+                maxTicksLimit: 10,
+                maxRotation: 45
+              }
+            }
+          },
+          interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+          }
+        }
+      });
+      
+      // Fleet Harsh Events Trend
+      new Chart(document.getElementById('harshChart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Fleet Harsh Events',
+            data: harshData,
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            borderColor: '#ef4444',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 2,
+            pointHoverRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { 
+            legend: { display: false },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              callbacks: {
+                title: function(context) {
+                  return `Date: ${context[0].label}`;
+                },
+                label: function(context) {
+                  return `Harsh Events: ${context.parsed.y}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Harsh Events' }
+            },
+            x: {
+              title: { display: true, text: 'Date' },
+              ticks: {
+                maxTicksLimit: 10,
+                maxRotation: 45
+              }
+            }
+          },
+          interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+          }
+        }
+      });
+    }
+
+    // Calculate driver performance metrics
+    function calculateDriverPerformance() {
+      // Always calculate overall fleet statistics
+      const overallData = driverActivity;
+      
+      if (overallData.length === 0) return;
+      
+      // Calculate overall fleet average scores
+      const overallSafetyScore = Math.round(overallData.reduce((sum, d) => sum + d.safetyScore, 0) / overallData.length);
+      const overallEfficiencyRating = Math.round(overallData.reduce((sum, d) => sum + d.efficiencyRating, 0) / overallData.length);
+      const overallComplianceScore = Math.round(overallData.reduce((sum, d) => sum + d.complianceScore, 0) / overallData.length);
+      const overallReliability = Math.round(overallData.reduce((sum, d) => sum + d.reliability, 0) / overallData.length);
+      
+      // Update scorecards with fleet averages
+      document.getElementById('driver-safety-score').textContent = `${overallSafetyScore}/100`;
+      document.getElementById('driver-efficiency-rating').textContent = `${overallEfficiencyRating}/100`;
+      document.getElementById('driver-compliance-score').textContent = `${overallComplianceScore}/100`;
+      document.getElementById('driver-reliability').textContent = `${overallReliability}/100`;
+      
+      // Update titles and subtitles for fleet view
+      document.getElementById('safety-title').textContent = 'Fleet Safety Score';
+      document.getElementById('efficiency-title').textContent = 'Fleet Efficiency Rating';
+      document.getElementById('compliance-title').textContent = 'Fleet Compliance Score';
+      document.getElementById('reliability-title').textContent = 'Fleet Reliability';
+      
+      document.getElementById('safety-subtitle').textContent = 'Average safety metrics';
+      document.getElementById('efficiency-subtitle').textContent = 'Average fuel efficiency';
+      document.getElementById('compliance-subtitle').textContent = 'Average policy adherence';
+      document.getElementById('reliability-subtitle').textContent = 'Average on-time performance';
+      
+      // Update progress bars
+      document.getElementById('safety-score-bar').style.width = `${overallSafetyScore}%`;
+      document.getElementById('efficiency-rating-bar').style.width = `${overallEfficiencyRating}%`;
+      document.getElementById('compliance-score-bar').style.width = `${overallComplianceScore}%`;
+      document.getElementById('reliability-bar').style.width = `${overallReliability}%`;
+      
+      // Update summary statistics
+      updateSummaryStatistics(overallData);
+      
+      // Render performance charts (always show all drivers)
+      renderDriverPerformanceCharts(overallData, 'All');
+    }
+    
+    // Update summary statistics
+    function updateSummaryStatistics(data) {
+      // Performance distribution
+      const safetyScores = data.map(d => d.safetyScore);
+      const excellent = safetyScores.filter(s => s >= 90).length;
+      const good = safetyScores.filter(s => s >= 80 && s < 90).length;
+      const fair = safetyScores.filter(s => s >= 70 && s < 80).length;
+      const poor = safetyScores.filter(s => s < 70).length;
+      
+      document.getElementById('excellent-count').textContent = excellent;
+      document.getElementById('good-count').textContent = good;
+      document.getElementById('fair-count').textContent = fair;
+      document.getElementById('poor-count').textContent = poor;
+      
+      // Key metrics
+      const avgHours = Math.round(data.reduce((sum, d) => sum + d.hours, 0) / data.length);
+      const totalDistance = data.reduce((sum, d) => sum + d.distance, 0);
+      const totalHarsh = data.reduce((sum, d) => sum + d.harshEvents, 0);
+      
+      // Find best performer
+      const bestPerformer = data.reduce((best, current) => 
+        (current.safetyScore + current.efficiencyRating + current.complianceScore + current.reliability) / 4 > 
+        (best.safetyScore + best.efficiencyRating + best.complianceScore + best.reliability) / 4 ? current : best
+      );
+      
+      document.getElementById('avg-hours').textContent = avgHours;
+      document.getElementById('total-distance').textContent = `${totalDistance} km`;
+      document.getElementById('total-harsh').textContent = totalHarsh;
+      document.getElementById('best-performer').textContent = bestPerformer.driver;
+      
+      // Trends (simplified - could be enhanced with historical data)
+      const avgSafety = data.reduce((sum, d) => sum + d.safetyScore, 0) / data.length;
+     const avgEfficiency = data.reduce((sum, d) => sum + d.efficiencyRating, 0) / data.length;
+     const avgCompliance = data.reduce((sum, d) => sum + d.complianceScore, 0) / data.length;
+     const avgReliability = data.reduce((sum, d) => sum + d.reliability, 0) / data.length;
+     
+     // Simple trend indicators based on averages
+     document.getElementById('safety-trend').textContent = avgSafety > 85 ? '↗' : avgSafety > 75 ? '→' : '↘';
+     document.getElementById('efficiency-trend').textContent = avgEfficiency > 85 ? '↗' : avgEfficiency > 75 ? '→' : '↘';
+     document.getElementById('compliance-trend').textContent = avgCompliance > 85 ? '↗' : avgCompliance > 75 ? '→' : '↘';
+     document.getElementById('reliability-trend').textContent = avgReliability > 85 ? '↗' : avgReliability > 75 ? '→' : '↘';
+    }
+
+    // Render driver performance charts
+    function renderDriverPerformanceCharts(data, selectedDriver = 'All') {
+      // Fleet Performance Trends Chart - Show fleet-wide performance over time
+      const performanceCtx = document.getElementById('driverPerformanceChart');
+      if (performanceCtx) {
+        if (window._driverPerformanceChart) window._driverPerformanceChart.destroy();
+        
+        // Generate more realistic fleet performance trend data (last 30 days)
+        const trendDays = 30;
+        const trendData = [];
+        const today = new Date();
+        
+        // Base performance scores from actual data
+        const baseSafetyScore = 87;
+        const baseEfficiencyRating = 82;
+        const baseComplianceScore = 94;
+        const baseReliability = 89;
+        
+        for (let i = trendDays - 1; i >= 0; i--) {
+          const date = new Date(today);
+          date.setDate(date.getDate() - i);
+          
+          // More realistic daily performance variations
+          const dayOfWeek = date.getDay();
+          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+          const isMonday = dayOfWeek === 1;
+          const isFriday = dayOfWeek === 5;
+          
+          // Performance factors based on day of week
+          let performanceFactor = 1.0;
+          if (isWeekend) performanceFactor = 0.95; // Slightly lower on weekends
+          else if (isMonday) performanceFactor = 0.98; // Slightly lower on Mondays
+          else if (isFriday) performanceFactor = 1.02; // Slightly higher on Fridays
+          
+          // Add weekly trend (improvement over the week)
+          const weekProgress = (i % 7) / 6; // 0 to 1 over the week
+          const weeklyTrend = 1.0 + (weekProgress * 0.03); // 3% improvement over week
+          
+          // Realistic random variations (±3-5 points)
+          const safetyVariation = (Math.random() - 0.5) * 6;
+          const efficiencyVariation = (Math.random() - 0.5) * 6;
+          const complianceVariation = (Math.random() - 0.5) * 4; // Less variation for compliance
+          const reliabilityVariation = (Math.random() - 0.5) * 6;
+          
+          trendData.push({
+            date: date.toLocaleDateString(),
+            safetyScore: Math.max(75, Math.min(100, (baseSafetyScore + safetyVariation) * performanceFactor * weeklyTrend)),
+            efficiencyRating: Math.max(75, Math.min(100, (baseEfficiencyRating + efficiencyVariation) * performanceFactor * weeklyTrend)),
+            complianceScore: Math.max(85, Math.min(100, (baseComplianceScore + complianceVariation) * performanceFactor * weeklyTrend)),
+            reliability: Math.max(75, Math.min(100, (baseReliability + reliabilityVariation) * performanceFactor * weeklyTrend))
+          });
+        }
+        
+        const labels = trendData.map(d => d.date);
+        const safetyData = trendData.map(d => Math.round(d.safetyScore));
+        const efficiencyData = trendData.map(d => Math.round(d.efficiencyRating));
+        const complianceData = trendData.map(d => Math.round(d.complianceScore));
+        const reliabilityData = trendData.map(d => Math.round(d.reliability));
+        
+        window._driverPerformanceChart = new Chart(performanceCtx.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Fleet Safety Score',
+                data: safetyData,
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderColor: '#3b82f6',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 5
+              },
+              {
+                label: 'Fleet Efficiency Rating',
+                data: efficiencyData,
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderColor: '#10b981',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 5
+              },
+              {
+                label: 'Fleet Compliance Score',
+                data: complianceData,
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                borderColor: '#8b5cf6',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 5
+              },
+              {
+                label: 'Fleet Reliability',
+                data: reliabilityData,
+                backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                borderColor: '#f97316',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 5
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { 
+                display: true,
+                position: 'top'
+              },
+              tooltip: { 
+                enabled: true,
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                  title: function(context) {
+                    return `Date: ${context[0].label}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: { 
+                beginAtZero: true, 
+                title: { display: true, text: 'Score' },
+                max: 100
+              },
+              x: { 
+                title: { display: true, text: 'Date' },
+                ticks: {
+                  maxTicksLimit: 10,
+                  maxRotation: 45
+                }
+              }
+            },
+            interaction: {
+              mode: 'nearest',
+              axis: 'x',
+              intersect: false
+            }
+          }
+        });
+      }
+      
+      // Fleet Safety Score Distribution Chart
+      const safetyCtx = document.getElementById('driverSafetyChart');
+      if (safetyCtx) {
+        if (window._driverSafetyChart) window._driverSafetyChart.destroy();
+        
+        const safetyScores = data.map(d => d.safetyScore);
+        const excellent = safetyScores.filter(s => s >= 90).length;
+        const good = safetyScores.filter(s => s >= 80 && s < 90).length;
+        const fair = safetyScores.filter(s => s >= 70 && s < 80).length;
+        const poor = safetyScores.filter(s => s < 70).length;
+        
+        window._driverSafetyChart = new Chart(safetyCtx.getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Excellent (90+)', 'Good (80-89)', 'Fair (70-79)', 'Poor (<70)'],
+            datasets: [{
+              data: [excellent, good, fair, poor],
+              backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+              borderWidth: 2,
+              borderColor: '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              title: {
+                display: true,
+                text: 'Fleet Safety Score Distribution',
+                font: { size: 14, weight: 'bold' },
+                color: '#374151'
+              },
+              legend: { 
+                display: true,
+                position: 'bottom'
+              },
+              tooltip: { 
+                enabled: true,
+                callbacks: {
+                  label: function(context) {
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                    return `${context.label}: ${context.parsed} drivers (${percentage}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Filter functionality
+    function filterDriverActivity() {
+      const period = document.getElementById('activity-period').value;
+      const filteredData = filterDataByPeriod(driverActivity, period);
+      renderDriverActivityTable(filteredData);
+      renderCharts(filteredData);
+      calculateDriverPerformance(); // Update performance metrics
+    }
+
+    // Export as CSV
+    document.getElementById('export-driver-activity').addEventListener('click', () => {
+      const period = document.getElementById('activity-period').value;
+      const dataToExport = filterDataByPeriod(driverActivity, period);
+      const csvContent = [
+        'Driver,Vehicle ID,Total Hours,Distance (km),Trips,Harsh Events,Safe Driving Score,Last Updated',
+        ...dataToExport.map(a => `${a.driver},${a.vehicleId},${a.hours},${a.distance},${a.trips},${a.harshEvents},${a.score},${new Date(a.lastUpdated).toISOString()}`)
+      ].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'driver_activity.csv';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+
+    // Event listeners for activity period dropdown
+    document.getElementById('activity-period').addEventListener('change', filterDriverActivity);
+
+    // Event listeners for performance dashboard
+    document.addEventListener('DOMContentLoaded', () => {
+      renderDriverActivityTable(driverActivity);
+      renderCharts(driverActivity);
+      calculateDriverPerformance(); // Initialize performance metrics
+      
+      // Initialize modal event listeners
+      addModalEventListeners();
+      
+      // Performance period selector
+      const performancePeriod = document.getElementById('performance-period');
+      if (performancePeriod) {
+        performancePeriod.addEventListener('change', function() {
+          calculateDriverPerformance();
+        });
+      }
+      
+      // Refresh performance button
+      const refreshPerformance = document.getElementById('refresh-performance');
+      if (refreshPerformance) {
+        refreshPerformance.addEventListener('click', function() {
+          // Show loading state
+          this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Refreshing...';
+          this.disabled = true;
+          
+          // Simulate refresh delay
+          setTimeout(() => {
+            calculateDriverPerformance();
+            this.innerHTML = '<i class="fas fa-sync-alt mr-1"></i>Refresh';
+            this.disabled = false;
+          }, 1000);
+        });
+      }
+    });
+
+    // Modal functionality
+    function addModalEventListeners() {
+      const viewDetailsButtons = document.querySelectorAll('.view-details-btn');
+      const modal = document.getElementById('driver-modal');
+      const closeModalBtn = document.getElementById('close-modal');
+      const closeModalBtnInModal = document.getElementById('close-modal-btn');
+      const exportBtn = document.getElementById('export-driver-report');
+      const modalPeriod = document.getElementById('modal-period');
+
+      viewDetailsButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const driverName = button.getAttribute('data-driver');
+          const driver = driverActivity.find(d => d.driver === driverName);
+          if (driver) {
+            openDriverModal(driver);
+          }
+        });
+      });
+
+      // Export functionality
+      if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+          const format = document.getElementById('export-format').value;
+          const period = document.getElementById('modal-period').value;
+          const driverName = document.getElementById('modal-driver-name').textContent;
+          const driver = driverActivity.find(d => d.driver === driverName);
+          
+          if (driver) {
+            exportDriverReport(driver, format, period);
+          }
+        });
+      }
+
+             // Period change event
+       if (modalPeriod) {
+         modalPeriod.addEventListener('change', () => {
+           const driverName = document.getElementById('modal-driver-name').textContent;
+           const driver = driverActivity.find(d => d.driver === driverName);
+           if (driver) {
+             updateModalDataForPeriod(driver, modalPeriod.value);
+           }
+         });
+       }
+
+       // Recommendation action buttons
+       const sendAllBtn = document.getElementById('send-all-recommendations');
+       const dismissAllBtn = document.getElementById('dismiss-all-recommendations');
+       
+       if (sendAllBtn) {
+         sendAllBtn.addEventListener('click', () => {
+           const driverName = document.getElementById('modal-driver-name').textContent;
+           sendAllRecommendations(driverName);
+         });
+       }
+       
+       if (dismissAllBtn) {
+         dismissAllBtn.addEventListener('click', () => {
+           dismissAllRecommendations();
+         });
+       }
+
+       // Individual recommendation buttons (using event delegation)
+       const recommendationsContainer = document.getElementById('modal-recommendations');
+       if (recommendationsContainer) {
+         recommendationsContainer.addEventListener('click', (event) => {
+           if (event.target.closest('.send-recommendation-btn')) {
+             const button = event.target.closest('.send-recommendation-btn');
+             const index = button.getAttribute('data-index');
+             const driverName = button.getAttribute('data-driver');
+             sendRecommendation(driverName, index);
+           } else if (event.target.closest('.dismiss-recommendation-btn')) {
+             const button = event.target.closest('.dismiss-recommendation-btn');
+             const index = button.getAttribute('data-index');
+             dismissRecommendation(index);
+           }
+         });
+       }
+
+       // Custom message functionality
+       const sendCustomMessageBtn = document.getElementById('send-custom-message');
+       if (sendCustomMessageBtn) {
+         sendCustomMessageBtn.addEventListener('click', () => {
+           const driverName = document.getElementById('modal-driver-name').textContent;
+           sendCustomMessage(driverName);
+         });
+       }
+
+       // Allow Enter key to send custom message
+       const customMessageInput = document.getElementById('custom-message-input');
+       if (customMessageInput) {
+         customMessageInput.addEventListener('keypress', (event) => {
+           if (event.key === 'Enter' && !event.shiftKey) {
+             event.preventDefault();
+             const driverName = document.getElementById('modal-driver-name').textContent;
+             sendCustomMessage(driverName);
+           }
+         });
+       }
+
+      // Close modal event listeners
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeDriverModal);
+      }
+      if (closeModalBtnInModal) {
+        closeModalBtnInModal.addEventListener('click', closeDriverModal);
+      }
+      
+      // Close modal when clicking outside
+      if (modal) {
+        modal.addEventListener('click', (event) => {
+          if (event.target === modal) {
+            closeDriverModal();
+          }
+        });
+      }
+    }
+
+         function openDriverModal(driver) {
+       // Update modal content
+       document.getElementById('modal-driver-name').textContent = driver.driver;
+       document.getElementById('modal-driver-vehicle').textContent = `Vehicle: ${driver.vehicleId}`;
+       
+       // Update scores
+       document.getElementById('modal-safety-score').textContent = `${driver.safetyScore}/100`;
+       document.getElementById('modal-efficiency-score').textContent = `${driver.efficiencyRating}/100`;
+       document.getElementById('modal-compliance-score').textContent = `${driver.complianceScore}/100`;
+       document.getElementById('modal-reliability-score').textContent = `${driver.reliability}/100`;
+       
+       // Update progress bars
+       document.getElementById('modal-safety-bar').style.width = `${driver.safetyScore}%`;
+       document.getElementById('modal-efficiency-bar').style.width = `${driver.efficiencyRating}%`;
+       document.getElementById('modal-compliance-bar').style.width = `${driver.complianceScore}%`;
+       document.getElementById('modal-reliability-bar').style.width = `${driver.reliability}%`;
+       
+       // Update detailed metrics
+       document.getElementById('modal-total-hours').textContent = `${driver.hours} hours`;
+       document.getElementById('modal-total-distance').textContent = `${driver.distance} km`;
+       document.getElementById('modal-total-trips').textContent = `${driver.trips} trips`;
+       document.getElementById('modal-harsh-events').textContent = `${driver.harshEvents} events`;
+       document.getElementById('modal-last-updated').textContent = new Date(driver.lastUpdated).toLocaleString();
+       document.getElementById('modal-fuel-efficiency').textContent = `${driver.fuelEfficiency} L/100km`;
+       document.getElementById('modal-route-optimization').textContent = `${driver.routeOptimization}/100`;
+       document.getElementById('modal-policy-adherence').textContent = `${driver.policyAdherence}/100`;
+       document.getElementById('modal-documentation').textContent = `${driver.documentation}/100`;
+       document.getElementById('modal-on-time-performance').textContent = `${driver.onTimePerformance}/100`;
+       document.getElementById('modal-vehicle-care').textContent = `${driver.vehicleCare}/100`;
+       
+       // Calculate average speed
+       const avgSpeed = driver.hours > 0 ? Math.round(driver.distance / driver.hours) : 0;
+       document.getElementById('modal-avg-speed').textContent = `${avgSpeed} km/h`;
+       
+       // Calculate performance rank
+       const overallScores = driverActivity.map(d => ({
+         driver: d.driver,
+         totalScore: (d.safetyScore + d.efficiencyRating + d.complianceScore + d.reliability) / 4
+       }));
+       const sortedScores = [...overallScores].sort((a, b) => b.totalScore - a.totalScore);
+       const rank = sortedScores.findIndex(d => d.driver === driver.driver) + 1;
+       document.getElementById('modal-performance-rank').textContent = `${rank}/${overallScores.length}`;
+       
+       // Update Driver Profile
+       const driverNumber = driver.driver.split(' ')[1];
+       document.getElementById('modal-license-number').textContent = `DL-2024-${String(driverNumber).padStart(3, '0')}`;
+       document.getElementById('modal-license-expiry').textContent = `2026-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`;
+       document.getElementById('modal-hire-date').textContent = `2023-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`;
+       document.getElementById('modal-experience').textContent = `${Math.floor(Math.random() * 5) + 1} years`;
+       
+       // Update Trip History
+       const todayTrips = Math.floor(Math.random() * 5) + 1;
+       const weekTrips = todayTrips + Math.floor(Math.random() * 20) + 10;
+       const monthTrips = weekTrips + Math.floor(Math.random() * 50) + 30;
+       const avgTripDuration = Math.round((driver.hours / driver.trips) * 60);
+       const longestTrip = Math.round(avgTripDuration * (1.5 + Math.random() * 1));
+       const completionRate = Math.round(85 + Math.random() * 15);
+       
+       document.getElementById('modal-today-trips').textContent = todayTrips;
+       document.getElementById('modal-week-trips').textContent = weekTrips;
+       document.getElementById('modal-month-trips').textContent = monthTrips;
+       document.getElementById('modal-avg-trip-duration').textContent = `${avgTripDuration} min`;
+       document.getElementById('modal-longest-trip').textContent = `${longestTrip} min`;
+       document.getElementById('modal-completion-rate').textContent = `${completionRate}%`;
+       
+       // Update Alerts & Issues
+       const activeAlerts = Math.floor(Math.random() * 3);
+       const speedViolations = Math.floor(Math.random() * 5);
+       const idleTime = Math.round(Math.random() * 120) + 30;
+       const maintenanceDue = Math.floor(Math.random() * 30) + 1;
+       const lastIncident = activeAlerts > 0 ? `${Math.floor(Math.random() * 7) + 1} days ago` : 'None';
+       const riskLevel = activeAlerts === 0 ? 'Low' : activeAlerts === 1 ? 'Medium' : 'High';
+       const riskColor = riskLevel === 'Low' ? 'text-green-600' : riskLevel === 'Medium' ? 'text-yellow-600' : 'text-red-600';
+       
+       document.getElementById('modal-active-alerts').textContent = activeAlerts;
+       document.getElementById('modal-speed-violations').textContent = speedViolations;
+       document.getElementById('modal-idle-time').textContent = `${idleTime} min`;
+       document.getElementById('modal-maintenance-due').textContent = `${maintenanceDue} days`;
+       document.getElementById('modal-last-incident').textContent = lastIncident;
+       document.getElementById('modal-risk-level').textContent = riskLevel;
+       document.getElementById('modal-risk-level').className = `font-semibold text-sm ${riskColor}`;
+       
+       // Generate Activity Log for the selected period (default 30 days)
+       const selectedPeriod = document.getElementById('modal-period').value;
+       const activityLog = generateActivityLog(driver, selectedPeriod);
+       document.getElementById('modal-activity-log').innerHTML = activityLog;
+       
+               // Generate recommendations with action buttons
+        const recommendations = [];
+        if (driver.safetyScore < 80) recommendations.push({
+          text: 'Focus on improving safety driving practices and reducing harsh events.',
+          priority: 'high',
+          category: 'safety'
+        });
+        if (driver.efficiencyRating < 85) recommendations.push({
+          text: 'Work on route optimization and fuel efficiency improvements.',
+          priority: 'medium',
+          category: 'efficiency'
+        });
+        if (driver.complianceScore < 90) recommendations.push({
+          text: 'Ensure strict adherence to company policies and procedures.',
+          priority: 'high',
+          category: 'compliance'
+        });
+        if (driver.reliability < 90) recommendations.push({
+          text: 'Maintain consistent on-time performance and vehicle care standards.',
+          priority: 'medium',
+          category: 'reliability'
+        });
+        if (driver.harshEvents > 1) recommendations.push({
+          text: 'Reduce harsh driving events through better driving techniques.',
+          priority: 'high',
+          category: 'safety'
+        });
+        if (activeAlerts > 0) recommendations.push({
+          text: 'Address active alerts and violations promptly.',
+          priority: 'high',
+          category: 'alerts'
+        });
+        if (speedViolations > 0) recommendations.push({
+          text: 'Monitor speed limits and reduce speed violations.',
+          priority: 'medium',
+          category: 'safety'
+        });
+        
+        if (recommendations.length === 0) {
+          recommendations.push({
+            text: 'Excellent performance! Keep maintaining these high standards.',
+            priority: 'low',
+            category: 'positive'
+          });
+        }
+        
+        // Generate HTML with individual action buttons for each recommendation
+        const recommendationsHTML = recommendations.map((rec, index) => {
+          const priorityColor = rec.priority === 'high' ? 'text-red-600' : rec.priority === 'medium' ? 'text-yellow-600' : 'text-green-600';
+          const priorityIcon = rec.priority === 'high' ? 'fa-exclamation-circle' : rec.priority === 'medium' ? 'fa-exclamation-triangle' : 'fa-check-circle';
+          
+          return `
+            <div class="recommendation-item mb-3 p-3 bg-white rounded-lg border border-blue-200" data-index="${index}">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center mb-1">
+                    <i class="fas ${priorityIcon} ${priorityColor} mr-2"></i>
+                    <span class="text-xs font-medium ${priorityColor} uppercase">${rec.priority} priority</span>
+                  </div>
+                  <p class="text-blue-800">• ${rec.text}</p>
+                </div>
+                <div class="flex space-x-1 ml-3">
+                  <button class="send-recommendation-btn bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs transition-colors" data-index="${index}" data-driver="${driver.driver}">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
+                  <button class="dismiss-recommendation-btn bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded text-xs transition-colors" data-index="${index}">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        
+        document.getElementById('modal-recommendations').innerHTML = recommendationsHTML;
+       
+       // Render performance trends chart
+       renderModalTrendChart(driver);
+       
+       // Show modal
+       document.getElementById('driver-modal').classList.remove('hidden');
+     }
+
+         // Generate activity log for driver based on period
+     function generateActivityLog(driver, period = '30') {
+       const days = period === 'all' ? 365 : parseInt(period);
+       const activities = [];
+       const today = new Date();
+       
+       // Define activity types with their probabilities
+       const activityTypes = [
+         { action: 'Started shift', status: 'success', probability: 0.25 },
+         { action: 'Vehicle inspection completed', status: 'success', probability: 0.20 },
+         { action: 'Completed trip', status: 'success', probability: 0.30 },
+         { action: 'Fuel refill', status: 'info', probability: 0.10 },
+         { action: 'Lunch break', status: 'info', probability: 0.15 },
+         { action: 'Resumed driving', status: 'success', probability: 0.25 },
+         { action: 'Speed alert (5 km/h over)', status: 'warning', probability: 0.05 },
+         { action: 'Vehicle maintenance check', status: 'info', probability: 0.08 },
+         { action: 'Ended shift', status: 'success', probability: 0.25 },
+         { action: 'Route optimization applied', status: 'success', probability: 0.12 },
+         { action: 'Documentation updated', status: 'info', probability: 0.15 },
+         { action: 'Safety check completed', status: 'success', probability: 0.18 },
+         { action: 'Idle time detected', status: 'warning', probability: 0.03 },
+         { action: 'Emergency brake applied', status: 'warning', probability: 0.02 },
+         { action: 'Weather alert received', status: 'info', probability: 0.07 },
+         { action: 'Traffic delay encountered', status: 'info', probability: 0.10 },
+         { action: 'Rest break taken', status: 'info', probability: 0.12 },
+         { action: 'Vehicle cleaning completed', status: 'success', probability: 0.08 },
+         { action: 'Training module completed', status: 'success', probability: 0.05 },
+         { action: 'Performance review submitted', status: 'success', probability: 0.03 }
+       ];
+       
+       // Generate activities for the selected period
+       for (let i = 0; i < days; i++) {
+         const date = new Date(today);
+         date.setDate(date.getDate() - i);
+         
+         // Skip weekends for some activities (reduce activity on weekends)
+         const dayOfWeek = date.getDay();
+         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+         
+         // Determine number of activities for this day (more on weekdays, fewer on weekends)
+         const baseActivities = isWeekend ? Math.floor(Math.random() * 3) + 1 : Math.floor(Math.random() * 8) + 3;
+         
+         for (let j = 0; j < baseActivities; j++) {
+           // Select random activity based on probability
+           const random = Math.random();
+           let cumulativeProbability = 0;
+           let selectedActivity = activityTypes[0];
+           
+           for (const activity of activityTypes) {
+             cumulativeProbability += activity.probability;
+             if (random <= cumulativeProbability) {
+               selectedActivity = activity;
+               break;
+             }
+           }
+           
+           // Generate random time for the activity
+           const hour = Math.floor(Math.random() * 12) + 6; // 6 AM to 6 PM
+           const minute = Math.floor(Math.random() * 60);
+           const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+           
+           // Add trip number for trip-related activities
+           let action = selectedActivity.action;
+           if (action.includes('trip')) {
+             const tripNumber = Math.floor(Math.random() * driver.trips) + 1;
+             action = `Completed trip #${tripNumber}`;
+           }
+           
+           activities.push({
+             date: date.toLocaleDateString(),
+             time: time,
+             action: action,
+             status: selectedActivity.status
+           });
+         }
+       }
+       
+       // Sort activities by date (newest first) and limit to most recent 50 for display
+       activities.sort((a, b) => new Date(b.date + ' ' + b.time) - new Date(a.date + ' ' + a.time));
+       const recentActivities = activities.slice(0, 50);
+       
+       return recentActivities.map(activity => {
+         const statusColor = activity.status === 'success' ? 'text-green-600' : 
+                           activity.status === 'warning' ? 'text-yellow-600' : 'text-blue-600';
+         const statusIcon = activity.status === 'success' ? 'fa-check-circle' : 
+                          activity.status === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+         
+         return `
+           <div class="flex items-center justify-between text-sm">
+             <div class="flex items-center">
+               <i class="fas ${statusIcon} ${statusColor} mr-2"></i>
+               <span class="text-gray-700">${activity.action}</span>
+             </div>
+             <div class="text-right">
+               <span class="text-gray-500 text-xs">${activity.date}</span><br>
+               <span class="text-gray-500">${activity.time}</span>
+             </div>
+           </div>
+         `;
+       }).join('');
+     }
+
+    // Render performance trends chart
+    function renderModalTrendChart(driver) {
+      const trendCtx = document.getElementById('modalTrendChart');
+      if (trendCtx) {
+        if (window._modalTrendChart) {
+          window._modalTrendChart.destroy();
+        }
+
+        // Generate trend data for last 30 days
+        const trendData = [];
+        const today = new Date();
+        
+        for (let i = 29; i >= 0; i--) {
+          const date = new Date(today);
+          date.setDate(date.getDate() - i);
+          
+          // Generate realistic trend data with some variation
+          const baseVariation = (Math.random() - 0.5) * 10;
+          const weeklyTrend = Math.sin(i / 7) * 5; // Weekly pattern
+          
+          trendData.push({
+            date: date.toLocaleDateString(),
+            safetyScore: Math.max(70, Math.min(100, driver.safetyScore + baseVariation + weeklyTrend)),
+            efficiencyRating: Math.max(70, Math.min(100, driver.efficiencyRating + baseVariation + weeklyTrend)),
+            complianceScore: Math.max(70, Math.min(100, driver.complianceScore + baseVariation + weeklyTrend)),
+            reliability: Math.max(70, Math.min(100, driver.reliability + baseVariation + weeklyTrend))
+          });
+        }
+        
+        const labels = trendData.map(d => d.date);
+        const safetyData = trendData.map(d => Math.round(d.safetyScore));
+        const efficiencyData = trendData.map(d => Math.round(d.efficiencyRating));
+        const complianceData = trendData.map(d => Math.round(d.complianceScore));
+        const reliabilityData = trendData.map(d => Math.round(d.reliability));
+
+        window._modalTrendChart = new Chart(trendCtx.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Safety Score',
+                data: safetyData,
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderColor: '#3b82f6',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 1,
+                pointHoverRadius: 4
+              },
+              {
+                label: 'Efficiency Rating',
+                data: efficiencyData,
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderColor: '#10b981',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 1,
+                pointHoverRadius: 4
+              },
+              {
+                label: 'Compliance Score',
+                data: complianceData,
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                borderColor: '#8b5cf6',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 1,
+                pointHoverRadius: 4
+              },
+              {
+                label: 'Reliability',
+                data: reliabilityData,
+                backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                borderColor: '#f97316',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 1,
+                pointHoverRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { 
+                display: true,
+                position: 'top',
+                labels: { boxWidth: 12, padding: 8 }
+              },
+              tooltip: { 
+                enabled: true,
+                mode: 'index',
+                intersect: false
+              }
+            },
+            scales: {
+              y: { 
+                beginAtZero: true, 
+                title: { display: true, text: 'Score' },
+                max: 100
+              },
+              x: { 
+                title: { display: true, text: 'Date' },
+                ticks: {
+                  maxTicksLimit: 10,
+                  maxRotation: 45
+                }
+              }
+            },
+            interaction: {
+              mode: 'nearest',
+              axis: 'x',
+              intersect: false
+            }
+          }
+        });
+      }
+    }
+
+    function closeDriverModal() {
+      document.getElementById('driver-modal').classList.add('hidden');
+      // Clean up charts
+      if (window._modalComparisonChart) {
+        window._modalComparisonChart.destroy();
+        window._modalComparisonChart = null;
+      }
+      if (window._modalTrendChart) {
+        window._modalTrendChart.destroy();
+        window._modalTrendChart = null;
+      }
+    }
+
+    function renderModalComparisonChart(driver) {
+      const comparisonCtx = document.getElementById('modalComparisonChart');
+      if (comparisonCtx) {
+        if (window._modalComparisonChart) {
+          window._modalComparisonChart.destroy();
+        }
+
+        const labels = ['Safety', 'Efficiency', 'Compliance', 'Reliability'];
+        const driverData = [driver.safetyScore, driver.efficiencyRating, driver.complianceScore, driver.reliability];
+        
+        // Calculate fleet averages
+        const fleetSafety = Math.round(driverActivity.reduce((sum, d) => sum + d.safetyScore, 0) / driverActivity.length);
+        const fleetEfficiency = Math.round(driverActivity.reduce((sum, d) => sum + d.efficiencyRating, 0) / driverActivity.length);
+        const fleetCompliance = Math.round(driverActivity.reduce((sum, d) => sum + d.complianceScore, 0) / driverActivity.length);
+        const fleetReliability = Math.round(driverActivity.reduce((sum, d) => sum + d.reliability, 0) / driverActivity.length);
+        
+        const fleetData = [fleetSafety, fleetEfficiency, fleetCompliance, fleetReliability];
+
+        window._modalComparisonChart = new Chart(comparisonCtx.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: `${driver.driver}`,
+                data: driverData,
+                backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                borderColor: '#3b82f6',
+                borderWidth: 1
+              },
+              {
+                label: 'Fleet Average',
+                data: fleetData,
+                backgroundColor: 'rgba(156, 163, 175, 0.8)',
+                borderColor: '#9ca3af',
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { 
+                display: true,
+                position: 'top'
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `${context.dataset.label}: ${context.parsed.y}/100`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Score' },
+                max: 100
+              },
+              x: {
+                title: { display: true, text: 'Performance Metrics' }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Export driver report
+    function exportDriverReport(driver, format, period) {
+      const reportData = generateDriverReportData(driver, period);
+      
+      switch(format) {
+        case 'json':
+          exportAsJSON(reportData, driver.driver, period);
+          break;
+        case 'csv':
+          exportAsCSV(reportData, driver.driver, period);
+          break;
+        case 'txt':
+          exportAsText(reportData, driver.driver, period);
+          break;
+        case 'pdf':
+          exportAsPDF(reportData, driver.driver, period);
+          break;
+      }
+    }
+
+    // Generate comprehensive driver report data
+    function generateDriverReportData(driver, period) {
+      const periodText = getPeriodText(period);
+      const now = new Date();
+      
+      // Generate historical data for the selected period
+      const historicalData = generateHistoricalDriverData(driver, period);
+      
+      return {
+        reportInfo: {
+          driverName: driver.driver,
+          vehicleId: driver.vehicleId,
+          reportDate: now.toISOString(),
+          period: periodText,
+          generatedBy: 'Lynx Lite Dashboard'
+        },
+        currentMetrics: {
+          safetyScore: driver.safetyScore,
+          efficiencyRating: driver.efficiencyRating,
+          complianceScore: driver.complianceScore,
+          reliability: driver.reliability,
+          totalHours: driver.hours,
+          totalDistance: driver.distance,
+          totalTrips: driver.trips,
+          harshEvents: driver.harshEvents,
+          fuelEfficiency: driver.fuelEfficiency,
+          routeOptimization: driver.routeOptimization,
+          policyAdherence: driver.policyAdherence,
+          documentation: driver.documentation,
+          onTimePerformance: driver.onTimePerformance,
+          vehicleCare: driver.vehicleCare
+        },
+        historicalData: historicalData,
+        performanceAnalysis: {
+          rank: calculateDriverRank(driver),
+          trends: analyzeDriverTrends(historicalData),
+          recommendations: generateDriverRecommendations(driver, historicalData)
+        },
+        driverProfile: {
+          licenseNumber: `DL-2024-${driver.driver.split(' ')[1].padStart(3, '0')}`,
+          licenseExpiry: generateRandomDate(2026, 2028),
+          hireDate: generateRandomDate(2020, 2023),
+          experience: `${Math.floor(Math.random() * 5) + 1} years`,
+          trainingStatus: 'Current',
+          medicalCertificate: 'Valid'
+        }
+      };
+    }
+
+    // Generate historical driver data for the selected period
+    function generateHistoricalDriverData(driver, period) {
+      const days = period === 'all' ? 365 : parseInt(period);
+      const data = [];
+      const today = new Date();
+      
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        
+        // Generate realistic daily variations
+        const dayOfWeek = date.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const isMonday = dayOfWeek === 1;
+        const isFriday = dayOfWeek === 5;
+        
+        let activityFactor = 1.0;
+        if (isWeekend) activityFactor = 0.3; // Much lower on weekends
+        else if (isMonday) activityFactor = 0.8; // Lower on Mondays
+        else if (isFriday) activityFactor = 1.1; // Higher on Fridays
+        
+        const randomVariation = 0.8 + (Math.random() * 0.4); // ±20% variation
+        
+        data.push({
+          date: date.toISOString().split('T')[0],
+          hours: Math.round((driver.hours / days) * activityFactor * randomVariation * 10) / 10,
+          distance: Math.round((driver.distance / days) * activityFactor * randomVariation),
+          trips: Math.floor((driver.trips / days) * activityFactor * randomVariation),
+          harshEvents: Math.floor((driver.harshEvents / days) * randomVariation),
+          safetyScore: Math.max(70, Math.min(100, driver.safetyScore + (Math.random() - 0.5) * 10)),
+          efficiencyRating: Math.max(70, Math.min(100, driver.efficiencyRating + (Math.random() - 0.5) * 10)),
+          complianceScore: Math.max(70, Math.min(100, driver.complianceScore + (Math.random() - 0.5) * 8)),
+          reliability: Math.max(70, Math.min(100, driver.reliability + (Math.random() - 0.5) * 10))
+        });
+      }
+      
+      return data;
+    }
+
+    // Helper functions
+    function getPeriodText(period) {
+      switch(period) {
+        case '7': return 'Last 7 Days';
+        case '14': return 'Last 14 Days';
+        case '30': return 'Last 30 Days';
+        case '90': return 'Last 90 Days';
+        case 'all': return 'All Time';
+        default: return 'Last 30 Days';
+      }
+    }
+
+    function calculateDriverRank(driver) {
+      const overallScores = driverActivity.map(d => ({
+        driver: d.driver,
+        totalScore: (d.safetyScore + d.efficiencyRating + d.complianceScore + d.reliability) / 4
+      }));
+      const sortedScores = [...overallScores].sort((a, b) => b.totalScore - a.totalScore);
+      return sortedScores.findIndex(d => d.driver === driver.driver) + 1;
+    }
+
+    function analyzeDriverTrends(historicalData) {
+      if (historicalData.length < 2) return { trend: 'stable', direction: 'neutral' };
+      
+      const recent = historicalData.slice(-7);
+      const older = historicalData.slice(-14, -7);
+      
+      const recentAvg = recent.reduce((sum, d) => sum + d.safetyScore, 0) / recent.length;
+      const olderAvg = older.reduce((sum, d) => sum + d.safetyScore, 0) / older.length;
+      
+      const change = recentAvg - olderAvg;
+      
+      if (change > 2) return { trend: 'improving', direction: 'up' };
+      else if (change < -2) return { trend: 'declining', direction: 'down' };
+      else return { trend: 'stable', direction: 'neutral' };
+    }
+
+    function generateDriverRecommendations(driver, historicalData) {
+      const recommendations = [];
+      
+      if (driver.safetyScore < 80) recommendations.push('Focus on improving safety driving practices and reducing harsh events.');
+      if (driver.efficiencyRating < 85) recommendations.push('Work on route optimization and fuel efficiency improvements.');
+      if (driver.complianceScore < 90) recommendations.push('Ensure strict adherence to company policies and procedures.');
+      if (driver.reliability < 90) recommendations.push('Maintain consistent on-time performance and vehicle care standards.');
+      if (driver.harshEvents > 1) recommendations.push('Reduce harsh driving events through better driving techniques.');
+      
+      const trends = analyzeDriverTrends(historicalData);
+      if (trends.trend === 'declining') recommendations.push('Performance is declining. Consider additional training or support.');
+      if (trends.trend === 'improving') recommendations.push('Performance is improving. Keep up the good work!');
+      
+      if (recommendations.length === 0) {
+        recommendations.push('Excellent performance! Keep maintaining these high standards.');
+      }
+      
+      return recommendations;
+    }
+
+    function generateRandomDate(startYear, endYear) {
+      const year = Math.floor(Math.random() * (endYear - startYear + 1)) + startYear;
+      const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+      const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // Export functions
+    function exportAsJSON(data, driverName, period) {
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${driverName.replace(' ', '_')}_report_${period}days.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showExportSuccessMessage('JSON');
+    }
+
+    function exportAsCSV(data, driverName, period) {
+      const csvContent = generateCSVContent(data);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${driverName.replace(' ', '_')}_report_${period}days.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showExportSuccessMessage('CSV');
+    }
+
+    function exportAsText(data, driverName, period) {
+      const textContent = generateTextReport(data);
+      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${driverName.replace(' ', '_')}_report_${period}days.txt`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showExportSuccessMessage('Text');
+    }
+
+    function exportAsPDF(data, driverName, period) {
+      const htmlContent = generatePDFContent(data);
+      const element = document.createElement('div');
+      element.innerHTML = htmlContent;
+      element.style.position = 'absolute';
+      element.style.left = '-9999px';
+      document.body.appendChild(element);
+      
+      html2pdf().from(element).save(`${driverName.replace(' ', '_')}_report_${period}days.pdf`);
+      
+      document.body.removeChild(element);
+      showExportSuccessMessage('PDF');
+    }
+
+    function generateCSVContent(data) {
+      const lines = [];
+      
+      // Report header
+      lines.push('Driver Report');
+      lines.push(`Driver: ${data.reportInfo.driverName}`);
+      lines.push(`Period: ${data.reportInfo.period}`);
+      lines.push(`Generated: ${new Date(data.reportInfo.reportDate).toLocaleString()}`);
+      lines.push('');
+      
+      // Current metrics
+      lines.push('Current Metrics');
+      lines.push('Metric,Value');
+      lines.push(`Safety Score,${data.currentMetrics.safetyScore}`);
+      lines.push(`Efficiency Rating,${data.currentMetrics.efficiencyRating}`);
+      lines.push(`Compliance Score,${data.currentMetrics.complianceScore}`);
+      lines.push(`Reliability,${data.currentMetrics.reliability}`);
+      lines.push(`Total Hours,${data.currentMetrics.totalHours}`);
+      lines.push(`Total Distance,${data.currentMetrics.totalDistance}`);
+      lines.push(`Total Trips,${data.currentMetrics.totalTrips}`);
+      lines.push(`Harsh Events,${data.currentMetrics.harshEvents}`);
+      lines.push('');
+      
+      // Historical data
+      lines.push('Historical Data');
+      lines.push('Date,Hours,Distance,Trips,Harsh Events,Safety Score,Efficiency Rating,Compliance Score,Reliability');
+      data.historicalData.forEach(day => {
+        lines.push(`${day.date},${day.hours},${day.distance},${day.trips},${day.harshEvents},${day.safetyScore},${day.efficiencyRating},${day.complianceScore},${day.reliability}`);
+      });
+      
+      return lines.join('\n');
+    }
+
+    function generateTextReport(data) {
+      let report = '';
+      
+      report += '='.repeat(60) + '\n';
+      report += `DRIVER PERFORMANCE REPORT\n`;
+      report += '='.repeat(60) + '\n\n';
+      
+      report += `Driver: ${data.reportInfo.driverName}\n`;
+      report += `Vehicle: ${data.reportInfo.vehicleId}\n`;
+      report += `Period: ${data.reportInfo.period}\n`;
+      report += `Generated: ${new Date(data.reportInfo.reportDate).toLocaleString()}\n\n`;
+      
+      report += 'CURRENT PERFORMANCE METRICS\n';
+      report += '-'.repeat(30) + '\n';
+      report += `Safety Score: ${data.currentMetrics.safetyScore}/100\n`;
+      report += `Efficiency Rating: ${data.currentMetrics.efficiencyRating}/100\n`;
+      report += `Compliance Score: ${data.currentMetrics.complianceScore}/100\n`;
+      report += `Reliability: ${data.currentMetrics.reliability}/100\n`;
+      report += `Total Hours: ${data.currentMetrics.totalHours}\n`;
+      report += `Total Distance: ${data.currentMetrics.totalDistance} km\n`;
+      report += `Total Trips: ${data.currentMetrics.totalTrips}\n`;
+      report += `Harsh Events: ${data.currentMetrics.harshEvents}\n\n`;
+      
+      report += 'PERFORMANCE ANALYSIS\n';
+      report += '-'.repeat(20) + '\n';
+      report += `Fleet Rank: ${data.performanceAnalysis.rank}/${driverActivity.length}\n`;
+      report += `Performance Trend: ${data.performanceAnalysis.trends.trend}\n\n`;
+      
+      report += 'RECOMMENDATIONS\n';
+      report += '-'.repeat(15) + '\n';
+      data.performanceAnalysis.recommendations.forEach(rec => {
+        report += `• ${rec}\n`;
+      });
+      report += '\n';
+      
+      report += 'HISTORICAL DATA SUMMARY\n';
+      report += '-'.repeat(25) + '\n';
+      const avgHours = data.historicalData.reduce((sum, d) => sum + d.hours, 0) / data.historicalData.length;
+      const avgDistance = data.historicalData.reduce((sum, d) => sum + d.distance, 0) / data.historicalData.length;
+      const avgSafety = data.historicalData.reduce((sum, d) => sum + d.safetyScore, 0) / data.historicalData.length;
+      
+      report += `Average Daily Hours: ${avgHours.toFixed(1)}\n`;
+      report += `Average Daily Distance: ${avgDistance.toFixed(0)} km\n`;
+      report += `Average Safety Score: ${avgSafety.toFixed(1)}/100\n`;
+      
+      return report;
+    }
+
+    function generatePDFContent(data) {
+      return `
+        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+          <h1 style="color: #2563eb; text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px;">
+            Driver Performance Report
+          </h1>
+          
+          <div style="margin: 20px 0;">
+            <h2 style="color: #374151;">Report Information</h2>
+            <p><strong>Driver:</strong> ${data.reportInfo.driverName}</p>
+            <p><strong>Vehicle:</strong> ${data.reportInfo.vehicleId}</p>
+            <p><strong>Period:</strong> ${data.reportInfo.period}</p>
+            <p><strong>Generated:</strong> ${new Date(data.reportInfo.reportDate).toLocaleString()}</p>
+          </div>
+          
+          <div style="margin: 20px 0;">
+            <h2 style="color: #374151;">Current Performance Metrics</h2>
+            <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+              <tr style="background-color: #f3f4f6;">
+                <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Metric</th>
+                <th style="border: 1px solid #d1d5db; padding: 8px; text-align: left;">Value</th>
+              </tr>
+              <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Safety Score</td><td style="border: 1px solid #d1d5db; padding: 8px;">${data.currentMetrics.safetyScore}/100</td></tr>
+              <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Efficiency Rating</td><td style="border: 1px solid #d1d5db; padding: 8px;">${data.currentMetrics.efficiencyRating}/100</td></tr>
+              <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Compliance Score</td><td style="border: 1px solid #d1d5db; padding: 8px;">${data.currentMetrics.complianceScore}/100</td></tr>
+              <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Reliability</td><td style="border: 1px solid #d1d5db; padding: 8px;">${data.currentMetrics.reliability}/100</td></tr>
+              <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Total Hours</td><td style="border: 1px solid #d1d5db; padding: 8px;">${data.currentMetrics.totalHours}</td></tr>
+              <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Total Distance</td><td style="border: 1px solid #d1d5db; padding: 8px;">${data.currentMetrics.totalDistance} km</td></tr>
+              <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Total Trips</td><td style="border: 1px solid #d1d5db; padding: 8px;">${data.currentMetrics.totalTrips}</td></tr>
+              <tr><td style="border: 1px solid #d1d5db; padding: 8px;">Harsh Events</td><td style="border: 1px solid #d1d5db; padding: 8px;">${data.currentMetrics.harshEvents}</td></tr>
+            </table>
+          </div>
+          
+          <div style="margin: 20px 0;">
+            <h2 style="color: #374151;">Performance Analysis</h2>
+            <p><strong>Fleet Rank:</strong> ${data.performanceAnalysis.rank}/${driverActivity.length}</p>
+            <p><strong>Performance Trend:</strong> ${data.performanceAnalysis.trends.trend}</p>
+          </div>
+          
+          <div style="margin: 20px 0;">
+            <h2 style="color: #374151;">Recommendations</h2>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              ${data.performanceAnalysis.recommendations.map(rec => `<li style="margin: 5px 0;">${rec}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      `;
+    }
+
+         function showExportSuccessMessage(format) {
+       const message = document.createElement('div');
+       message.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg z-50';
+       message.textContent = `${format} report exported successfully!`;
+       document.body.appendChild(message);
+       
+       setTimeout(() => {
+         document.body.removeChild(message);
+       }, 3000);
+     }
+
+     // Recommendation action functions
+     function sendRecommendation(driverName, index) {
+       const recommendationItem = document.querySelector(`[data-index="${index}"]`);
+       if (recommendationItem) {
+         const recommendationText = recommendationItem.querySelector('p').textContent.replace('• ', '');
+         
+         // Simulate sending recommendation to driver
+         showNotification(`Recommendation sent to ${driverName}`, 'success');
+         
+         // Update button to show sent status
+         const sendBtn = recommendationItem.querySelector('.send-recommendation-btn');
+         sendBtn.innerHTML = '<i class="fas fa-check"></i>';
+         sendBtn.className = 'send-recommendation-btn bg-green-600 text-white px-2 py-1 rounded text-xs transition-colors cursor-not-allowed';
+         sendBtn.disabled = true;
+         
+         // Log the action
+         console.log(`Recommendation sent to ${driverName}: ${recommendationText}`);
+       }
+     }
+
+     function dismissRecommendation(index) {
+       const recommendationItem = document.querySelector(`[data-index="${index}"]`);
+       if (recommendationItem) {
+         // Animate removal
+         recommendationItem.style.transition = 'all 0.3s ease';
+         recommendationItem.style.opacity = '0';
+         recommendationItem.style.transform = 'translateX(100%)';
+         
+         setTimeout(() => {
+           recommendationItem.remove();
+           showNotification('Recommendation dismissed', 'info');
+         }, 300);
+       }
+     }
+
+     function sendAllRecommendations(driverName) {
+       const recommendationItems = document.querySelectorAll('.recommendation-item');
+       let sentCount = 0;
+       
+       recommendationItems.forEach((item, index) => {
+         const sendBtn = item.querySelector('.send-recommendation-btn');
+         if (!sendBtn.disabled) {
+           setTimeout(() => {
+             const recommendationText = item.querySelector('p').textContent.replace('• ', '');
+             
+             // Update button to show sent status
+             sendBtn.innerHTML = '<i class="fas fa-check"></i>';
+             sendBtn.className = 'send-recommendation-btn bg-green-600 text-white px-2 py-1 rounded text-xs transition-colors cursor-not-allowed';
+             sendBtn.disabled = true;
+             
+             sentCount++;
+             
+             // Log the action
+             console.log(`Recommendation ${sentCount} sent to ${driverName}: ${recommendationText}`);
+           }, index * 200); // Stagger the animations
+         }
+       });
+       
+       setTimeout(() => {
+         showNotification(`All recommendations sent to ${driverName}`, 'success');
+       }, recommendationItems.length * 200 + 500);
+     }
+
+     function dismissAllRecommendations() {
+       const recommendationItems = document.querySelectorAll('.recommendation-item');
+       
+       recommendationItems.forEach((item, index) => {
+         setTimeout(() => {
+           item.style.transition = 'all 0.3s ease';
+           item.style.opacity = '0';
+           item.style.transform = 'translateX(100%)';
+         }, index * 100);
+       });
+       
+       setTimeout(() => {
+         document.getElementById('modal-recommendations').innerHTML = `
+           <div class="text-center py-4">
+             <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+             <p class="text-blue-800">All recommendations have been dismissed</p>
+           </div>
+         `;
+         showNotification('All recommendations dismissed', 'info');
+       }, recommendationItems.length * 100 + 400);
+     }
+
+     function showNotification(message, type) {
+       const notification = document.createElement('div');
+       const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+       const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+       
+       notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded-md shadow-lg z-50 flex items-center`;
+       notification.innerHTML = `
+         <i class="fas ${icon} mr-2"></i>
+         <span>${message}</span>
+       `;
+       
+       document.body.appendChild(notification);
+       
+       // Animate in
+       notification.style.transform = 'translateX(100%)';
+       notification.style.transition = 'transform 0.3s ease';
+       setTimeout(() => {
+         notification.style.transform = 'translateX(0)';
+       }, 10);
+       
+       // Remove after 3 seconds
+       setTimeout(() => {
+         notification.style.transform = 'translateX(100%)';
+         setTimeout(() => {
+           if (document.body.contains(notification)) {
+             document.body.removeChild(notification);
+           }
+         }, 300);
+       }, 3000);
+     }
+
+     // Custom message functionality
+     function sendCustomMessage(driverName) {
+       const messageInput = document.getElementById('custom-message-input');
+       const message = messageInput.value.trim();
+       
+       if (!message) {
+         showNotification('Please enter a message before sending', 'error');
+         return;
+       }
+       
+       if (message.length > 500) {
+         showNotification('Message is too long. Please keep it under 500 characters', 'error');
+         return;
+       }
+       
+       // Simulate sending message to driver
+       showNotification(`Custom message sent to ${driverName}`, 'success');
+       
+       // Log the action
+       console.log(`Custom message sent to ${driverName}: ${message}`);
+       
+       // Clear the input field
+       messageInput.value = '';
+       
+       // Add visual feedback
+       const sendBtn = document.getElementById('send-custom-message');
+       const originalText = sendBtn.innerHTML;
+       sendBtn.innerHTML = '<i class="fas fa-check mr-1"></i>Sent';
+       sendBtn.className = 'bg-green-600 text-white px-4 py-2 rounded-md text-sm transition-colors self-end cursor-not-allowed';
+       sendBtn.disabled = true;
+       
+       // Reset button after 2 seconds
+       setTimeout(() => {
+         sendBtn.innerHTML = originalText;
+         sendBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm transition-colors self-end';
+         sendBtn.disabled = false;
+       }, 2000);
+     }
+
+         // Update modal data for selected period
+     function updateModalDataForPeriod(driver, period) {
+       // Update the trend chart
+       renderModalTrendChart(driver, period);
+       
+       // Update the activity log for the selected period
+       const activityLog = generateActivityLog(driver, period);
+       document.getElementById('modal-activity-log').innerHTML = activityLog;
+       
+       // Update the modal headers to show the selected period
+       const periodText = getPeriodText(period);
+       
+       // Update trend chart title
+       const trendChartTitle = document.querySelector('#modalTrendChart').closest('.bg-white').querySelector('h4');
+       if (trendChartTitle) {
+         trendChartTitle.innerHTML = `<i class="fas fa-chart-line text-purple-600 mr-2"></i>Performance Trends (${periodText})`;
+       }
+       
+       // Update activity log title
+       const activityLogTitle = document.getElementById('modal-activity-log-title');
+       if (activityLogTitle) {
+         activityLogTitle.innerHTML = `<i class="fas fa-history text-gray-600 mr-2"></i>Recent Activity Log (${periodText})`;
+       }
+     }
+  </script>
+
+
+
+  <!-- Feedback Submission Modal -->
+  <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <i class="fas fa-comment-dots text-orange-600"></i>
+          Submit Feedback & Suggestions
+        </h3>
+        <button id="close-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="mb-6">
+        <p class="text-gray-600 text-sm leading-relaxed">
+          Help us improve the driver activity reporting system! Share your thoughts on the design, features, usability, or suggest new functionality. Your feedback is valuable and will be reviewed by our development team.
+        </p>
+      </div>
+
+      <form id="feedback-form" class="space-y-6">
+        <!-- Name Field -->
+        <div>
+          <label for="feedback-name" class="block text-sm font-medium text-gray-700 mb-2">
+            Your Name <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="feedback-name" 
+            name="name"
+            required
+            placeholder="Enter your full name"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+          >
+        </div>
+
+        <!-- Feedback/Note Field -->
+        <div>
+          <label for="feedback-note" class="block text-sm font-medium text-gray-700 mb-2">
+            Feedback & Comments <span class="text-red-500">*</span>
+          </label>
+          <textarea 
+            id="feedback-note" 
+            name="note"
+            required
+            rows="8"
+            placeholder="Please describe your feedback, suggestions, or issues in detail. Be specific about what you liked, what could be improved, or what new features you'd like to see..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical"
+          ></textarea>
+          <div class="mt-1 text-xs text-gray-500">
+            <span id="char-count">0</span>/1000 characters
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-4">
+          <button 
+            type="submit" 
+            id="submit-feedback-btn"
+            class="flex-1 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:ring-4 focus:ring-orange-500/20 transition-all font-medium flex items-center justify-center gap-2"
+          >
+            <i class="fas fa-paper-plane"></i>
+            Submit Feedback
+          </button>
+          <button 
+            type="button" 
+            id="cancel-feedback-btn"
+            class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-4 focus:ring-gray-500/20 transition-all font-medium"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <!-- Success Message -->
+      <div id="feedback-success" class="hidden text-center py-8">
+        <div class="mb-4">
+          <i class="fas fa-check-circle text-5xl text-green-500"></i>
+        </div>
+        <h4 class="text-xl font-bold text-gray-900 mb-2">Feedback Submitted Successfully!</h4>
+        <p class="text-gray-600 mb-4">Thank you for your valuable feedback. Our team will review it and get back to you if needed.</p>
+        <button id="submit-another-feedback" class="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+          Submit Another Feedback
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Feedback Modal -->
+  <div id="view-feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <i class="fas fa-comments text-orange-600"></i>
+          Submitted Feedback & Comments
+        </h3>
+        <button id="close-view-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Feedback Controls -->
+      <div class="mb-6 flex flex-wrap gap-3">
+        <button id="refresh-feedback" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+          <i class="fas fa-sync mr-1"></i> Refresh
+        </button>
+        <button id="export-feedback" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
+          <i class="fas fa-download mr-1"></i> Export JSON
+        </button>
+        <button id="clear-feedback" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
+          <i class="fas fa-trash mr-1"></i> Clear All
+        </button>
+      </div>
+
+      <!-- Feedback List -->
+      <div id="feedback-list" class="space-y-4 max-h-96 overflow-y-auto">
+        <!-- Feedback items will be populated here -->
+        <div class="text-center py-8 text-gray-500">
+          <i class="fas fa-comments text-4xl mb-3"></i>
+          <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== FEEDBACK SYSTEM =====
+    class FeedbackManager {
+      constructor() {
+        this.storage = window.feedbackStorage;
+        this.setupEventListeners();
+      }
+
+      setupEventListeners() {
+        // Feedback toggle button
+        const feedbackToggle = document.getElementById('feedback-toggle');
+        if (feedbackToggle) {
+          feedbackToggle.addEventListener('click', () => this.openFeedbackModal());
+        }
+
+        // Modal controls
+        const closeFeedbackModal = document.getElementById('close-feedback-modal');
+        if (closeFeedbackModal) {
+          closeFeedbackModal.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        const cancelFeedbackBtn = document.getElementById('cancel-feedback-btn');
+        if (cancelFeedbackBtn) {
+          cancelFeedbackBtn.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        // Form submission
+        const feedbackForm = document.getElementById('feedback-form');
+        if (feedbackForm) {
+          feedbackForm.addEventListener('submit', (e) => this.handleSubmitFeedback(e));
+        }
+
+        // Character counter
+        const feedbackNote = document.getElementById('feedback-note');
+        if (feedbackNote) {
+          feedbackNote.addEventListener('input', () => this.updateCharacterCount());
+        }
+
+        // Submit another feedback
+        const submitAnotherBtn = document.getElementById('submit-another-feedback');
+        if (submitAnotherBtn) {
+          submitAnotherBtn.addEventListener('click', () => this.resetFeedbackForm());
+        }
+
+        // Feedback controls
+        const refreshBtn = document.getElementById('refresh-feedback');
+        const exportBtn = document.getElementById('export-feedback');
+        const clearBtn = document.getElementById('clear-feedback');
+
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', () => this.loadFeedback());
+        }
+        if (exportBtn) {
+          exportBtn.addEventListener('click', () => this.exportFeedback());
+        }
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => this.clearAllFeedback());
+        }
+      }
+
+      openFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          
+          // Focus on first input
+          const nameInput = document.getElementById('feedback-name');
+          if (nameInput) {
+            setTimeout(() => nameInput.focus(), 100);
+          }
+        }
+      }
+
+      closeFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      }
+
+      openViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          this.loadFeedback();
+        }
+      }
+
+      closeViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      }
+
+      updateCharacterCount() {
+        const textarea = document.getElementById('feedback-note');
+        const counter = document.getElementById('char-count');
+        if (textarea && counter) {
+          const count = textarea.value.length;
+          counter.textContent = count;
+          
+          if (count > 1000) {
+            counter.style.color = '#ef4444';
+            textarea.value = textarea.value.substring(0, 1000);
+            counter.textContent = '1000';
+          } else {
+            counter.style.color = '#6b7280';
+          }
+        }
+      }
+
+      async handleSubmitFeedback(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+        submitBtn.disabled = true;
+
+        try {
+          const formData = new FormData(e.target);
+          const feedbackData = {
+            id: Date.now().toString(),
+            name: formData.get('name'),
+            note: formData.get('note'),
+            timestamp: new Date().toISOString(),
+            system: 'Driver Activity Reporting System'
+          };
+
+          // Validate required fields
+          if (!feedbackData.name || !feedbackData.note) {
+            throw new Error('Please fill in all required fields');
+          }
+
+          // Save using the feedback storage system
+          const success = this.storage.saveFeedback(feedbackData);
+          if (!success) {
+            throw new Error('Failed to save feedback to storage');
+          }
+          
+          // Show success message
+          this.showSuccessMessage();
+          
+        } catch (error) {
+          console.error('Error submitting feedback:', error);
+          alert('Error submitting feedback: ' + error.message);
+          
+          // Restore button state
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        }
+      }
+
+      showSuccessMessage() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        
+        if (form && success) {
+          form.classList.add('hidden');
+          success.classList.remove('hidden');
+        }
+      }
+
+      resetFeedbackForm() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        
+        if (form) {
+          form.reset();
+          form.classList.remove('hidden');
+        }
+        
+        if (success) {
+          success.classList.add('hidden');
+        }
+        
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Feedback';
+          submitBtn.disabled = false;
+        }
+
+        // Reset character counter
+        const counter = document.getElementById('char-count');
+        if (counter) {
+          counter.textContent = '0';
+        }
+      }
+
+      loadFeedback() {
+        const feedbackList = document.getElementById('feedback-list');
+        if (!feedbackList) return;
+
+        // Get all feedback from storage
+        const allFeedback = this.storage.getAllFeedback();
+
+        // Sort by timestamp (newest first)
+        allFeedback.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (allFeedback.length === 0) {
+          feedbackList.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-comments text-4xl mb-3"></i>
+              <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Render feedback items
+        feedbackList.innerHTML = allFeedback.map(item => this.renderFeedbackItem(item)).join('');
+      }
+
+      renderFeedbackItem(feedback) {
+        const date = new Date(feedback.timestamp).toLocaleDateString();
+        const time = new Date(feedback.timestamp).toLocaleTimeString();
+
+        return `
+          <div class="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+            <div class="flex items-start gap-3 mb-3">
+              <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <span class="text-orange-600 font-semibold">${feedback.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900">${feedback.name}</h4>
+                <p class="text-xs text-gray-500">${date} at ${time}</p>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <p class="text-gray-700 leading-relaxed">${feedback.note}</p>
+            </div>
+          </div>
+        `;
+      }
+
+      exportFeedback() {
+        try {
+          this.storage.exportFeedback();
+          this.showNotification('Feedback exported successfully!', 'success');
+        } catch (error) {
+          console.error('Error exporting feedback:', error);
+          this.showNotification('Error exporting feedback', 'error');
+        }
+      }
+
+      clearAllFeedback() {
+        if (confirm('Are you sure you want to clear all feedback? This action cannot be undone.')) {
+          this.storage.clearAllFeedback();
+          this.loadFeedback();
+          this.showNotification('All feedback cleared successfully!', 'success');
+        }
+      }
+
+      showNotification(message, type = 'info') {
+        // Create a simple notification
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+          type === 'success' ? 'bg-green-500 text-white' :
+          type === 'error' ? 'bg-red-500 text-white' :
+          'bg-blue-500 text-white'
+        }`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 3000);
+      }
+    }
+
+    // Initialize feedback system
+    let feedbackManager;
+    document.addEventListener('DOMContentLoaded', function() {
+      feedbackManager = new FeedbackManager();
+    });
+  </script>
+</body>
+</html>

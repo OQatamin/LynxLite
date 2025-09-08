@@ -1,0 +1,2458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device Health - Lynx Lite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  
+  <!-- Feedback Storage System -->
+  <script src="feedback-storage.js"></script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+     
+           /* Base styles */
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
+        min-height: 100vh;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+     
+     /* Dark mode styles */
+    body.dark-mode {
+      background: linear-gradient(to bottom, #18181b, #27272a);
+      color: #e5e7eb;
+    }
+    body.dark-mode header {
+      background: linear-gradient(to right, #18181b, #27272a);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    body.dark-mode #sidebar {
+      background: linear-gradient(180deg, #0f172a, #1e293b);
+    }
+    body.dark-mode .widget-card {
+      background: #23272f !important;
+      color: #e5e7eb !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    body.dark-mode .bg-white {
+      background: #23272f !important;
+      color: #e5e7eb !important;
+    }
+    body.dark-mode .text-gray-900 {
+      color: #e5e7eb !important;
+    }
+    body.dark-mode .text-gray-700 {
+      color: #e5e7eb !important;
+    }
+    body.dark-mode .border-gray-300 {
+      border-color: #334155 !important;
+    }
+    body.dark-mode .bg-blue-600 {
+      background: #2563eb !important;
+    }
+    body.dark-mode .bg-blue-700 {
+      background: #1e40af !important;
+    }
+    body.dark-mode .shadow {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+    }
+     
+     /* Sidebar collapsed styles */
+      #sidebar.w-16 {
+        width: 4rem;
+    }
+    #sidebar.w-16 .nav-text {
+      opacity: 0;
+      display: none;
+    }
+      
+            /* Ensure main content flows properly */
+      body {
+        overflow-x: hidden;
+      }
+      
+      .sidebar-hidden {
+        transform: translateX(-100%);
+      }
+      
+      /* Mobile responsiveness */
+      @media (max-width: 768px) {
+        header {
+          left: 0 !important;
+        }
+        #sidebar {
+          width: 100% !important;
+          transform: translateX(-100%);
+          z-index: 30;
+        }
+        #sidebar.active {
+          transform: translateX(0);
+        }
+        #main-content-container {
+          margin-left: 0 !important;
+          padding-left: 1rem !important;
+          padding-right: 1rem !important;
+        }
+        .grid {
+          grid-template-columns: 1fr !important;
+        }
+      }
+     
+     /* Device status chips */
+    .device-status-chip.selected {
+      box-shadow: 0 0 0 2px #2563eb;
+    }
+     .device-status-chip {
+       display: inline-block;
+       padding: 0.25rem 0.75rem;
+       border-radius: 9999px;
+       font-size: 0.75rem;
+       font-weight: 600;
+       text-transform: uppercase;
+       letter-spacing: 0.05em;
+    }
+    .chip-online { background: #16A34A; color: #fff; }
+    .chip-offline { background: #DC2626; color: #fff; }
+    .chip-warning { background: #EAB308; color: #fff; }
+    .chip-error { background: #7F1D1D; color: #fff; }
+     
+     /* Toast notifications */
+    .toast {
+      transition: all 0.3s ease-in-out;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      background: #fff;
+      color: #1e293b;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      min-width: 220px;
+      max-width: 350px;
+      pointer-events: auto;
+    }
+    .toast.success { border-left: 6px solid #16A34A; }
+    .toast.info { border-left: 6px solid #2563eb; }
+    .toast.error { border-left: 6px solid #DC2626; }
+    .toast.hidden {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+     
+     /* Help tooltip */
+    .help-tooltip {
+      position: absolute;
+      background: #23272f;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      z-index: 50;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      display: none;
+    }
+    .help-icon:focus + .help-tooltip,
+    .help-icon:hover + .help-tooltip {
+      display: block;
+    }
+     
+           /* Modal styles */
+    .bulk-modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+        z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+        padding: 1rem;
+    }
+    .bulk-modal-content {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      padding: 2rem;
+      min-width: 320px;
+      max-width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+      }
+      
+      /* Device details modal specific styles */
+      #device-details-modal .bulk-modal-content {
+        min-width: 800px;
+        max-width: 95vw;
+        max-height: 90vh;
+        padding: 2.5rem;
+        margin: auto;
+        transform: none;
+      }
+      
+      /* Ensure modal appears above sidebar */
+      #device-details-modal {
+        z-index: 10000;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+      }
+      
+      #device-details-modal h3 {
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+      }
+      
+      #device-details-modal h4 {
+        color: #374151;
+        font-weight: 600;
+      }
+      
+      body.dark-mode #device-details-modal h3 {
+        color: #e5e7eb;
+      }
+      
+      body.dark-mode #device-details-modal h4 {
+        color: #d1d5db;
+      }
+      
+      body.dark-mode #device-details-modal .bulk-modal-content {
+        background: #1f2937;
+        color: #e5e7eb;
+      }
+      
+      /* Modal content positioning */
+      #device-details-modal .bulk-modal-content {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        transform: none !important;
+        margin: auto;
+      }
+      
+      /* Ensure modal is not affected by parent positioning */
+      #device-details-modal {
+        isolation: isolate;
+      }
+      
+      /* Fix for any potential overflow issues */
+      #device-details-modal .bulk-modal-content {
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow: auto;
+      }
+     .bulk-modal-content h3 { 
+       font-size: 1.25rem; 
+       font-weight: bold; 
+       margin-bottom: 1rem; 
+     }
+     .bulk-modal-content .device-list { 
+       max-height: 200px; 
+       overflow-y: auto; 
+       margin-bottom: 1rem;
+       padding: 0.75rem;
+       border: 1px solid #e5e7eb;
+       border-radius: 8px;
+       background: #f9fafb;
+     }
+     body.dark-mode .bulk-modal-content .device-list {
+       border-color: #334155;
+       background: #1f2937;
+     }
+     .bulk-modal-content .actions { 
+       display: flex; 
+       gap: 1rem; 
+     }
+     .bulk-modal-content .actions button { 
+       flex: 1; 
+     }
+     .bulk-modal-content .close-btn { 
+       position: absolute; 
+       top: 1rem; 
+       right: 1rem; 
+       background: none; 
+       border: none; 
+       font-size: 1.5rem; 
+       color: #2563eb; 
+       cursor: pointer; 
+     }
+     
+     /* Device details panel */
+     #device-details-panel {
+       max-height: calc(100vh - 12rem);
+       overflow-y: auto;
+       scrollbar-width: thin;
+       scrollbar-color: #cbd5e1 #f1f5f9;
+     }
+     #device-details-panel::-webkit-scrollbar {
+       width: 6px;
+     }
+     #device-details-panel::-webkit-scrollbar-track {
+       background: #f1f5f9;
+       border-radius: 3px;
+     }
+     #device-details-panel::-webkit-scrollbar-thumb {
+       background: #cbd5e1;
+       border-radius: 3px;
+     }
+     #device-details-panel::-webkit-scrollbar-thumb:hover {
+       background: #94a3b8;
+     }
+     
+     /* Chart constraints */
+     .charts-grid { 
+       display: grid; 
+       grid-template-columns: 1fr 1fr; 
+       gap: 1rem; 
+     }
+     .charts-grid canvas {
+       max-height: 150px !important;
+       width: 100% !important;
+     }
+    @media (max-width: 768px) {
+       .charts-grid { 
+         grid-template-columns: 1fr; 
+       }
+       .charts-grid canvas {
+         max-height: 120px !important;
+       }
+     }
+     
+     /* Table improvements */
+     table { 
+       border-collapse: separate; 
+       border-spacing: 0; 
+     }
+     th, td { 
+       border-bottom: 1px solid #e5e7eb; 
+     }
+     th { 
+       background: #f1f5f9; 
+       font-weight: 600; 
+     }
+     tr:last-child td { 
+       border-bottom: none; 
+     }
+    @media (max-width: 768px) {
+       table, thead, tbody, th, td, tr { 
+         display: block; 
+       }
+       th, td { 
+         padding: 0.5rem 1rem; 
+       }
+       tr { 
+         margin-bottom: 1rem; 
+       }
+     }
+     
+           /* Responsive adjustments */
+      @media (max-width: 1024px) {
+        #main-content-container {
+          left: 0;
+          padding: 0.5rem;
+        }
+        #sidebar {
+          transform: translateX(-100%);
+        }
+        #sidebar.show {
+          transform: translateX(0);
+        }
+      }
+      
+      /* Screen reader only class */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+  <header class="bg-white dark:bg-gray-800 shadow flex justify-between items-center px-6 py-4 z-30 fixed top-0 left-72 right-0" aria-label="Dashboard Header">
+    <div class="flex items-center space-x-4">
+      <button id="sidebar-toggle" class="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle Sidebar" tabindex="0">
+        <i class="fas fa-bars text-xl"></i>
+      </button>
+      <h1 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Device Health</h1>
+    </div>
+    <div class="flex items-center space-x-3">
+      <div class="relative hidden md:block">
+        <input type="text" id="device-search" placeholder="Search Device, Serial..." class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-4 py-2 rounded-lg w-48 lg:w-64 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" aria-label="Search">
+        <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button id="dark-mode-toggle" class="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 p-2" aria-label="Toggle Dark Mode" tabindex="0">
+          <i class="fas fa-moon"></i>
+        </button>
+        <button id="bulk-action-btn" class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 text-sm" aria-label="Bulk Actions" tabindex="0">
+          <i class="fas fa-tasks mr-1"></i>
+          <span class="hidden sm:inline">Actions</span>
+        </button>
+        <button id="user-menu-button" class="bg-blue-600 text-white w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="User Menu" tabindex="0">
+          <i class="fas fa-user text-sm"></i>
+        </button>
+        <button id="feedback-toggle" class="bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 text-sm" title="Submit Feedback">
+          <i class="fas fa-comment-dots"></i>
+          <span class="hidden lg:inline">Feedback</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex">
+    <aside id="sidebar" class="w-64 bg-blue-900 text-white flex flex-col py-6 px-4 fixed top-20 left-0 h-[calc(100vh-5rem)] z-20 transition-transform duration-300" aria-label="Main Navigation">
+      <nav class="space-y-4">
+        <a href="index.html" class="nav-link group flex items-center px-3 py-2 text-sm font-semibold text-white bg-blue-700 rounded-lg" role="menuitem">
+          <i class="fas fa-tachometer-alt fa-fw mr-3"></i><span class="nav-text">Dashboard</span>
+        </a>
+        <a href="#" class="nav-link group flex items-center px-3 py-2 text-sm font-medium text-blue-200 rounded-lg hover:text-white hover:bg-blue-700" role="menuitem">
+          <i class="fas fa-satellite-dish fa-fw mr-3"></i><span class="nav-text">Device Health</span>
+        </a>
+        <a href="#" class="nav-link group flex items-center px-3 py-2 text-sm font-medium text-blue-200 rounded-lg hover:text-white hover:bg-blue-700" role="menuitem">
+          <i class="fas fa-cogs fa-fw mr-3"></i><span class="nav-text">Settings</span>
+        </a>
+        <a href="#" class="nav-link group flex items-center px-3 py-2 text-sm font-medium text-blue-200 rounded-lg hover:text-white hover:bg-blue-700" role="menuitem">
+          <i class="fas fa-question-circle fa-fw mr-3"></i><span class="nav-text">Help & Support</span>
+        </a>
+      </nav>
+    </aside>
+    <main id="main-content-container" class="flex-1 ml-64 pt-20 px-6 min-h-screen" aria-label="Main Content">
+
+      <section class="mb-8">
+        <h2 class="text-xl font-bold mb-4">Device Overview</h2>
+        <div class="mb-6">
+          <h3 class="text-lg font-bold mb-2">Device Locations</h3>
+                       <div id="device-map" style="height:300px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08);" aria-label="Interactive map showing device locations and status"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <div class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-lg transition-shadow" 
+                 onclick="filterByOverviewCard('online')" 
+                 role="button" 
+                 tabindex="0" 
+                 aria-label="Click to show only online devices">
+            <div class="flex items-center">
+              <i class="fas fa-wifi text-2xl md:text-3xl text-green-500 mr-3 md:mr-4"></i>
+              <div>
+                <div class="text-sm md:text-lg font-bold text-gray-900 dark:text-white">Online Devices</div>
+                <div class="text-xl md:text-2xl font-bold text-green-600" id="online-count">--</div>
+              </div>
+            </div>
+          </div>
+            <div class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-lg transition-shadow" 
+                 onclick="filterByOverviewCard('offline')" 
+                 role="button" 
+                 tabindex="0" 
+                 aria-label="Click to show only offline devices">
+            <div class="flex items-center">
+              <i class="fas fa-power-off text-2xl md:text-3xl text-red-500 mr-3 md:mr-4"></i>
+              <div>
+                <div class="text-sm md:text-lg font-bold text-gray-900 dark:text-white">Offline Devices</div>
+                <div class="text-xl md:text-2xl font-bold text-red-600" id="offline-count">--</div>
+              </div>
+            </div>
+          </div>
+            <div class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-lg transition-shadow" 
+                 onclick="filterByOverviewCard('low-battery')" 
+                 role="button" 
+                 tabindex="0" 
+                 aria-label="Click to show only devices with low battery">
+            <div class="flex items-center">
+              <i class="fas fa-battery-half text-2xl md:text-3xl text-yellow-500 mr-3 md:mr-4"></i>
+              <div>
+                <div class="text-sm md:text-lg font-bold text-gray-900 dark:text-white">Low Battery</div>
+                <div class="text-2xl font-bold text-yellow-600" id="low-battery-count">--</div>
+              </div>
+            </div>
+          </div>
+            <div class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-lg transition-shadow" 
+                 onclick="filterByOverviewCard('errors')" 
+                 role="button" 
+                 tabindex="0" 
+                 aria-label="Click to show only devices with errors">
+            <div class="flex items-center">
+              <i class="fas fa-exclamation-triangle text-2xl md:text-3xl text-orange-500 mr-3 md:mr-4"></i>
+              <div>
+                <div class="text-sm md:text-lg font-bold text-gray-900 dark:text-white">Errors</div>
+                <div class="text-xl md:text-2xl font-bold text-orange-600" id="error-count">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+               <!-- Device Management Section -->
+        <section class="w-full">
+        <h2 class="text-xl font-bold mb-4">Device List</h2>
+        <div class="widget-card bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg">
+          <!-- Advanced Filtering Section -->
+          <div class="mb-6 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="fas fa-filter mr-2 text-blue-600"></i>
+                Advanced Filters
+              </h4>
+          <div class="flex gap-2">
+                <button id="clear-all-filters" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+                  <i class="fas fa-times mr-1"></i>Clear All
+                </button>
+                <button id="toggle-advanced-filters" class="text-sm text-blue-600 hover:text-blue-700">
+                  <i class="fas fa-chevron-down mr-1"></i>Advanced
+                </button>
+              </div>
+            </div>
+            
+            <!-- Basic Filters Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <!-- Device Type Filter -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Device Type</label>
+                               <select id="group-filter" class="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+              <option value="">All Types</option>
+                   <option value="Vehicle Tracking Unit">Vehicle Tracking Unit</option>
+                   <option value="SIM Card">SIM Card</option>
+                   <option value="IoT Device">IoT Device</option>
+                   <option value="ELD Device">ELD Device</option>
+                   <option value="Camera">Camera</option>
+                   <option value="Meter">Meter</option>
+            </select>
+              </div>
+              
+              <!-- Status Filter -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                <select id="status-filter" class="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                  <option value="">All Status</option>
+                  <option value="Online">Online</option>
+                  <option value="Offline">Offline</option>
+                  <option value="Warning">Warning</option>
+                  <option value="Error">Error</option>
+                </select>
+              </div>
+              
+              <!-- Battery Level Filter -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Battery Level</label>
+                <select id="battery-filter" class="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                  <option value="">All Levels</option>
+                  <option value="critical">< 10% (Critical)</option>
+                  <option value="low">< 20% (Low)</option>
+                  <option value="medium">< 50% (Medium)</option>
+                  <option value="good">> 50% (Good)</option>
+                </select>
+              </div>
+              
+              <!-- Signal Strength Filter -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Signal Strength</label>
+                <select id="signal-filter" class="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                  <option value="">All Strengths</option>
+                  <option value="weak">< 30% (Weak)</option>
+                  <option value="poor">< 50% (Poor)</option>
+                  <option value="fair">< 70% (Fair)</option>
+                  <option value="good">> 70% (Good)</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- Advanced Filters Row (Collapsible) -->
+            <div id="advanced-filters" class="hidden">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <!-- Last Ping Time Filter -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Ping Time</label>
+                    <select id="ping-filter" class="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                      <option value="">Any Time</option>
+                      <option value="5min">Last 5 minutes</option>
+                      <option value="15min">Last 15 minutes</option>
+                      <option value="1hour">Last 1 hour</option>
+                      <option value="6hours">Last 6 hours</option>
+                      <option value="24hours">Last 24 hours</option>
+                      <option value="offline">Offline > 1 hour</option>
+                    </select>
+                </div>
+                
+                <!-- Firmware Version Filter -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Firmware Status</label>
+                    <select id="firmware-filter" class="w-full border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                      <option value="">All Versions</option>
+                      <option value="outdated">Outdated</option>
+                      <option value="current">Current</option>
+                      <option value="latest">Latest</option>
+                    </select>
+                </div>
+                
+                <!-- Custom Range Filter -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Custom Battery Range</label>
+                    <div class="flex gap-2">
+                      <input type="number" id="battery-min" placeholder="Min %" min="0" max="100" 
+                             class="flex-1 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                      <span class="text-gray-500 dark:text-gray-400 self-center">-</span>
+                      <input type="number" id="battery-max" placeholder="Max %" min="0" max="100" 
+                             class="flex-1 border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                </div>
+              </div>
+              
+              <!-- Quick Filter Presets -->
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Quick Presets</label>
+                <div class="flex flex-wrap gap-2">
+                  <button class="filter-preset px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded text-sm hover:bg-blue-200 dark:hover:bg-blue-800" data-preset="critical">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>Critical Issues
+                  </button>
+                  <button class="filter-preset px-3 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded text-sm hover:bg-red-200 dark:hover:bg-red-800" data-preset="offline">
+                    <i class="fas fa-power-off mr-1"></i>Offline Devices
+                  </button>
+                  <button class="filter-preset px-3 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-200 rounded text-sm hover:bg-yellow-200 dark:hover:bg-yellow-800" data-preset="low-battery">
+                    <i class="fas fa-battery-quarter mr-1"></i>Low Battery
+                  </button>
+                  <button class="filter-preset px-3 py-1 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-200 rounded text-sm hover:bg-orange-200 dark:hover:bg-orange-800" data-preset="weak-signal">
+                    <i class="fas fa-wifi mr-1"></i>Weak Signal
+                  </button>
+                                   <button class="filter-preset px-3 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 rounded text-sm hover:bg-green-200 dark:hover:bg-green-800" data-preset="healthy">
+                     <i class="fas fa-check-circle mr-1"></i>Healthy Devices
+                   </button>
+                   <button class="filter-preset px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-200 rounded text-sm hover:bg-purple-200 dark:hover:bg-purple-800" data-preset="tracking-units">
+                     <i class="fas fa-car mr-1"></i>Vehicle Tracking Units
+                   </button>
+                   <button class="filter-preset px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 rounded text-sm hover:bg-indigo-200 dark:hover:bg-indigo-800" data-preset="sim-cards">
+                     <i class="fas fa-sim-card mr-1"></i>SIM Cards
+                   </button>
+                   <button class="filter-preset px-3 py-1 bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-200 rounded text-sm hover:bg-teal-200 dark:hover:bg-teal-800" data-preset="eld-devices">
+                     <i class="fas fa-clock mr-1"></i>ELD Devices
+                   </button>
+                   <button class="filter-preset px-3 py-1 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-200 rounded text-sm hover:bg-orange-200 dark:hover:bg-orange-800" data-preset="cameras">
+                     <i class="fas fa-video mr-1"></i>Cameras
+                   </button>
+                 </div>
+               </div>
+             </div>
+             
+             <!-- Filter Summary -->
+             <div id="filter-summary" class="text-sm text-gray-600 dark:text-gray-400 hidden">
+               <i class="fas fa-info-circle mr-1"></i>
+               <span id="filter-summary-text">Showing filtered results</span>
+               <span id="filter-count" class="ml-2 font-medium"></span>
+             </div>
+           </div>
+           
+           <!-- Action Buttons -->
+           <div class="flex justify-between items-center mb-4">
+             <h3 class="text-xl font-bold text-gray-900 dark:text-white">Devices</h3>
+             <div class="flex gap-2">
+               <button id="apply-filters" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500">
+                 <i class="fas fa-filter mr-1"></i>Apply Filters
+               </button>
+            <button id="export-data" class="text-blue-600 hover:text-blue-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Export Filtered Data" tabindex="0">
+              <i class="fas fa-download mr-1"></i>Export Filtered CSV
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+             <div id="device-table-description" class="sr-only">
+               Device management table showing device status, signal strength, battery level, and available actions. Click on a device row to view detailed information.
+             </div>
+             <table class="min-w-full bg-white rounded-lg shadow" role="grid" aria-describedby="device-table-description">
+            <thead>
+              <tr>
+                   <th class="px-4 py-2 text-left" scope="col">Device ID</th>
+                   <th class="px-4 py-2 text-left" scope="col">Status</th>
+                   <th class="px-4 py-2 text-left" scope="col">Signal</th>
+                   <th class="px-4 py-2 text-left" scope="col">Battery</th>
+                   <th class="px-4 py-2 text-left" scope="col">Last Ping</th>
+                   <th class="px-4 py-2 text-left" scope="col">Firmware</th>
+                   <th class="px-4 py-2 text-left" scope="col">Predictive Maintenance</th>
+                   <th class="px-4 py-2 text-left" scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="device-list-body">
+              <!-- Device rows will be injected here -->
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </section>
+      <div id="toast-container" class="fixed top-4 right-4 space-y-2 z-50" aria-live="assertive"></div>
+             <!-- Device Details Modal -->
+       <div id="device-details-modal" class="bulk-modal hidden" role="dialog" aria-modal="true" aria-label="Device Details">
+         <div class="bulk-modal-content relative max-w-6xl max-h-[90vh] overflow-y-auto">
+           <button class="close-btn" id="device-details-close" aria-label="Close Device Details">&times;</button>
+           <div id="device-details-content">
+             <!-- Device details content will be injected here -->
+           </div>
+         </div>
+       </div>
+       
+      <div id="bulk-modal" class="bulk-modal hidden" role="dialog" aria-modal="true">
+        <div class="bulk-modal-content relative">
+          <button class="close-btn" id="bulk-close" aria-label="Close Bulk Actions">&times;</button>
+          <h3>Bulk Actions</h3>
+          <div class="device-list" id="bulk-device-list"></div>
+          <div class="actions">
+            <button id="bulk-restart" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Restart Selected</button>
+            <button id="bulk-update" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Update Firmware</button>
+            <button id="bulk-message" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Send Message</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+     // Debounce function for search input
+     function debounce(func, wait) {
+       let timeout;
+       return function executedFunction(...args) {
+         const later = () => {
+           clearTimeout(timeout);
+           func(...args);
+         };
+         clearTimeout(timeout);
+         timeout = setTimeout(later, wait);
+       };
+     }
+
+     
+
+                   // Sample device data for fleet management system
+    const devices = Array.from({ length: 50 }, (_, i) => {
+        const deviceTypes = [
+          'Vehicle Tracking Unit', 'Vehicle Tracking Unit', // More common
+          'SIM Card', 'SIM Card', // More common
+          'IoT Device',
+          'ELD Device',
+          'Camera',
+          'Meter'
+        ];
+        const type = deviceTypes[Math.floor(Math.random() * deviceTypes.length)];
+        
+        // Generate appropriate model names based on device type
+        let model, id;
+        switch(type) {
+          case 'Vehicle Tracking Unit':
+            model = `VTU-${String.fromCharCode(65+Math.floor(Math.random()*5))}-${Math.floor(Math.random()*10)}`;
+            id = `VTU-${String(i + 1).padStart(3, '0')}`;
+            break;
+          case 'SIM Card':
+            model = `SIM-${String.fromCharCode(65+Math.floor(Math.random()*5))}`;
+            id = `SIM-${String(i + 1).padStart(3, '0')}`;
+            break;
+          case 'IoT Device':
+            model = `IoT-${String.fromCharCode(65+Math.floor(Math.random()*5))}-${Math.floor(Math.random()*10)}`;
+            id = `IoT-${String(i + 1).padStart(3, '0')}`;
+            break;
+          case 'ELD Device':
+            model = `ELD-${String.fromCharCode(65+Math.floor(Math.random()*5))}-${Math.floor(Math.random()*10)}`;
+            id = `ELD-${String(i + 1).padStart(3, '0')}`;
+            break;
+          case 'Camera':
+            model = `CAM-${String.fromCharCode(65+Math.floor(Math.random()*5))}-${Math.floor(Math.random()*10)}`;
+            id = `CAM-${String(i + 1).padStart(3, '0')}`;
+            break;
+          case 'Meter':
+            model = `MTR-${String.fromCharCode(65+Math.floor(Math.random()*5))}-${Math.floor(Math.random()*10)}`;
+            id = `MTR-${String(i + 1).padStart(3, '0')}`;
+            break;
+          default:
+            model = `DEV-${String.fromCharCode(65+Math.floor(Math.random()*5))}`;
+            id = `DEV-${String(i + 1).padStart(3, '0')}`;
+        }
+        
+      const location = {
+        lat: 30 + Math.random() * 10,
+        lng: 35 + Math.random() * 10
+      };
+        
+        // Base device properties
+        const baseDevice = {
+          id,
+        status: ['Online', 'Offline', 'Warning', 'Error'][Math.floor(Math.random() * 4)],
+        signal: Math.floor(Math.random() * 100),
+        battery: Math.floor(Math.random() * 100),
+        lastPing: new Date(Date.now() - Math.random() * 3600000).toLocaleTimeString(),
+        firmware: `v${Math.floor(Math.random() * 3) + 1}.${Math.floor(Math.random() * 10)}`,
+        uptime: Array.from({ length: 7 }, () => Math.floor(Math.random() * 24)),
+        signalHistory: Array.from({ length: 7 }, () => Math.floor(Math.random() * 100)),
+        batteryHistory: Array.from({ length: 7 }, () => Math.floor(Math.random() * 100)),
+        errorHistory: Array.from({ length: 7 }, () => Math.floor(Math.random() * 2)),
+        type,
+        model,
+        location
+      };
+        
+        // Add device-specific properties
+        switch(type) {
+          case 'Vehicle Tracking Unit':
+            return {
+              ...baseDevice,
+              vehicleRegistration: `REG-${String.fromCharCode(65+Math.floor(Math.random()*5))}${Math.floor(Math.random()*9999)}`,
+              isPrimary: Math.random() > 0.5,
+              gpsAccuracy: Math.floor(Math.random() * 10) + 1,
+              lastLocationUpdate: new Date(Date.now() - Math.random() * 300000).toLocaleTimeString(),
+              odometerReading: Math.floor(Math.random() * 100000),
+              fuelLevel: Math.floor(Math.random() * 100)
+            };
+          case 'SIM Card':
+            return {
+              ...baseDevice,
+              msisdn: `+1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
+              iccid: `890141032111185107${String(Math.floor(Math.random() * 999999999)).padStart(9, '0')}`,
+              imsi: `310260${String(Math.floor(Math.random() * 999999999)).padStart(9, '0')}`,
+              carrier: ['AT&T', 'Verizon', 'T-Mobile', 'Sprint'][Math.floor(Math.random() * 4)],
+              dataUsage: Math.floor(Math.random() * 1000),
+              monthlyLimit: 1000,
+              activationDate: new Date(Date.now() - Math.random() * 365 * 24 * 3600000).toLocaleDateString()
+            };
+          case 'IoT Device':
+            return {
+              ...baseDevice,
+              iotProtocol: ['MQTT', 'HTTP', 'CoAP', 'LwM2M'][Math.floor(Math.random() * 4)],
+              lastCommandSent: new Date(Date.now() - Math.random() * 24 * 3600000).toLocaleTimeString(),
+              commandQueue: Math.floor(Math.random() * 5),
+              sensorData: {
+                temperature: Math.floor(Math.random() * 50) + 10,
+                humidity: Math.floor(Math.random() * 100),
+                pressure: Math.floor(Math.random() * 100) + 900
+              }
+            };
+          case 'ELD Device':
+            return {
+              ...baseDevice,
+              driverId: `DRV-${String(Math.floor(Math.random() * 999)).padStart(3, '0')}`,
+              currentStatus: ['Driving', 'On-Duty Not Driving', 'Off-Duty', 'Sleeper Berth'][Math.floor(Math.random() * 4)],
+              hoursOfService: Math.floor(Math.random() * 14),
+              lastStatusChange: new Date(Date.now() - Math.random() * 3600000).toLocaleTimeString(),
+              complianceStatus: ['Compliant', 'Warning', 'Violation'][Math.floor(Math.random() * 3)],
+              lastSync: new Date(Date.now() - Math.random() * 3600000).toLocaleTimeString()
+            };
+          case 'Camera':
+            return {
+              ...baseDevice,
+              recordingStatus: ['Recording', 'Idle', 'Error', 'Offline'][Math.floor(Math.random() * 4)],
+              storageUsed: Math.floor(Math.random() * 100),
+              channels: Math.floor(Math.random() * 4) + 1,
+              positioningStatus: ['Optimal', 'Obstructed', 'Misaligned', 'Unknown'][Math.floor(Math.random() * 4)],
+              lastPositionCheck: new Date(Date.now() - Math.random() * 24 * 3600000).toLocaleTimeString(),
+              resolution: ['720p', '1080p', '4K'][Math.floor(Math.random() * 3)],
+              nightVision: Math.random() > 0.5,
+              motionDetection: Math.random() > 0.5
+            };
+          case 'Meter':
+            return {
+              ...baseDevice,
+              meterType: ['Taxi', 'Fare', 'Distance', 'Time'][Math.floor(Math.random() * 4)],
+              currentReading: Math.floor(Math.random() * 10000),
+              lastReading: Math.floor(Math.random() * 10000),
+              calibrationDate: new Date(Date.now() - Math.random() * 365 * 24 * 3600000).toLocaleDateString(),
+              nextCalibration: new Date(Date.now() + Math.random() * 365 * 24 * 3600000).toLocaleDateString(),
+              accuracy: (Math.random() * 2 + 98).toFixed(2) + '%'
+            };
+          default:
+            return baseDevice;
+        }
+      });
+
+    // Advanced Filtering System
+    let activeFilters = {
+      search: '',
+      type: '',
+      status: '',
+      battery: '',
+      signal: '',
+      ping: '',
+      firmware: '',
+      batteryMin: '',
+      batteryMax: ''
+    };
+
+    function predictiveMaintenance(device) {
+      // Simple AI: flag if battery < 20, signal < 30, or error count > 2 in last week
+      if (device.battery < 20 || device.signal < 30 || device.errorHistory.reduce((a,b)=>a+b,0) > 2) {
+        return '<span class="text-red-600 font-bold">Attention Needed</span>';
+      }
+      if (device.status === 'Warning') {
+        return '<span class="text-yellow-600 font-bold">Monitor</span>';
+      }
+      return '<span class="text-green-600 font-bold">Healthy</span>';
+    }
+
+     // Camera positioning status helper functions
+     function getPositioningStatusColor(status) {
+       switch (status) {
+         case 'Optimal':
+           return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+         case 'Obstructed':
+           return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
+         case 'Misaligned':
+           return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+         case 'Unknown':
+           return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
+         default:
+           return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
+       }
+     }
+
+     function getPositioningIcon(status) {
+       switch (status) {
+         case 'Optimal':
+           return 'fa-check-circle';
+         case 'Obstructed':
+           return 'fa-eye-slash';
+         case 'Misaligned':
+           return 'fa-arrows-alt';
+         case 'Unknown':
+           return 'fa-question-circle';
+         default:
+           return 'fa-question-circle';
+       }
+     }
+
+    // Apply all active filters
+    function applyFilters() {
+      let filtered = devices.filter(device => {
+        // Search filter
+        if (activeFilters.search && !device.id.toLowerCase().includes(activeFilters.search.toLowerCase())) {
+          return false;
+        }
+        
+                 // Type filter
+         if (activeFilters.type && device.type !== activeFilters.type) {
+           return false;
+         }
+         
+         // Special handling for positioning issues filter
+         if (activeFilters.type === 'DVR Camera' && activeFilters.search === 'positioning-issues') {
+           if (device.type !== 'DVR Camera' || (device.positioningStatus !== 'Obstructed' && device.positioningStatus !== 'Misaligned')) {
+             return false;
+           }
+         }
+        
+        // Status filter
+        if (activeFilters.status && device.status !== activeFilters.status) {
+          return false;
+        }
+        
+        // Battery level filter
+        if (activeFilters.battery) {
+          switch (activeFilters.battery) {
+            case 'critical':
+              if (device.battery >= 10) return false;
+              break;
+            case 'low':
+              if (device.battery >= 20) return false;
+              break;
+            case 'medium':
+              if (device.battery >= 50) return false;
+              break;
+            case 'good':
+              if (device.battery < 50) return false;
+              break;
+          }
+        }
+        
+        // Signal strength filter
+        if (activeFilters.signal) {
+          switch (activeFilters.signal) {
+            case 'weak':
+              if (device.signal >= 30) return false;
+              break;
+            case 'poor':
+              if (device.signal >= 50) return false;
+              break;
+            case 'fair':
+              if (device.signal >= 70) return false;
+              break;
+            case 'good':
+              if (device.signal < 70) return false;
+              break;
+          }
+        }
+        
+        // Custom battery range filter
+        if (activeFilters.batteryMin && device.battery < parseInt(activeFilters.batteryMin)) {
+          return false;
+        }
+        if (activeFilters.batteryMax && device.battery > parseInt(activeFilters.batteryMax)) {
+          return false;
+        }
+        
+        // Ping time filter (simplified - in real app would use actual timestamps)
+        if (activeFilters.ping) {
+          // For demo purposes, we'll simulate ping time filtering
+          const randomOffline = Math.random() > 0.8; // 20% chance of being "offline"
+          if (activeFilters.ping === 'offline' && !randomOffline) {
+            return false;
+          }
+        }
+        
+        // Firmware filter (simplified)
+        if (activeFilters.firmware) {
+          const version = parseFloat(device.firmware.substring(1));
+          switch (activeFilters.firmware) {
+            case 'outdated':
+              if (version >= 2.0) return false;
+              break;
+            case 'current':
+              if (version < 2.0 || version >= 3.0) return false;
+              break;
+            case 'latest':
+              if (version < 3.0) return false;
+              break;
+          }
+        }
+        
+        return true;
+      });
+      
+      renderDeviceList(filtered);
+      updateFilterSummary(filtered.length);
+    }
+
+                   function renderDeviceList(filteredDevices = null) {
+      const tbody = document.getElementById('device-list-body');
+      tbody.innerHTML = '';
+        
+        const devicesToRender = filteredDevices || devices;
+        
+        // Use document fragment to minimize DOM reflows
+        const fragment = document.createDocumentFragment();
+        
+        devicesToRender.forEach(device => {
+        const tr = document.createElement('tr');
+          tr.className = 'hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer';
+          tr.dataset.deviceId = device.id;
+          tr.setAttribute('role', 'row');
+          tr.setAttribute('aria-selected', 'false');
+          tr.setAttribute('tabindex', '0');
+        tr.innerHTML = `
+            <td class="px-4 py-2" role="gridcell">${device.id}</td>
+                         <td class="px-4 py-2" role="gridcell">
+            <span class="device-status-chip chip-${device.status.toLowerCase()}">${device.status}</span>
+               ${device.type === 'Vehicle Tracking Unit' ? `
+               <div class="mt-1">
+                 <span class="text-xs px-2 py-1 rounded ${device.isPrimary ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+                   <i class="fas ${device.isPrimary ? 'fa-star' : 'fa-star-o'} mr-1"></i>${device.isPrimary ? 'Primary' : 'Secondary'}
+                 </span>
+               </div>
+               ` : ''}
+               ${device.type === 'SIM Card' ? `
+               <div class="mt-1">
+                 <span class="text-xs px-2 py-1 rounded ${device.dataUsage > device.monthlyLimit * 0.8 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                   <i class="fas fa-mobile mr-1"></i>${device.dataUsage}MB/${device.monthlyLimit}MB
+                 </span>
+               </div>
+               ` : ''}
+               ${device.type === 'ELD Device' ? `
+               <div class="mt-1">
+                 <span class="text-xs px-2 py-1 rounded ${device.complianceStatus === 'Violation' ? 'bg-red-100 text-red-800' : device.complianceStatus === 'Warning' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">
+                   <i class="fas fa-clock mr-1"></i>${device.complianceStatus}
+                 </span>
+               </div>
+               ` : ''}
+               ${device.type === 'Camera' ? `
+               <div class="mt-1">
+                 <span class="text-xs px-2 py-1 rounded ${getPositioningStatusColor(device.positioningStatus)}">
+                   <i class="fas ${getPositioningIcon(device.positioningStatus)} mr-1"></i>${device.positioningStatus}
+                 </span>
+               </div>
+               ` : ''}
+          </td>
+            <td class="px-4 py-2" role="gridcell">${device.signal}%</td>
+            <td class="px-4 py-2" role="gridcell">${device.battery}%</td>
+            <td class="px-4 py-2" role="gridcell">${device.lastPing}</td>
+            <td class="px-4 py-2" role="gridcell">${device.firmware}</td>
+            <td class="px-4 py-2" role="gridcell">${predictiveMaintenance(device)}</td>
+            <td class="px-4 py-2" role="gridcell">
+             <button class="device-action-btn restart-btn bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 mr-2" data-action="restart" data-device-id="${device.id}" aria-label="Restart device ${device.id}">Restart</button>
+             <button class="device-action-btn update-btn bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 mr-2" data-action="update" data-device-id="${device.id}" aria-label="Update firmware for device ${device.id}">Update</button>
+             <button class="device-action-btn message-btn bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700" data-action="message" data-device-id="${device.id}" aria-label="Send message to device ${device.id}">Message</button>
+             <input type="checkbox" class="bulk-select" data-id="${device.id}" aria-label="Select device ${device.id} for bulk action" style="margin-left:8px;">
+          </td>
+        `;
+        tr.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('bulk-select') && !e.target.classList.contains('device-action-btn')) {
+              // Remove aria-selected from all rows
+              document.querySelectorAll('#device-list-body tr').forEach(row => {
+                row.setAttribute('aria-selected', 'false');
+              });
+              // Set aria-selected on clicked row
+              tr.setAttribute('aria-selected', 'true');
+              showDeviceDetails(device);
+            }
+          });
+          tr.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              tr.click();
+            }
+          });
+          fragment.appendChild(tr);
+        });
+        
+        tbody.appendChild(fragment);
+        updateOverviewCounts(devicesToRender);
+        renderDeviceMap(devicesToRender);
+      }
+
+    // Update filter summary
+    function updateFilterSummary(count) {
+      const summary = document.getElementById('filter-summary');
+      const summaryText = document.getElementById('filter-summary-text');
+      const filterCount = document.getElementById('filter-count');
+      
+      const hasActiveFilters = Object.values(activeFilters).some(filter => filter !== '');
+      
+      if (hasActiveFilters) {
+        summary.classList.remove('hidden');
+        summaryText.textContent = `Showing ${count} of ${devices.length} devices`;
+        filterCount.textContent = `(${count} results)`;
+      } else {
+        summary.classList.add('hidden');
+      }
+    }
+
+    // Clear all filters
+    function clearAllFilters() {
+      activeFilters = {
+        search: '',
+        type: '',
+        status: '',
+        battery: '',
+        signal: '',
+        ping: '',
+        firmware: '',
+        batteryMin: '',
+        batteryMax: ''
+      };
+      
+      // Reset form fields
+      document.getElementById('device-search').value = '';
+      document.getElementById('group-filter').value = '';
+      document.getElementById('status-filter').value = '';
+      document.getElementById('battery-filter').value = '';
+      document.getElementById('signal-filter').value = '';
+      document.getElementById('ping-filter').value = '';
+      document.getElementById('firmware-filter').value = '';
+      document.getElementById('battery-min').value = '';
+      document.getElementById('battery-max').value = '';
+      
+      renderDeviceList();
+      updateFilterSummary(devices.length);
+    }
+
+    // Apply filter presets
+    function applyFilterPreset(preset) {
+      clearAllFilters();
+      
+      switch (preset) {
+        case 'critical':
+          activeFilters.status = 'Error';
+          break;
+        case 'offline':
+          activeFilters.status = 'Offline';
+          break;
+        case 'low-battery':
+          activeFilters.battery = 'low';
+          break;
+        case 'weak-signal':
+          activeFilters.signal = 'weak';
+          break;
+                 case 'healthy':
+           activeFilters.status = 'Online';
+           activeFilters.battery = 'good';
+           activeFilters.signal = 'good';
+           break;
+                   case 'tracking-units':
+            activeFilters.type = 'Vehicle Tracking Unit';
+            break;
+          case 'sim-cards':
+            activeFilters.type = 'SIM Card';
+            break;
+          case 'eld-devices':
+            activeFilters.type = 'ELD Device';
+            break;
+          case 'cameras':
+            activeFilters.type = 'Camera';
+            break;
+      }
+      
+      // Update form fields to reflect preset
+      if (activeFilters.status) document.getElementById('status-filter').value = activeFilters.status;
+      if (activeFilters.battery) document.getElementById('battery-filter').value = activeFilters.battery;
+      if (activeFilters.signal) document.getElementById('signal-filter').value = activeFilters.signal;
+      
+      applyFilters();
+    }
+
+    // Overview counts
+    function updateOverviewCounts(list) {
+      document.getElementById('online-count').textContent = list.filter(d => d.status === 'Online').length;
+      document.getElementById('offline-count').textContent = list.filter(d => d.status === 'Offline').length;
+      document.getElementById('low-battery-count').textContent = list.filter(d => d.battery < 20).length;
+      document.getElementById('error-count').textContent = list.filter(d => d.status === 'Error').length;
+    }
+     
+     // Filter by overview card click
+     function filterByOverviewCard(cardType) {
+       // Clear existing filters first
+       clearAllFilters();
+       
+       // Apply the specific filter based on card type
+       switch(cardType) {
+         case 'online':
+           activeFilters.status = 'Online';
+           showToast('Showing only online devices', 'info');
+           break;
+         case 'offline':
+           activeFilters.status = 'Offline';
+           showToast('Showing only offline devices', 'info');
+           break;
+         case 'low-battery':
+           activeFilters.battery = 'low';
+           showToast('Showing only devices with low battery (< 20%)', 'info');
+           break;
+         case 'errors':
+           activeFilters.status = 'Error';
+           showToast('Showing only devices with errors', 'info');
+           break;
+       }
+       
+       // Update the filter form fields to reflect the selection
+       if (activeFilters.status) {
+         document.getElementById('status-filter').value = activeFilters.status;
+       }
+       if (activeFilters.battery) {
+         document.getElementById('battery-filter').value = activeFilters.battery;
+       }
+       
+       // Apply the filters
+       applyFilters();
+       
+       // Scroll to the device list section
+       document.querySelector('section:has(#device-list-body)').scrollIntoView({ 
+         behavior: 'smooth', 
+         block: 'start' 
+       });
+    }
+
+    // Status chip filter
+    document.querySelectorAll('#status-chips .device-status-chip').forEach(chip => {
+      chip.addEventListener('click', function() {
+        document.querySelectorAll('#status-chips .device-status-chip').forEach(c => c.classList.remove('selected'));
+        if (statusFilter === this.dataset.status) {
+          statusFilter = '';
+        } else {
+          statusFilter = this.dataset.status;
+          this.classList.add('selected');
+        }
+        renderDeviceList(document.getElementById('device-search').value);
+      });
+      chip.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') this.click();
+      });
+    });
+
+    
+
+         // Device details modal
+    let chartInstances = {};
+    function showDeviceDetails(device) {
+       // Destroy previous charts before updating modal HTML
+      Object.values(chartInstances).forEach(inst => {
+        if (inst) inst.destroy();
+      });
+      chartInstances = {};
+       const modal = document.getElementById('device-details-modal');
+       const content = document.getElementById('device-details-content');
+       
+       // Show the modal
+       modal.classList.remove('hidden');
+       
+       // Focus the modal for screen readers
+       modal.focus();
+      // Use actual device type/model/location
+      const location = `${device.location.lat.toFixed(4)}, ${device.location.lng.toFixed(4)}`;
+      const lastError = device.errorHistory.reduce((acc, val, idx) => val ? `Error on ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][idx]}` : acc, 'No recent errors');
+      const uptimePercent = ((device.uptime.reduce((a,b)=>a+b,0)/168)*100).toFixed(1); // 168 hours in a week
+      const firmwareStatus = Math.random() > 0.8 ? 'Update Available' : 'Up to Date';
+      const deviceType = device.type;
+      const deviceModel = device.model;
+      const lastMaintenance = new Date(Date.now() - Math.random()*60*24*3600000).toLocaleDateString();
+       
+                               // Device-specific information
+         let deviceSpecificInfo = '';
+         switch(device.type) {
+           case 'Vehicle Tracking Unit':
+             deviceSpecificInfo = `
+               <p><strong>Vehicle Registration:</strong> ${device.vehicleRegistration}</p>
+               <p><strong>Device Role:</strong> <span class="font-semibold ${device.isPrimary ? 'text-blue-600' : 'text-gray-600'}">${device.isPrimary ? 'Primary' : 'Secondary'}</span></p>
+               <p><strong>GPS Accuracy:</strong> ${device.gpsAccuracy}m</p>
+               <p><strong>Last Location Update:</strong> ${device.lastLocationUpdate}</p>
+               <p><strong>Odometer Reading:</strong> ${device.odometerReading.toLocaleString()} km</p>
+               <p><strong>Fuel Level:</strong> ${device.fuelLevel}%</p>
+             `;
+             break;
+           case 'SIM Card':
+             deviceSpecificInfo = `
+               <p><strong>MSISDN:</strong> ${device.msisdn}</p>
+               <p><strong>ICCID:</strong> ${device.iccid}</p>
+               <p><strong>IMSI:</strong> ${device.imsi}</p>
+               <p><strong>Carrier:</strong> ${device.carrier}</p>
+               <p><strong>Data Usage:</strong> <span class="font-semibold ${device.dataUsage > device.monthlyLimit * 0.8 ? 'text-red-600' : 'text-green-600'}">${device.dataUsage}MB / ${device.monthlyLimit}MB</span></p>
+               <p><strong>Activation Date:</strong> ${device.activationDate}</p>
+             `;
+             break;
+           case 'IoT Device':
+             deviceSpecificInfo = `
+               <p><strong>IoT Protocol:</strong> ${device.iotProtocol}</p>
+               <p><strong>Last Command Sent:</strong> ${device.lastCommandSent}</p>
+               <p><strong>Command Queue:</strong> ${device.commandQueue} pending</p>
+               <p><strong>Temperature:</strong> ${device.sensorData.temperature}°C</p>
+               <p><strong>Humidity:</strong> ${device.sensorData.humidity}%</p>
+               <p><strong>Pressure:</strong> ${device.sensorData.pressure} hPa</p>
+             `;
+             break;
+           case 'ELD Device':
+             deviceSpecificInfo = `
+               <p><strong>Driver ID:</strong> ${device.driverId}</p>
+               <p><strong>Current Status:</strong> <span class="font-semibold ${device.currentStatus === 'Driving' ? 'text-green-600' : device.currentStatus === 'Off-Duty' ? 'text-gray-600' : 'text-yellow-600'}">${device.currentStatus}</span></p>
+               <p><strong>Hours of Service:</strong> ${device.hoursOfService}/14 hours</p>
+               <p><strong>Last Status Change:</strong> ${device.lastStatusChange}</p>
+               <p><strong>Compliance Status:</strong> <span class="font-semibold ${device.complianceStatus === 'Violation' ? 'text-red-600' : device.complianceStatus === 'Warning' ? 'text-yellow-600' : 'text-green-600'}">${device.complianceStatus}</span></p>
+               <p><strong>Last Sync:</strong> ${device.lastSync}</p>
+             `;
+             break;
+           case 'Camera':
+             deviceSpecificInfo = `
+               <p><strong>Recording Status:</strong> <span class="font-semibold ${device.recordingStatus === 'Recording' ? 'text-green-600' : device.recordingStatus === 'Error' ? 'text-red-600' : 'text-yellow-600'}">${device.recordingStatus}</span></p>
+               <p><strong>Storage Used:</strong> ${device.storageUsed}%</p>
+               <p><strong>Channels:</strong> ${device.channels}</p>
+               <p><strong>Resolution:</strong> ${device.resolution}</p>
+               <p><strong>Night Vision:</strong> <span class="font-semibold ${device.nightVision ? 'text-green-600' : 'text-gray-600'}">${device.nightVision ? 'Enabled' : 'Disabled'}</span></p>
+               <p><strong>Motion Detection:</strong> <span class="font-semibold ${device.motionDetection ? 'text-green-600' : 'text-gray-600'}">${device.motionDetection ? 'Enabled' : 'Disabled'}</span></p>
+               <p><strong>Positioning Status:</strong> <span class="font-semibold ${device.positioningStatus === 'Optimal' ? 'text-green-600' : device.positioningStatus === 'Obstructed' ? 'text-red-600' : device.positioningStatus === 'Misaligned' ? 'text-yellow-600' : 'text-gray-600'}">
+                 <i class="fas ${getPositioningIcon(device.positioningStatus)} mr-1"></i>${device.positioningStatus}
+               </span></p>
+               <p><strong>Last Position Check:</strong> ${device.lastPositionCheck}</p>
+             `;
+             break;
+           case 'Meter':
+             deviceSpecificInfo = `
+               <p><strong>Meter Type:</strong> ${device.meterType}</p>
+               <p><strong>Current Reading:</strong> ${device.currentReading.toLocaleString()}</p>
+               <p><strong>Last Reading:</strong> ${device.lastReading.toLocaleString()}</p>
+               <p><strong>Accuracy:</strong> ${device.accuracy}</p>
+               <p><strong>Calibration Date:</strong> ${device.calibrationDate}</p>
+               <p><strong>Next Calibration:</strong> ${device.nextCalibration}</p>
+             `;
+             break;
+         }
+      const statusIcon = {
+        'Online': '<i class="fas fa-check-circle text-green-500"></i>',
+        'Offline': '<i class="fas fa-times-circle text-red-500"></i>',
+        'Warning': '<i class="fas fa-exclamation-circle text-yellow-500"></i>',
+        'Error': '<i class="fas fa-bug text-red-700"></i>'
+      }[device.status];
+                                                       content.innerHTML = `
+           <div class="mb-6">
+             <div class="flex items-center gap-2 mb-4">
+              ${statusIcon}
+               <h3 class="text-2xl font-bold">${device.id}</h3>
+               <button id="copy-device-id" class="ml-2 px-3 py-1 bg-gray-200 rounded text-sm" aria-label="Copy Device ID">Copy ID</button>
+            </div>
+             <div class="mb-4"><span class="device-status-chip chip-${device.status.toLowerCase()}">${device.status}</span></div>
+           </div>
+           
+           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+             <div class="space-y-6">
+               <!-- Basic Information -->
+               <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                 <h4 class="text-lg font-semibold mb-3">Basic Information</h4>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div class="space-y-2">
+            <p><strong>Type:</strong> ${deviceType}</p>
+            <p><strong>Model:</strong> ${deviceModel}</p>
+            <p><strong>Location:</strong> <span class="font-mono">${location}</span></p>
+            <p><strong>Signal:</strong> ${device.signal}%</p>
+            <p><strong>Battery:</strong> ${device.battery}%</p>
+                   </div>
+                   <div class="space-y-2">
+            <p><strong>Last Ping:</strong> ${device.lastPing}</p>
+            <p><strong>Firmware:</strong> ${device.firmware} <span class="text-xs ml-2 ${firmwareStatus==='Update Available'?'text-yellow-600':'text-green-600'}">${firmwareStatus}</span></p>
+            <p><strong>Connectivity Uptime:</strong> ${uptimePercent}%</p>
+            <p><strong>Last Maintenance:</strong> ${lastMaintenance}</p>
+            <p><strong>Last Error:</strong> <span class="${lastError!=='No recent errors'?'text-red-600 font-semibold':''}">${lastError}</span></p>
+            </div>
+          </div>
+               </div>
+               
+               <!-- Device-Specific Information -->
+               ${deviceSpecificInfo ? `<div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">${deviceSpecificInfo}</div>` : ''}
+               
+               <!-- Action Buttons -->
+               <div class="bg-white dark:bg-gray-800 p-4 rounded-lg border">
+                 <h4 class="text-lg font-semibold mb-3">Actions</h4>
+                 <div class="flex gap-2 flex-wrap">
+                   <button id="restart-device" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" aria-label="Restart device ${device.id}">Restart</button>
+                   <button id="update-device" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Update firmware for device ${device.id}">Update</button>
+                   <button id="message-device" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700" aria-label="Send message to device ${device.id}">Message</button>
+                   <button id="logs-device" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" aria-label="View logs for device ${device.id}">View Logs</button>
+                   <button id="schedule-maintenance" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" aria-label="Schedule maintenance for device ${device.id}">Schedule Maintenance</button>
+                   ${device.type === 'Vehicle Tracking Unit' ? `
+                   <button id="view-location" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" aria-label="View location for tracking unit ${device.id}">View Location</button>
+                   <button id="send-command" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Send command to tracking unit ${device.id}">Send Command</button>
+                   <button id="view-history" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" aria-label="View history for tracking unit ${device.id}">View History</button>
+                   ` : ''}
+                   ${device.type === 'SIM Card' ? `
+                   <button id="view-usage" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700" aria-label="View usage for SIM card ${device.id}">View Usage</button>
+                   <button id="recharge-data" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Recharge data for SIM card ${device.id}">Recharge Data</button>
+                   <button id="change-plan" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700" aria-label="Change plan for SIM card ${device.id}">Change Plan</button>
+                   ` : ''}
+                   ${device.type === 'IoT Device' ? `
+                   <button id="send-iot-command" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" aria-label="Send IoT command to device ${device.id}">Send Command</button>
+                   <button id="view-sensors" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="View sensors for IoT device ${device.id}">View Sensors</button>
+                   <button id="configure-iot" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700" aria-label="Configure IoT device ${device.id}">Configure</button>
+                   ` : ''}
+                   ${device.type === 'ELD Device' ? `
+                   <button id="view-compliance" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" aria-label="View compliance for ELD device ${device.id}">View Compliance</button>
+                   <button id="sync-eld" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Sync ELD device ${device.id}">Sync Data</button>
+                   <button id="view-driver-status" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" aria-label="View driver status for ELD device ${device.id}">Driver Status</button>
+                   ` : ''}
+                   ${device.type === 'Camera' ? `
+                   <button id="view-live-feed" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" aria-label="View live feed for camera ${device.id}">View Live Feed</button>
+                   <button id="view-recording" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700" aria-label="Download recording from camera ${device.id}">Download Recording</button>
+                   <button id="configure-camera" class="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700" aria-label="Configure camera ${device.id}">Configure Camera</button>
+                   <button id="check-positioning" class="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700" aria-label="Check positioning status for camera ${device.id}">Check Positioning</button>
+                   ` : ''}
+                   ${device.type === 'Meter' ? `
+                   <button id="view-readings" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" aria-label="View readings for meter ${device.id}">View Readings</button>
+                   <button id="calibrate-meter" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700" aria-label="Calibrate meter ${device.id}">Calibrate</button>
+                   <button id="export-data" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" aria-label="Export data for meter ${device.id}">Export Data</button>
+                   ` : ''}
+                 </div>
+               </div>
+             </div>
+             
+             <!-- Charts Section -->
+             <div class="space-y-6">
+               <div class="bg-white dark:bg-gray-800 p-4 rounded-lg border">
+                 <h4 class="text-lg font-semibold mb-3">Performance Charts</h4>
+                 <div class="charts-grid">
+            <canvas id="uptime-chart" height="120" aria-label="Uptime Chart"></canvas>
+            <canvas id="signal-chart" height="120" aria-label="Signal Chart"></canvas>
+            <canvas id="battery-chart" height="120" aria-label="Battery Chart"></canvas>
+            <canvas id="error-chart" height="120" aria-label="Error Chart"></canvas>
+                 </div>
+               </div>
+          </div>
+        </div>
+      `;
+      // Attach button events
+      document.getElementById('copy-device-id').onclick = () => navigator.clipboard.writeText(device.id);
+      document.getElementById('restart-device').onclick = () => showToast(`Restarting ${device.id}...`, 'info');
+      document.getElementById('update-device').onclick = () => showToast(`Updating firmware for ${device.id}...`, 'info');
+      document.getElementById('message-device').onclick = () => showToast(`Message sent to ${device.id}`, 'success');
+      document.getElementById('logs-device').onclick = () => showToast(`Viewing logs for ${device.id}`, 'info');
+      document.getElementById('schedule-maintenance').onclick = () => showToast(`Scheduled maintenance for ${device.id}`, 'info');
+       
+               // Device-specific button events
+        switch(device.type) {
+          case 'Vehicle Tracking Unit':
+            document.getElementById('view-location').onclick = () => showToast(`Opening location view for ${device.id}`, 'info');
+            document.getElementById('send-command').onclick = () => showToast(`Sending command to ${device.id}`, 'info');
+            document.getElementById('view-history').onclick = () => showToast(`Opening history for ${device.id}`, 'info');
+            break;
+          case 'SIM Card':
+            document.getElementById('view-usage').onclick = () => showToast(`Opening usage details for ${device.id}`, 'info');
+            document.getElementById('recharge-data').onclick = () => showToast(`Recharging data for ${device.id}`, 'info');
+            document.getElementById('change-plan').onclick = () => showToast(`Opening plan change for ${device.id}`, 'info');
+            break;
+          case 'IoT Device':
+            document.getElementById('send-iot-command').onclick = () => showToast(`Sending IoT command to ${device.id}`, 'info');
+            document.getElementById('view-sensors').onclick = () => showToast(`Opening sensor data for ${device.id}`, 'info');
+            document.getElementById('configure-iot').onclick = () => showToast(`Opening configuration for ${device.id}`, 'info');
+            break;
+          case 'ELD Device':
+            document.getElementById('view-compliance').onclick = () => showToast(`Opening compliance report for ${device.id}`, 'info');
+            document.getElementById('sync-eld').onclick = () => showToast(`Syncing data for ${device.id}`, 'info');
+            document.getElementById('view-driver-status').onclick = () => showToast(`Opening driver status for ${device.id}`, 'info');
+            break;
+          case 'Camera':
+            document.getElementById('view-live-feed').onclick = () => showToast(`Opening live feed for ${device.id}`, 'info');
+            document.getElementById('download-recording').onclick = () => showToast(`Downloading recording from ${device.id}`, 'info');
+            document.getElementById('configure-camera').onclick = () => showToast(`Opening camera configuration for ${device.id}`, 'info');
+            document.getElementById('check-positioning').onclick = () => {
+              showToast(`Checking positioning for ${device.id}...`, 'info');
+              // Simulate positioning check
+              setTimeout(() => {
+                const newStatus = ['Optimal', 'Obstructed', 'Misaligned'][Math.floor(Math.random() * 3)];
+                device.positioningStatus = newStatus;
+                device.lastPositionCheck = new Date().toLocaleTimeString();
+                showToast(`Positioning check completed: ${newStatus}`, 'success');
+                showDeviceDetails(device); // Refresh the details panel
+              }, 2000);
+            };
+            break;
+          case 'Meter':
+            document.getElementById('view-readings').onclick = () => showToast(`Opening readings for ${device.id}`, 'info');
+            document.getElementById('calibrate-meter').onclick = () => showToast(`Starting calibration for ${device.id}`, 'info');
+            document.getElementById('export-data').onclick = () => showToast(`Exporting data for ${device.id}`, 'info');
+            break;
+        }
+      // Synchronously render charts after panel HTML is set
+      renderCharts(device);
+    }
+
+    // Chart rendering
+    function renderCharts(device) {
+      ['uptime','signal','battery','error'].forEach(key => {
+        if (chartInstances[key]) {
+          chartInstances[key].destroy();
+          chartInstances[key] = null;
+        }
+      });
+      chartInstances.uptime = new Chart(document.getElementById('uptime-chart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{
+            label: 'Uptime (hrs)',
+            data: device.uptime,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37,99,235,0.1)',
+            fill: true
+          }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+      chartInstances.signal = new Chart(document.getElementById('signal-chart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{
+            label: 'Signal (%)',
+            data: device.signalHistory,
+            borderColor: '#16A34A',
+            backgroundColor: 'rgba(22,163,74,0.1)',
+            fill: true
+          }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+      chartInstances.battery = new Chart(document.getElementById('battery-chart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{
+            label: 'Battery (%)',
+            data: device.batteryHistory,
+            borderColor: '#EAB308',
+            backgroundColor: 'rgba(234,179,8,0.1)',
+            fill: true
+          }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+      chartInstances.error = new Chart(document.getElementById('error-chart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{
+            label: 'Errors',
+            data: device.errorHistory,
+            backgroundColor: '#DC2626',
+          }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+    }
+
+    // Toast notifications
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<i class="fas fa-info-circle mr-2"></i> ${message}`;
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.add('hidden'), 2000);
+      setTimeout(() => container.removeChild(toast), 2500);
+    }
+
+         // Initialize all event listeners
+     function initializeEventListeners() {
+       // Toggle advanced filters
+       document.getElementById('toggle-advanced-filters').addEventListener('click', function() {
+         const advancedFilters = document.getElementById('advanced-filters');
+         const icon = this.querySelector('i');
+         
+         if (advancedFilters.classList.contains('hidden')) {
+           advancedFilters.classList.remove('hidden');
+           icon.className = 'fas fa-chevron-up mr-1';
+           this.innerHTML = '<i class="fas fa-chevron-up mr-1"></i>Basic';
+         } else {
+           advancedFilters.classList.add('hidden');
+           icon.className = 'fas fa-chevron-down mr-1';
+           this.innerHTML = '<i class="fas fa-chevron-down mr-1"></i>Advanced';
+         }
+       });
+
+       // Clear all filters
+       document.getElementById('clear-all-filters').addEventListener('click', clearAllFilters);
+
+       // Apply filters button
+       document.getElementById('apply-filters').addEventListener('click', function() {
+         // Collect all filter values
+         activeFilters.search = document.getElementById('device-search').value;
+         activeFilters.type = document.getElementById('group-filter').value;
+         activeFilters.status = document.getElementById('status-filter').value;
+         activeFilters.battery = document.getElementById('battery-filter').value;
+         activeFilters.signal = document.getElementById('signal-filter').value;
+         activeFilters.ping = document.getElementById('ping-filter').value;
+         activeFilters.firmware = document.getElementById('firmware-filter').value;
+         activeFilters.batteryMin = document.getElementById('battery-min').value;
+         activeFilters.batteryMax = document.getElementById('battery-max').value;
+         
+         applyFilters();
+         showToast('Filters applied successfully', 'success');
+       });
+
+       // Filter preset buttons
+       document.querySelectorAll('.filter-preset').forEach(button => {
+         button.addEventListener('click', function() {
+           const preset = this.dataset.preset;
+           applyFilterPreset(preset);
+           showToast(`Applied ${preset} filter preset`, 'info');
+         });
+       });
+
+       // Real-time filter updates
+       const filterInputs = [
+         'group-filter', 'status-filter', 'battery-filter', 'signal-filter',
+         'ping-filter', 'firmware-filter', 'battery-min', 'battery-max'
+       ];
+       
+       filterInputs.forEach(inputId => {
+         const element = document.getElementById(inputId);
+         if (element) {
+           element.addEventListener('change', function() {
+             // Update active filters immediately
+             switch(inputId) {
+               case 'group-filter':
+                 activeFilters.type = this.value;
+                 break;
+               case 'status-filter':
+                 activeFilters.status = this.value;
+                 break;
+               case 'battery-filter':
+                 activeFilters.battery = this.value;
+                 break;
+               case 'signal-filter':
+                 activeFilters.signal = this.value;
+                 break;
+               case 'ping-filter':
+                 activeFilters.ping = this.value;
+                 break;
+               case 'firmware-filter':
+                 activeFilters.firmware = this.value;
+                 break;
+               case 'battery-min':
+                 activeFilters.batteryMin = this.value;
+                 break;
+               case 'battery-max':
+                 activeFilters.batteryMax = this.value;
+                 break;
+             }
+             applyFilters();
+           });
+         }
+       });
+
+               // Search with debounced real-time filtering
+        const debouncedSearch = debounce(function(value) {
+          activeFilters.search = value;
+          applyFilters();
+        }, 300);
+        
+        document.getElementById('device-search').addEventListener('input', function() {
+          debouncedSearch(this.value);
+        });
+
+       // Export data
+    document.getElementById('export-data').addEventListener('click', function() {
+         // Get currently filtered devices
+         const filteredDevices = devices.filter(device => {
+           // Apply the same filtering logic as in applyFilters()
+           if (activeFilters.search && !device.id.toLowerCase().includes(activeFilters.search.toLowerCase())) {
+             return false;
+           }
+           if (activeFilters.type && device.type !== activeFilters.type) {
+             return false;
+           }
+           if (activeFilters.status && device.status !== activeFilters.status) {
+             return false;
+           }
+           if (activeFilters.battery) {
+             switch (activeFilters.battery) {
+               case 'critical':
+                 if (device.battery >= 10) return false;
+                 break;
+               case 'low':
+                 if (device.battery >= 20) return false;
+                 break;
+               case 'medium':
+                 if (device.battery >= 50) return false;
+                 break;
+               case 'good':
+                 if (device.battery < 50) return false;
+                 break;
+             }
+           }
+           if (activeFilters.signal) {
+             switch (activeFilters.signal) {
+               case 'weak':
+                 if (device.signal >= 30) return false;
+                 break;
+               case 'poor':
+                 if (device.signal >= 50) return false;
+                 break;
+               case 'fair':
+                 if (device.signal >= 70) return false;
+                 break;
+               case 'good':
+                 if (device.signal < 70) return false;
+                 break;
+             }
+           }
+           if (activeFilters.batteryMin && device.battery < parseInt(activeFilters.batteryMin)) {
+             return false;
+           }
+           if (activeFilters.batteryMax && device.battery > parseInt(activeFilters.batteryMax)) {
+             return false;
+           }
+           return true;
+         });
+
+         // Create CSV content
+         let csv = 'Device ID,Status,Signal,Battery,Last Ping,Firmware,Predictive Maintenance,Type,Recording Status,Storage Used,Channels,Positioning Status,Last Position Check\n';
+         filteredDevices.forEach(device => {
+           const maintenance = predictiveMaintenance(device).replace(/<[^>]*>/g, ''); // Remove HTML tags
+           const recordingStatus = device.recordingStatus || '';
+           const storageUsed = device.storageUsed || '';
+           const channels = device.channels || '';
+           const positioningStatus = device.positioningStatus || '';
+           const lastPositionCheck = device.lastPositionCheck || '';
+           csv += `${device.id},${device.status},${device.signal}%,${device.battery}%,${device.lastPing},${device.firmware},${maintenance},${device.type},${recordingStatus},${storageUsed}%,${channels},${positioningStatus},${lastPositionCheck}\n`;
+         });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+         a.download = `device_list_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+         
+         showToast(`Exported ${filteredDevices.length} devices to CSV`, 'success');
+       });
+
+               // Bulk actions modal
+        document.getElementById('bulk-action-btn').addEventListener('click', function() {
+          const modal = document.getElementById('bulk-modal');
+          const list = document.getElementById('bulk-device-list');
+          list.innerHTML = '';
+          
+          const selectedDevices = [];
+          document.querySelectorAll('.bulk-select:checked').forEach(cb => {
+            const deviceId = cb.dataset.id;
+            const device = devices.find(d => d.id === deviceId);
+            if (device) {
+              selectedDevices.push(device);
+            }
+          });
+          
+          if (selectedDevices.length === 0) {
+            const noSelection = document.createElement('div');
+            noSelection.className = 'text-gray-500 text-center py-4';
+            noSelection.innerHTML = '<i class="fas fa-info-circle mr-2"></i>No devices selected';
+            list.appendChild(noSelection);
+          } else {
+            selectedDevices.forEach(device => {
+              const deviceDiv = document.createElement('div');
+              deviceDiv.className = 'flex items-center justify-between p-3 border-b border-gray-200 last:border-b-0';
+              
+                             // Device icon based on type
+               let deviceIcon;
+               switch(device.type) {
+                 case 'Vehicle Tracking Unit':
+                   deviceIcon = 'fa-car';
+                   break;
+                 case 'SIM Card':
+                   deviceIcon = 'fa-sim-card';
+                   break;
+                 case 'IoT Device':
+                   deviceIcon = 'fa-microchip';
+                   break;
+                 case 'ELD Device':
+                   deviceIcon = 'fa-clock';
+                   break;
+                 case 'Camera':
+                   deviceIcon = 'fa-video';
+                   break;
+                 case 'Meter':
+                   deviceIcon = 'fa-tachometer-alt';
+                   break;
+                 default:
+                   deviceIcon = 'fa-satellite-dish';
+               }
+              
+              // Status chip
+              const statusChip = `<span class="device-status-chip chip-${device.status.toLowerCase()}">${device.status}</span>`;
+              
+                             // Device-specific additional info
+               let deviceSpecificInfo = '';
+               switch(device.type) {
+                 case 'Vehicle Tracking Unit':
+                   deviceSpecificInfo = `
+                     <div class="mt-1">
+                       <span class="text-xs px-2 py-1 rounded ${device.isPrimary ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+                         <i class="fas ${device.isPrimary ? 'fa-star' : 'fa-star-o'} mr-1"></i>${device.isPrimary ? 'Primary' : 'Secondary'}
+                       </span>
+                     </div>
+                   `;
+                   break;
+                 case 'SIM Card':
+                   deviceSpecificInfo = `
+                     <div class="mt-1">
+                       <span class="text-xs px-2 py-1 rounded ${device.dataUsage > device.monthlyLimit * 0.8 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                         <i class="fas fa-mobile mr-1"></i>${device.dataUsage}MB/${device.monthlyLimit}MB
+                       </span>
+                     </div>
+                   `;
+                   break;
+                 case 'ELD Device':
+                   deviceSpecificInfo = `
+                     <div class="mt-1">
+                       <span class="text-xs px-2 py-1 rounded ${device.complianceStatus === 'Violation' ? 'bg-red-100 text-red-800' : device.complianceStatus === 'Warning' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">
+                         <i class="fas fa-clock mr-1"></i>${device.complianceStatus}
+                       </span>
+                     </div>
+                   `;
+                   break;
+                 case 'Camera':
+                   deviceSpecificInfo = `
+                     <div class="mt-1">
+                       <span class="text-xs px-2 py-1 rounded ${getPositioningStatusColor(device.positioningStatus)}">
+                         <i class="fas ${getPositioningIcon(device.positioningStatus)} mr-1"></i>${device.positioningStatus}
+                       </span>
+                     </div>
+                   `;
+                   break;
+               }
+              
+              deviceDiv.innerHTML = `
+                <div class="flex items-center space-x-3">
+                  <div class="flex-shrink-0">
+                    <i class="fas ${deviceIcon} text-lg text-blue-600"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center space-x-2">
+                      <span class="font-medium text-gray-900 truncate">${device.id}</span>
+                      ${statusChip}
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      <span>${device.type}</span>
+                      <span class="mx-2">•</span>
+                      <span>Battery: ${device.battery}%</span>
+                      <span class="mx-2">•</span>
+                      <span>Signal: ${device.signal}%</span>
+                    </div>
+                                         ${deviceSpecificInfo}
+                  </div>
+                </div>
+                <div class="flex-shrink-0 text-xs text-gray-400">
+                  ${device.lastPing}
+                </div>
+              `;
+              
+              list.appendChild(deviceDiv);
+            });
+          }
+          
+          modal.classList.remove('hidden');
+        });
+       document.getElementById('bulk-close').addEventListener('click', function() {
+         document.getElementById('bulk-modal').classList.add('hidden');
+       });
+       document.getElementById('bulk-restart').addEventListener('click', function() {
+         showToast('Restarting selected devices...', 'info');
+         document.getElementById('bulk-modal').classList.add('hidden');
+       });
+       document.getElementById('bulk-update').addEventListener('click', function() {
+         showToast('Updating firmware for selected devices...', 'info');
+         document.getElementById('bulk-modal').classList.add('hidden');
+       });
+               document.getElementById('bulk-message').addEventListener('click', function() {
+          showToast('Message sent to selected devices', 'success');
+          document.getElementById('bulk-modal').classList.add('hidden');
+        });
+
+        // Event delegation for device action buttons
+        document.getElementById('device-list-body').addEventListener('click', function(e) {
+          if (e.target.classList.contains('device-action-btn')) {
+            e.stopPropagation();
+            const action = e.target.dataset.action;
+            const deviceId = e.target.dataset.deviceId;
+            
+            switch (action) {
+              case 'restart':
+                showToast(`Restarting ${deviceId}...`, 'info');
+                break;
+              case 'update':
+                showToast(`Updating firmware for ${deviceId}...`, 'info');
+                break;
+              case 'message':
+                showToast(`Message sent to ${deviceId}`, 'success');
+                break;
+            }
+          }
+        });
+
+        // Device details modal close button
+        document.getElementById('device-details-close').addEventListener('click', function() {
+          document.getElementById('device-details-modal').classList.add('hidden');
+        });
+
+        // Close device details modal when clicking outside
+        document.getElementById('device-details-modal').addEventListener('click', function(e) {
+          if (e.target === this) {
+            this.classList.add('hidden');
+          }
+        });
+      }
+
+     // Initialize everything when DOM is loaded
+     document.addEventListener('DOMContentLoaded', function () {
+       // Dark mode toggle
+       const darkModeToggle = document.getElementById('dark-mode-toggle');
+       darkModeToggle.addEventListener('click', function() {
+         document.body.classList.toggle('dark-mode');
+         if (document.body.classList.contains('dark-mode')) {
+           localStorage.setItem('deviceHealthDarkMode', 'true');
+           darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+         } else {
+           localStorage.setItem('deviceHealthDarkMode', 'false');
+           darkModeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+         }
+       });
+       if (localStorage.getItem('deviceHealthDarkMode') === 'true') {
+         document.body.classList.add('dark-mode');
+         darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+       }
+
+               // Collapsible Sidebar
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content-container');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        sidebarToggle.addEventListener('click', () => {
+          sidebar.classList.toggle('w-64');
+          sidebar.classList.toggle('w-16');
+          mainContent.classList.toggle('ml-16');
+          if (sidebar.classList.contains('w-16')) {
+              mainContent.style.marginLeft = '4rem';
+          } else {
+              mainContent.style.marginLeft = '16rem';
+          }
+        });
+
+        // Set initial state
+        mainContent.style.marginLeft = '16rem';
+
+               // Initialize event listeners first
+        initializeEventListeners();
+        
+        // Add keyboard support for overview cards
+        document.querySelectorAll('.widget-card[onclick]').forEach(card => {
+          card.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              this.click();
+            }
+          });
+        });
+        
+        // Then initialize device list
+        setTimeout(() => {
+    renderDeviceList();
+        }, 100);
+     });
+
+         // Device map rendering
+     let deviceMap;
+     let markerClusterGroup;
+     function renderDeviceMap(list) {
+       if (!document.getElementById('device-map')) return;
+       if (!deviceMap) {
+         deviceMap = L.map('device-map').setView([35, 35], 6);
+         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+           attribution: '© OpenStreetMap contributors'
+         }).addTo(deviceMap);
+         markerClusterGroup = L.markerClusterGroup();
+         deviceMap.addLayer(markerClusterGroup);
+       }
+       
+       // Clear existing markers from cluster group
+       markerClusterGroup.clearLayers();
+       
+       list.forEach(device => {
+         const marker = L.marker([device.location.lat, device.location.lng]);
+         marker.bindPopup(`<strong>${device.id}</strong><br>Status: ${device.status}<br>Type: ${device.type}<br>Battery: ${device.battery}%<br>Signal: ${device.signal}%`);
+         markerClusterGroup.addLayer(marker);
+       });
+     }
+
+         
+  </script>
+
+
+
+  <!-- Feedback Submission Modal -->
+  <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <i class="fas fa-comment-dots text-orange-600"></i>
+          Submit Feedback & Suggestions
+        </h3>
+        <button id="close-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="mb-6">
+        <p class="text-gray-600 text-sm leading-relaxed">
+          Help us improve the device health monitoring system! Share your thoughts on the design, features, usability, or suggest new functionality. Your feedback is valuable and will be reviewed by our development team.
+        </p>
+      </div>
+
+      <form id="feedback-form" class="space-y-6">
+        <!-- Name Field -->
+        <div>
+          <label for="feedback-name" class="block text-sm font-medium text-gray-700 mb-2">
+            Your Name <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="feedback-name" 
+            name="name"
+            required
+            placeholder="Enter your full name"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+          >
+        </div>
+
+        <!-- Feedback/Note Field -->
+        <div>
+          <label for="feedback-note" class="block text-sm font-medium text-gray-700 mb-2">
+            Feedback & Comments <span class="text-red-500">*</span>
+          </label>
+          <textarea 
+            id="feedback-note" 
+            name="note"
+            required
+            rows="8"
+            placeholder="Please describe your feedback, suggestions, or issues in detail. Be specific about what you liked, what could be improved, or what new features you'd like to see..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical"
+          ></textarea>
+          <div class="mt-1 text-xs text-gray-500">
+            <span id="char-count">0</span>/1000 characters
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-4">
+          <button 
+            type="submit" 
+            id="submit-feedback-btn"
+            class="flex-1 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:ring-4 focus:ring-orange-500/20 transition-all font-medium flex items-center justify-center gap-2"
+          >
+            <i class="fas fa-paper-plane"></i>
+            Submit Feedback
+          </button>
+          <button 
+            type="button" 
+            id="cancel-feedback-btn"
+            class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-4 focus:ring-gray-500/20 transition-all font-medium"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <!-- Success Message -->
+      <div id="feedback-success" class="hidden text-center py-8">
+        <div class="mb-4">
+          <i class="fas fa-check-circle text-5xl text-green-500"></i>
+        </div>
+        <h4 class="text-xl font-bold text-gray-900 mb-2">Feedback Submitted Successfully!</h4>
+        <p class="text-gray-600 mb-4">Thank you for your valuable feedback. Our team will review it and get back to you if needed.</p>
+        <button id="submit-another-feedback" class="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+          Submit Another Feedback
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Feedback Modal -->
+  <div id="view-feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <i class="fas fa-comments text-orange-600"></i>
+          Submitted Feedback & Comments
+        </h3>
+        <button id="close-view-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Feedback Controls -->
+      <div class="mb-6 flex flex-wrap gap-3">
+        <button id="refresh-feedback" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+          <i class="fas fa-sync mr-1"></i> Refresh
+        </button>
+        <button id="export-feedback" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
+          <i class="fas fa-download mr-1"></i> Export JSON
+        </button>
+        <button id="clear-feedback" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
+          <i class="fas fa-trash mr-1"></i> Clear All
+        </button>
+      </div>
+
+      <!-- Feedback List -->
+      <div id="feedback-list" class="space-y-4 max-h-96 overflow-y-auto">
+        <!-- Feedback items will be populated here -->
+        <div class="text-center py-8 text-gray-500">
+          <i class="fas fa-comments text-4xl mb-3"></i>
+          <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== FEEDBACK SYSTEM =====
+    class FeedbackManager {
+      constructor() {
+        this.storage = window.feedbackStorage;
+        this.setupEventListeners();
+      }
+
+      setupEventListeners() {
+        // Feedback toggle button
+        const feedbackToggle = document.getElementById('feedback-toggle');
+        if (feedbackToggle) {
+          feedbackToggle.addEventListener('click', () => this.openFeedbackModal());
+        }
+
+        // Modal controls
+        const closeFeedbackModal = document.getElementById('close-feedback-modal');
+        if (closeFeedbackModal) {
+          closeFeedbackModal.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        const cancelFeedbackBtn = document.getElementById('cancel-feedback-btn');
+        if (cancelFeedbackBtn) {
+          cancelFeedbackBtn.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        // Form submission
+        const feedbackForm = document.getElementById('feedback-form');
+        if (feedbackForm) {
+          feedbackForm.addEventListener('submit', (e) => this.handleSubmitFeedback(e));
+        }
+
+        // Character counter
+        const feedbackNote = document.getElementById('feedback-note');
+        if (feedbackNote) {
+          feedbackNote.addEventListener('input', () => this.updateCharacterCount());
+        }
+
+        // Submit another feedback
+        const submitAnotherBtn = document.getElementById('submit-another-feedback');
+        if (submitAnotherBtn) {
+          submitAnotherBtn.addEventListener('click', () => this.resetFeedbackForm());
+        }
+
+        // Feedback controls
+        const refreshBtn = document.getElementById('refresh-feedback');
+        const exportBtn = document.getElementById('export-feedback');
+        const clearBtn = document.getElementById('clear-feedback');
+
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', () => this.loadFeedback());
+        }
+        if (exportBtn) {
+          exportBtn.addEventListener('click', () => this.exportFeedback());
+        }
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => this.clearAllFeedback());
+        }
+      }
+
+      openFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          
+          // Focus on first input
+          const nameInput = document.getElementById('feedback-name');
+          if (nameInput) {
+            setTimeout(() => nameInput.focus(), 100);
+          }
+        }
+      }
+
+      closeFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      }
+
+      openViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          this.loadFeedback();
+        }
+      }
+
+      closeViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      }
+
+      updateCharacterCount() {
+        const textarea = document.getElementById('feedback-note');
+        const counter = document.getElementById('char-count');
+        if (textarea && counter) {
+          const count = textarea.value.length;
+          counter.textContent = count;
+          
+          if (count > 1000) {
+            counter.style.color = '#ef4444';
+            textarea.value = textarea.value.substring(0, 1000);
+            counter.textContent = '1000';
+          } else {
+            counter.style.color = '#6b7280';
+          }
+        }
+      }
+
+      async handleSubmitFeedback(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+        submitBtn.disabled = true;
+
+        try {
+          const formData = new FormData(e.target);
+          const feedbackData = {
+            id: Date.now().toString(),
+            name: formData.get('name'),
+            note: formData.get('note'),
+            timestamp: new Date().toISOString(),
+            system: 'Device Health Monitoring System'
+          };
+
+          // Validate required fields
+          if (!feedbackData.name || !feedbackData.note) {
+            throw new Error('Please fill in all required fields');
+          }
+
+          // Save using the feedback storage system
+          const success = this.storage.saveFeedback(feedbackData);
+          if (!success) {
+            throw new Error('Failed to save feedback to storage');
+          }
+          
+          // Show success message
+          this.showSuccessMessage();
+          
+        } catch (error) {
+          console.error('Error submitting feedback:', error);
+          alert('Error submitting feedback: ' + error.message);
+          
+          // Restore button state
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        }
+      }
+
+      showSuccessMessage() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        
+        if (form && success) {
+          form.classList.add('hidden');
+          success.classList.remove('hidden');
+        }
+      }
+
+      resetFeedbackForm() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        
+        if (form) {
+          form.reset();
+          form.classList.remove('hidden');
+        }
+        
+        if (success) {
+          success.classList.add('hidden');
+        }
+        
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Feedback';
+          submitBtn.disabled = false;
+        }
+
+        // Reset character counter
+        const counter = document.getElementById('char-count');
+        if (counter) {
+          counter.textContent = '0';
+        }
+      }
+
+      loadFeedback() {
+        const feedbackList = document.getElementById('feedback-list');
+        if (!feedbackList) return;
+
+        // Get all feedback from storage
+        const allFeedback = this.storage.getAllFeedback();
+
+        // Sort by timestamp (newest first)
+        allFeedback.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (allFeedback.length === 0) {
+          feedbackList.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-comments text-4xl mb-3"></i>
+              <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Render feedback items
+        feedbackList.innerHTML = allFeedback.map(item => this.renderFeedbackItem(item)).join('');
+      }
+
+      renderFeedbackItem(feedback) {
+        const date = new Date(feedback.timestamp).toLocaleDateString();
+        const time = new Date(feedback.timestamp).toLocaleTimeString();
+
+        return `
+          <div class="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+            <div class="flex items-start gap-3 mb-3">
+              <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <span class="text-orange-600 font-semibold">${feedback.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900">${feedback.name}</h4>
+                <p class="text-xs text-gray-500">${date} at ${time}</p>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <p class="text-gray-700 leading-relaxed">${feedback.note}</p>
+            </div>
+          </div>
+        `;
+      }
+
+      exportFeedback() {
+        try {
+          this.storage.exportFeedback();
+          this.showNotification('Feedback exported successfully!', 'success');
+        } catch (error) {
+          console.error('Error exporting feedback:', error);
+          this.showNotification('Error exporting feedback', 'error');
+        }
+      }
+
+      clearAllFeedback() {
+        if (confirm('Are you sure you want to clear all feedback? This action cannot be undone.')) {
+          this.storage.clearAllFeedback();
+          this.loadFeedback();
+          this.showNotification('All feedback cleared successfully!', 'success');
+        }
+      }
+
+      showNotification(message, type = 'info') {
+        // Create a simple notification
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+          type === 'success' ? 'bg-green-500 text-white' :
+          type === 'error' ? 'bg-red-500 text-white' :
+          'bg-blue-500 text-white'
+        }`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 3000);
+      }
+    }
+
+    // Initialize feedback system
+    let feedbackManager;
+    document.addEventListener('DOMContentLoaded', function() {
+      feedbackManager = new FeedbackManager();
+    });
+  </script>
+</body>
+</html>

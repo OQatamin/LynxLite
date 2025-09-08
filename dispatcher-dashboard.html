@@ -1,0 +1,2994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dispatcher Dashboard - Lynx Lite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <!-- Leaflet Map Integration -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <!-- Feedback Storage System -->
+  <script src="feedback-storage.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(to bottom, #f3f4f6, #e5e7eb);
+      color: #1f2937;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s ease;
+    }
+
+    body.dark-mode {
+      background: linear-gradient(to bottom, #111827, #1f2937);
+      color: #d1d5db;
+    }
+    body.dark-mode header {
+      background: #1f2937;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    }
+    body.dark-mode .widget-card {
+      background: linear-gradient(145deg, #1f2937, #111827);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      color: #d1d5db;
+    }
+    body.dark-mode .nav-tab {
+      background: #374151;
+      color: #d1d5db;
+    }
+    body.dark-mode .nav-tab.active {
+      background: #f59e42;
+      color: #fff;
+    }
+    body.dark-mode .bg-yellow-100 { background: #78350f !important; }
+    body.dark-mode .bg-blue-100 { background: #1e3a8a !important; }
+    body.dark-mode .bg-green-100 { background: #064e3b !important; }
+    body.dark-mode .text-gray-700 { color: #9ca3af !important; }
+    body.dark-mode .text-gray-900 { color: #d1d5db !important; }
+    body.dark-mode .border-gray-200 { border-color: #374151 !important; }
+    body.dark-mode .bg-gray-200 { background: #374151 !important; }
+
+    .widget-card {
+      background: #fff;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+      border-radius: 12px;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .widget-card:hover {
+      box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+      transform: translateY(-4px);
+    }
+
+    .nav-tab {
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      background: #e5e7eb;
+      margin-right: 0.5rem;
+    }
+    .nav-tab.active {
+      background: #f59e42;
+      color: #fff;
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(31,41,55,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      transition: opacity 0.3s ease;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      width: 400px;
+    }
+
+    .notification-tray {
+      position: fixed;
+      right: 0;
+      top: 80px;
+      width: 320px;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      padding: 1rem;
+      z-index: 40;
+      transition: transform 0.3s ease;
+      transform: translateX(100%);
+    }
+    .notification-tray.active {
+      transform: translateX(0);
+    }
+
+    .sortable .dispatch-item {
+      cursor: move;
+      border: 1px dashed #d1d5db;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .table th, .table td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+    .table th {
+      background: #f3f4f6;
+      font-weight: 600;
+    }
+    .table tr:hover {
+      background: #f1f5f9;
+    }
+
+    .map-container {
+      height: 400px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .map-controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .map-control-btn {
+      background: white;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: all 0.2s;
+    }
+    
+    .map-control-btn:hover {
+      background: #f3f4f6;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .map-control-btn.active {
+      background: #f59e42;
+      color: white;
+      border-color: #f59e42;
+    }
+    
+    .map-control-btn#minimize-map.active {
+      background: #16a34a;
+      border-color: #16a34a;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+    
+    /* Tooltip Styles */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 200px;
+      background-color: #1f2937;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1000;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -100px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    
+    .tooltip .tooltiptext::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #1f2937 transparent transparent transparent;
+    }
+    
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    /* Action button tooltips */
+    .action-btn {
+      position: relative;
+    }
+    
+    .action-btn:hover::before {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #1f2937;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      white-space: nowrap;
+      z-index: 1000;
+      opacity: 0;
+      animation: fadeInTooltip 0.3s ease-in-out forwards;
+      pointer-events: none;
+    }
+    
+    .action-btn:hover::after {
+      content: "";
+      position: absolute;
+      bottom: 94%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: #1f2937;
+      z-index: 1000;
+      opacity: 0;
+      animation: fadeInTooltip 0.3s ease-in-out forwards;
+      pointer-events: none;
+    }
+    
+    @keyframes fadeInTooltip {
+      to {
+        opacity: 1;
+      }
+    }
+    
+    .vehicle-marker {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 12px;
+      border: 2px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    .vehicle-available { background: #16a34a; }
+    .vehicle-assigned { background: #f59e42; }
+    .vehicle-maintenance { background: #dc2626; }
+    .vehicle-offline { background: #6b7280; }
+    
+    .geofence-zone {
+      fill-opacity: 0.2;
+      stroke-width: 2;
+      stroke-dasharray: 5, 5;
+    }
+    
+    .delivery-zone { stroke: #16a34a; fill: #16a34a; }
+    .restricted-zone { stroke: #dc2626; fill: #dc2626; }
+    .pickup-zone { stroke: #f59e42; fill: #f59e42; }
+    
+    .route-breadcrumb {
+      stroke-width: 3;
+      stroke-opacity: 0.7;
+      stroke-dasharray: 10, 5;
+    }
+    
+    .map-minimized {
+      height: 80px !important;
+      overflow: hidden;
+      transition: height 0.3s ease;
+    }
+    
+    .map-minimized .map-container {
+      height: 0 !important;
+      overflow: hidden;
+      transition: height 0.3s ease;
+    }
+    
+    .map-minimized #route-planning-panel,
+    .map-minimized #geofencing-panel {
+      display: none !important;
+    }
+    
+    .map-minimized .mb-4 {
+      margin-bottom: 0 !important;
+    }
+    
+    .widget-card {
+      transition: height 0.3s ease;
+    }
+
+    @media (max-width: 768px) {
+      main { padding: 1.5rem; }
+      .nav-tab { padding: 0.5rem 1rem; font-size: 0.9rem; }
+      .widget-card { padding: 1.5rem; }
+      .max-w-7xl { max-width: 100%; }
+      .grid-cols-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+  <header class="bg-white shadow flex justify-between items-center px-6 py-4 z-30 fixed top-0 left-0 w-full" aria-label="Dispatcher Dashboard Header">
+    <div class="flex items-center space-x-4">
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Dispatcher Dashboard</h1>
+      <span id="welcome-message" class="ml-4 text-lg font-medium text-yellow-700">Welcome, Dispatcher</span>
+    </div>
+    <div class="flex items-center space-x-4">
+      <button id="notification-toggle" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-colors duration-300 relative" aria-label="Notifications">
+        <i class="fas fa-bell text-xl"></i>
+        <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 hidden">0</span>
+      </button>
+      <button id="customize-dashboard" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">Customize</button>
+      <!-- Feedback Button -->
+      <div class="text-center">
+        <button id="feedback-toggle" class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all hover:scale-105 shadow-lg flex items-center gap-2 font-medium" title="Submit Feedback">
+          <i class="fas fa-comment-dots text-lg"></i>
+          Submit Feedback
+        </button>
+        <p class="text-xs text-gray-500 mt-1">Feedback automatically sent to Google Sheets</p>
+      </div>
+      <button id="dark-mode-toggle" class="text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-colors duration-300" aria-label="Toggle Dark Mode">
+        <i class="fas fa-moon text-xl"></i>
+      </button>
+      <div class="relative">
+        <button id="user-menu-button" class="bg-yellow-500 text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-yellow-600" aria-label="User Menu">
+          <i class="fas fa-user"></i>
+        </button>
+        <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-20">
+          <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700"><i class="fas fa-user-circle w-6 mr-2"></i>My Profile</a>
+          <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700"><i class="fas fa-key w-6 mr-2"></i>Change Password</a>
+          <div class="border-t border-gray-200 my-1"></div>
+          <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700"><i class="fas fa-sign-out-alt w-6 mr-2"></i>Log Out</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Tray -->
+  <div id="notification-tray" class="notification-tray">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">Notifications</h3>
+    <div id="notifications-list" class="space-y-2"></div>
+    <button id="clear-notifications" class="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 w-full">Clear All</button>
+  </div>
+
+  <!-- Customize Modal -->
+  <div id="customize-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">Customize Dashboard</h3>
+      <div id="sortable-sections" class="space-y-2">
+        <div class="widget-section" data-id="dispatch-board">Dispatch Board</div>
+        <div class="widget-section" data-id="quick-actions">Quick Actions</div>
+      </div>
+      <div class="flex justify-end space-x-2 mt-4">
+        <button id="customize-save" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">Save</button>
+        <button id="customize-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Dispatch Modal -->
+  <div id="create-dispatch-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">Create Dispatch</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Order ID</label>
+          <input type="text" id="order-id" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., ORDER-12345">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Destination</label>
+          <input type="text" id="destination" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., Zone A">
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button id="create-dispatch-submit" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">Create</button>
+          <button id="create-dispatch-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign Vehicle Modal -->
+  <div id="assign-vehicle-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">Assign Vehicle</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Order ID</label>
+          <input type="text" id="assign-vehicle-order" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., ORDER-12345">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Vehicle ID</label>
+          <select id="assign-vehicle-id" class="w-full border border-gray-300 rounded-lg px-3 py-2"></select>
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button id="assign-vehicle-submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Assign</button>
+          <button id="assign-vehicle-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign Driver Modal -->
+  <div id="assign-driver-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">Assign Driver</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Order ID</label>
+          <input type="text" id="assign-driver-order" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., ORDER-12345">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Driver</label>
+          <select id="assign-driver-id" class="w-full border border-gray-300 rounded-lg px-3 py-2"></select>
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button id="assign-driver-submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Assign</button>
+          <button id="assign-driver-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send Message Modal -->
+  <div id="send-message-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 class="text-lg font-bold mb-4">Send Message</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Driver</label>
+          <select id="message-driver" class="w-full border border-gray-300 rounded-lg px-3 py-2"></select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Message</label>
+          <textarea id="message-content" class="w-full border border-gray-300 rounded-lg px-3 py-2" rows="4" placeholder="Type your message..."></textarea>
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button id="send-message-submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Send</button>
+          <button id="send-message-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="pt-24 px-6 max-w-7xl mx-auto">
+    <nav class="flex mb-8 overflow-x-auto">
+      <div class="nav-tab active" data-tab="dispatch">Dispatch Board</div>
+      <div class="nav-tab" data-tab="routes">Routes</div>
+      <div class="nav-tab" data-tab="vehicles">Vehicles</div>
+      <div class="nav-tab" data-tab="drivers">Drivers</div>
+      <div class="nav-tab" data-tab="alerts">Alerts</div>
+      <div class="nav-tab" data-tab="settings">Settings</div>
+    </nav>
+    
+    <!-- Persistent Interactive Map Widget - Always Visible -->
+    <section class="widget-card p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+        <i class="fas fa-map text-blue-600 mr-2"></i>
+        Interactive Route Planning & GPS Tracking
+      </h2>
+      
+      <!-- Map Controls -->
+      <div class="mb-4 flex flex-wrap gap-2">
+        <button id="toggle-live-tracking" class="map-control-btn active">
+          <i class="fas fa-satellite-dish mr-1"></i> Live Tracking
+        </button>
+        <button id="toggle-route-planning" class="map-control-btn">
+          <i class="fas fa-route mr-1"></i> Route Planning
+        </button>
+        <button id="toggle-geofencing" class="map-control-btn">
+          <i class="fas fa-draw-polygon mr-1"></i> Geofencing
+        </button>
+        <button id="toggle-traffic" class="map-control-btn">
+          <i class="fas fa-traffic-light mr-1"></i> Traffic
+        </button>
+        <button id="toggle-history" class="map-control-btn">
+          <i class="fas fa-history mr-1"></i> Vehicle History
+        </button>
+        <button id="center-fleet" class="map-control-btn">
+          <i class="fas fa-crosshairs mr-1"></i> Center Fleet
+        </button>
+        <button id="minimize-map" class="map-control-btn">
+          <i class="fas fa-minus mr-1"></i> Minimize
+        </button>
+      </div>
+      
+      <!-- Interactive Map -->
+      <div id="map-container" class="relative mb-4">
+        <div id="fleet-map" class="map-container"></div>
+        <div class="absolute top-2 left-2 bg-white p-2 rounded shadow text-sm">
+          <div class="font-semibold mb-1">Legend:</div>
+          <div class="flex items-center mb-1"><div class="vehicle-marker vehicle-available mr-2">V</div>Available</div>
+          <div class="flex items-center mb-1"><div class="vehicle-marker vehicle-assigned mr-2">V</div>Assigned</div>
+          <div class="flex items-center mb-1"><div class="vehicle-marker vehicle-maintenance mr-2">V</div>Maintenance</div>
+          <div class="flex items-center"><div class="vehicle-marker vehicle-offline mr-2">V</div>Offline</div>
+        </div>
+      </div>
+      
+      <!-- Route Planning Panel -->
+      <div id="route-planning-panel" class="mb-4 p-4 bg-gray-50 rounded-lg hidden">
+        <h3 class="text-lg font-semibold mb-2">Route Planning</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Start Point</label>
+            <input type="text" id="route-start" class="w-full border rounded px-3 py-2" placeholder="Enter address or click map">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">End Point</label>
+            <input type="text" id="route-end" class="w-full border rounded px-3 py-2" placeholder="Enter address or click map">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Vehicle</label>
+            <select id="route-vehicle" class="w-full border rounded px-3 py-2"></select>
+          </div>
+        </div>
+        <div class="mt-3 flex gap-2">
+          <button id="calculate-route" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            <i class="fas fa-calculator mr-1"></i> Calculate Route
+          </button>
+          <button id="optimize-route" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            <i class="fas fa-magic mr-1"></i> Optimize
+          </button>
+          <button id="clear-route" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+            <i class="fas fa-eraser mr-1"></i> Clear
+          </button>
+        </div>
+      </div>
+      
+      <!-- Geofencing Panel - View Only -->
+      <div id="geofencing-panel" class="mb-4 p-4 bg-gray-50 rounded-lg hidden">
+        <h3 class="text-lg font-semibold mb-2">Geofencing Zones (View Only)</h3>
+        <div class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded">
+          <div class="flex items-center mb-2">
+            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+            <span class="font-medium text-blue-800">Zone Information</span>
+          </div>
+          <div class="text-sm text-blue-700">
+            <p class="mb-1">• <span class="font-medium">Delivery Zones (Green):</span> Authorized delivery areas</p>
+            <p class="mb-1">• <span class="font-medium">Restricted Zones (Red):</span> No-entry areas</p>
+            <p class="mb-1">• <span class="font-medium">Pickup Zones (Yellow):</span> Warehouse/pickup locations</p>
+          </div>
+        </div>
+        <div class="mb-3">
+          <h4 class="font-medium text-gray-700 mb-2">Active Zones:</h4>
+          <div id="zone-list" class="space-y-1 text-sm"></div>
+        </div>
+        <div class="text-xs text-gray-500 italic">
+          Note: Zone management is restricted to Admin users only
+        </div>
+      </div>
+    </section>
+
+
+    <section id="dispatch-section" class="widget-card p-8">
+      <div id="dispatch-board" class="mb-6 widget-section">
+        <h2 class="text-xl font-bold text-gray-900 mb-2">Dispatch Board</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Active Dispatches</h3>
+            <ul id="active-dispatch-list" class="space-y-2 sortable"></ul>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Dispatch Stats</h3>
+            <canvas id="dispatchChart" height="120"></canvas>
+          </div>
+        </div>
+      </div>
+      <div id="quick-actions" class="mb-6 widget-section">
+        <h2 class="text-xl font-bold text-gray-900 mb-2">Quick Actions</h2>
+        <div class="flex space-x-4 flex-wrap gap-y-4">
+          <button id="create-dispatch-btn" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">Create Dispatch</button>
+          <button id="assign-vehicle-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Assign Vehicle</button>
+          <button id="assign-driver-btn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Assign Driver</button>
+          <button id="send-message-btn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Send Message</button>
+          <button id="export-report-btn" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">Export Report</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="routes-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+        <i class="fas fa-route text-blue-600 mr-2"></i>
+        Active Routes Management
+      </h2>
+      
+      <!-- Active Routes Table -->
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Active Routes</h3>
+          <div class="overflow-x-auto">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Vehicle</th>
+                  <th>Driver</th>
+                  <th>Destination</th>
+                  <th>ETA</th>
+                  <th>Distance</th>
+                  <th>Progress</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="routes-table"></tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Route Optimization Controls -->
+        <div class="flex gap-2">
+          <button id="optimize-all-routes" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <i class="fas fa-route mr-1"></i> Optimize All Routes
+          </button>
+          <button id="refresh-traffic" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
+            <i class="fas fa-sync mr-1"></i> Refresh Traffic
+          </button>
+          <button id="export-routes" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+            <i class="fas fa-download mr-1"></i> Export Routes
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section id="vehicles-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+        <i class="fas fa-truck text-blue-600 mr-2"></i>
+        Fleet Vehicle Management
+      </h2>
+      
+      <!-- Vehicle Status Overview -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div class="flex items-center">
+            <div class="bg-green-500 rounded-full p-3 mr-3">
+              <i class="fas fa-check text-white"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-green-600">Available</p>
+              <p id="available-vehicles-count" class="text-2xl font-bold text-green-900">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div class="flex items-center">
+            <div class="bg-yellow-500 rounded-full p-3 mr-3">
+              <i class="fas fa-route text-white"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-yellow-600">Assigned</p>
+              <p id="assigned-vehicles-count" class="text-2xl font-bold text-yellow-900">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div class="flex items-center">
+            <div class="bg-red-500 rounded-full p-3 mr-3">
+              <i class="fas fa-wrench text-white"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-red-600">Maintenance</p>
+              <p id="maintenance-vehicles-count" class="text-2xl font-bold text-red-900">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div class="flex items-center">
+            <div class="bg-gray-500 rounded-full p-3 mr-3">
+              <i class="fas fa-gas-pump text-white"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-600">Avg Fuel</p>
+              <p id="average-fuel-level" class="text-2xl font-bold text-gray-900">0%</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Vehicle Actions -->
+      <div class="mb-4 flex flex-wrap gap-2">
+        <button id="filter-available-vehicles" class="action-btn px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" data-tooltip="Filter Available Vehicles - Shows only vehicles ready for assignment">
+          <i class="fas fa-filter mr-1"></i> Available Only
+        </button>
+        <button id="filter-assigned-vehicles" class="action-btn px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700" data-tooltip="Filter Assigned Vehicles - Shows only vehicles currently on dispatch">
+          <i class="fas fa-filter mr-1"></i> Assigned Only
+        </button>
+        <button id="show-all-vehicles" class="action-btn px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" data-tooltip="Show All Vehicles - Display complete vehicle fleet">
+          <i class="fas fa-list mr-1"></i> Show All
+        </button>
+        <button id="locate-vehicle-btn" class="action-btn px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700" data-tooltip="Locate on Map - Find selected vehicles on the integrated map">
+          <i class="fas fa-map-marker-alt mr-1"></i> Locate on Map
+        </button>
+        <button id="fuel-alert-vehicles" class="action-btn px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700" data-tooltip="Low Fuel Alert - Identifies vehicles needing refueling">
+          <i class="fas fa-exclamation-triangle mr-1"></i> Low Fuel Alert
+        </button>
+      </div>
+      
+      <!-- Enhanced Vehicle Table -->
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Vehicle ID</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Current Assignment</th>
+              <th>Driver</th>
+              <th>Fuel Level</th>
+              <th>Location</th>
+              <th>Last Update</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="vehicles-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="drivers-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+        <i class="fas fa-users text-green-600 mr-2"></i>
+        Driver Operations Center
+      </h2>
+      
+      <!-- Driver Status Overview -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div class="flex items-center">
+            <div class="bg-green-500 rounded-full p-3 mr-3">
+              <i class="fas fa-user-check text-white"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-green-600">Available</p>
+              <p id="available-drivers-count" class="text-2xl font-bold text-green-900">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div class="flex items-center">
+            <div class="bg-blue-500 rounded-full p-3 mr-3">
+              <i class="fas fa-steering-wheel text-white"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-blue-600">On Duty</p>
+              <p id="assigned-drivers-count" class="text-2xl font-bold text-blue-900">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div class="flex items-center">
+            <div class="bg-yellow-500 rounded-full p-3 mr-3">
+              <i class="fas fa-coffee text-white"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-yellow-600">On Break</p>
+              <p id="break-drivers-count" class="text-2xl font-bold text-yellow-900">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <div class="flex items-center">
+            <div class="bg-orange-500 rounded-full p-3 mr-3">
+              <i class="fas fa-clock text-white"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-orange-600">HOS Critical</p>
+              <p id="hos-critical-count" class="text-2xl font-bold text-orange-900">0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Driver Actions -->
+      <div class="mb-4 flex flex-wrap gap-2">
+        <button id="filter-available-drivers" class="action-btn px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700" data-tooltip="Filter Available Drivers - Shows only drivers ready for assignment">
+          <i class="fas fa-filter mr-1"></i> Available Only
+        </button>
+        <button id="hos-alert-drivers" class="action-btn px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700" data-tooltip="HOS Alerts - Identifies drivers with critical Hours of Service">
+          <i class="fas fa-exclamation-triangle mr-1"></i> HOS Alerts
+        </button>
+        <button id="send-broadcast-message" class="action-btn px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700" data-tooltip="Broadcast Message - Send fleet-wide communications to all drivers">
+          <i class="fas fa-broadcast-tower mr-1"></i> Broadcast Message
+        </button>
+        <button id="check-driver-status" class="action-btn px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" data-tooltip="Check Status - View detailed driver availability and assignments">
+          <i class="fas fa-user-clock mr-1"></i> Check Status
+        </button>
+        <button id="show-all-drivers" class="action-btn px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700" data-tooltip="Show All Drivers - Display complete driver roster">
+          <i class="fas fa-list mr-1"></i> Show All
+        </button>
+      </div>
+      
+      <!-- Driver Performance Insights -->
+      <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h3 class="text-lg font-semibold text-blue-800 mb-2">Today's Performance Overview</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div>
+            <span class="font-medium text-blue-700">Avg Response Time:</span>
+            <span id="avg-response-time" class="text-blue-900">4.2 min</span>
+          </div>
+          <div>
+            <span class="font-medium text-blue-700">Completion Rate:</span>
+            <span id="completion-rate" class="text-blue-900">94.5%</span>
+          </div>
+          <div>
+            <span class="font-medium text-blue-700">Customer Satisfaction:</span>
+            <span id="customer-satisfaction" class="text-blue-900">4.8/5</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Enhanced Driver Table -->
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Driver Name</th>
+              <th>License</th>
+              <th>Status</th>
+              <th>Current Vehicle</th>
+              <th>HOS Status</th>
+              <th>Current Assignment</th>
+              <th>Performance Score</th>
+              <th>Last Communication</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="drivers-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="alerts-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Dispatcher Alerts</h2>
+      <div class="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <h3 class="text-sm font-semibold text-blue-800 mb-2">Alert Types for Dispatchers:</h3>
+        <ul class="text-sm text-blue-700 space-y-1">
+          <li><span class="font-medium">🔴 Critical:</span> Driver emergencies, communication loss, route deviations</li>
+          <li><span class="font-medium">🟡 Warning:</span> Delivery delays, HOS limits, customer complaints</li>
+          <li><span class="font-medium">📋 Operational:</span> Dispatch confirmations, load assignments, route changes</li>
+        </ul>
+      </div>
+      <ul id="alerts-list" class="space-y-2"></ul>
+    </section>
+
+    <section id="settings-section" class="widget-card p-8 hidden">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Settings</h2>
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Notification Preferences</h3>
+          <div class="mt-2">
+            <label class="flex items-center">
+              <input type="checkbox" id="email-notifications" class="mr-2"> Email Notifications
+            </label>
+            <label class="flex items-center mt-2">
+              <input type="checkbox" id="sms-notifications" class="mr-2"> SMS Notifications
+            </label>
+          </div>
+        </div>
+        <button id="save-settings" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">Save Settings</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Map and GPS tracking variables
+    let fleetMap = null;
+    let vehicleMarkers = new Map();
+    let currentRoute = null;
+    let geofenceLayer = null;
+    let historyLayers = new Map();
+    let trackingInterval = null;
+    let isLiveTrackingActive = true;
+    
+    // Geofencing zones (larger and more spread out)
+    let geofenceZones = [
+      {
+        id: 'delivery-zone-1',
+        name: 'Downtown Manhattan Delivery Zone',
+        type: 'delivery',
+        coordinates: [[40.7700, -74.0100], [40.7800, -73.9700], [40.7400, -73.9600], [40.7300, -74.0000]]
+      },
+      {
+        id: 'delivery-zone-2',
+        name: 'Brooklyn Heights Delivery Zone',
+        type: 'delivery',
+        coordinates: [[40.7000, -73.9900], [40.7100, -73.9600], [40.6800, -73.9500], [40.6700, -73.9800]]
+      },
+      {
+        id: 'restricted-zone-1', 
+        name: 'JFK Airport Restricted Area',
+        type: 'restricted',
+        coordinates: [[40.6400, -73.8000], [40.6600, -73.7600], [40.6200, -73.7500], [40.6000, -73.7900]]
+      },
+      {
+        id: 'restricted-zone-2',
+        name: 'Federal Building Security Zone',
+        type: 'restricted',
+        coordinates: [[40.7100, -74.0200], [40.7200, -74.0000], [40.7000, -73.9900], [40.6900, -74.0100]]
+      },
+      {
+        id: 'pickup-zone-1',
+        name: 'Queens Distribution Hub',
+        type: 'pickup',
+        coordinates: [[40.7500, -73.8800], [40.7700, -73.8400], [40.7300, -73.8300], [40.7100, -73.8700]]
+      },
+      {
+        id: 'pickup-zone-2',
+        name: 'Bronx Warehouse Complex',
+        type: 'pickup',
+        coordinates: [[40.8200, -73.9200], [40.8400, -73.8800], [40.8000, -73.8700], [40.7800, -73.9100]]
+      }
+    ];
+    
+    // Simulated dispatcher data
+    let dispatchData = {
+      dispatches: [
+        { id: 'ORDER-12345', destination: 'Zone A', vehicle: 'VEHICLE-001', driver: 'Driver 1', status: 'Active', eta: '45 min', distance: '30 km' },
+        { id: 'ORDER-12346', destination: 'Zone B', vehicle: 'VEHICLE-002', driver: 'Driver 2', status: 'Active', eta: '60 min', distance: '50 km' }
+      ],
+      vehicles: Array.from({ length: 50 }, (_, i) => {
+        let lat, lng, zoneContext = '';
+        
+        // Place first 15 vehicles strategically in or near geofences
+        if (i < 3) {
+          // Downtown Manhattan Delivery Zone
+          lat = 40.7550 + (Math.random() - 0.5) * 0.02;
+          lng = -73.9850 + (Math.random() - 0.5) * 0.02;
+          zoneContext = ' (Downtown Delivery)';
+        } else if (i < 6) {
+          // Brooklyn Heights Delivery Zone  
+          lat = 40.6900 + (Math.random() - 0.5) * 0.02;
+          lng = -73.9700 + (Math.random() - 0.5) * 0.02;
+          zoneContext = ' (Brooklyn Delivery)';
+        } else if (i < 8) {
+          // Queens Distribution Hub
+          lat = 40.7600 + (Math.random() - 0.5) * 0.02;
+          lng = -73.8600 + (Math.random() - 0.5) * 0.02;
+          zoneContext = ' (Queens Hub)';
+        } else if (i < 10) {
+          // Bronx Warehouse Complex
+          lat = 40.8100 + (Math.random() - 0.5) * 0.02;
+          lng = -73.9000 + (Math.random() - 0.5) * 0.02;
+          zoneContext = ' (Bronx Warehouse)';
+        } else if (i < 12) {
+          // Near JFK Airport (but outside restricted zone)
+          lat = 40.6300 + (Math.random() - 0.5) * 0.02;
+          lng = -73.7800 + (Math.random() - 0.5) * 0.02;
+          zoneContext = ' (Near JFK)';
+        } else {
+          // Spread remaining vehicles across greater NYC area
+          const areas = [
+            {lat: 40.7500, lng: -73.9800}, // Midtown
+            {lat: 40.6800, lng: -73.9400}, // Brooklyn
+            {lat: 40.7800, lng: -73.8800}, // Queens  
+            {lat: 40.8300, lng: -73.9300}, // Bronx
+            {lat: 40.7200, lng: -74.0200}, // Lower Manhattan
+            {lat: 40.7000, lng: -73.9000}, // Brooklyn Bridge area
+            {lat: 40.8000, lng: -73.9500}, // Upper Manhattan
+            {lat: 40.6500, lng: -73.9500}  // South Brooklyn
+          ];
+          const area = areas[Math.floor(Math.random() * areas.length)];
+          lat = area.lat + (Math.random() - 0.5) * 0.05;
+          lng = area.lng + (Math.random() - 0.5) * 0.05;
+        }
+        
+        return {
+          id: `VEHICLE-${String(i + 1).padStart(3, '0')}`,
+          type: ['Truck', 'Van', 'Car'][Math.floor(Math.random() * 3)],
+          status: ['Available', 'Assigned', 'Maintenance'][Math.floor(Math.random() * 3)],
+          fuel: Math.floor(Math.random() * 90) + 10,
+          lat: lat,
+          lng: lng,
+          speed: Math.floor(Math.random() * 60),
+          heading: Math.floor(Math.random() * 360),
+          lastUpdate: new Date(),
+          history: [],
+          zoneContext: zoneContext // For debugging/display purposes
+        };
+      }),
+      drivers: Array.from({ length: 20 }, (_, i) => ({
+        name: `Driver ${i + 1}`,
+        license: `D${String(i + 1).padStart(6, '0')}`,
+        hosStatus: `${Math.floor(Math.random() * 8)}h remaining`,
+        status: ['Available', 'Assigned', 'On Break'][Math.floor(Math.random() * 3)]
+      })),
+      alerts: [
+        { id: 'ALERT-001', message: 'ORDER-12345: Driver not responding to dispatch', severity: 'error', timestamp: new Date() },
+        { id: 'ALERT-002', message: 'ORDER-12346: Route deviation detected', severity: 'warning', timestamp: new Date() },
+        { id: 'ALERT-003', message: 'Driver 3: Requested emergency assistance', severity: 'error', timestamp: new Date() },
+        { id: 'ALERT-004', message: 'ORDER-12347: Delivery delayed beyond ETA', severity: 'warning', timestamp: new Date() },
+        { id: 'ALERT-005', message: 'Driver 5: HOS limit approaching (1h remaining)', severity: 'warning', timestamp: new Date() }
+      ],
+      messages: [
+        { id: 'MSG-001', driver: 'Driver 1', content: 'Confirm delivery at Zone A', status: 'sent', timestamp: new Date() }
+      ],
+      stats: {
+        completed: 120,
+        active: 15,
+        delayed: 3
+      }
+    };
+
+    let notifications = [...dispatchData.alerts, ...dispatchData.messages];
+    
+    // Initialize Fleet Map
+    function initializeFleetMap() {
+      try {
+        // Initialize map centered on New York City
+        fleetMap = L.map('fleet-map').setView([40.7128, -74.0060], 11);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(fleetMap);
+        
+        // Initialize geofence layer (but don't add to map initially)
+        geofenceLayer = L.layerGroup();
+        
+        // Prepare geofence zones but don't display them initially
+        renderGeofenceZones();
+        
+        // Add vehicle markers
+        updateVehicleMarkers();
+        
+        // Update zone list for geofencing panel
+        updateZoneList();
+        
+        // Start live tracking
+        startLiveTracking();
+        
+        console.log('Fleet map initialized successfully');
+      } catch (error) {
+        console.error('Error initializing fleet map:', error);
+        addNotification('Error loading map. Please refresh the page.', 'error');
+      }
+    }
+    
+    // Update vehicle markers on map
+    function updateVehicleMarkers() {
+      dispatchData.vehicles.forEach(vehicle => {
+        const markerId = vehicle.id;
+        
+        // Remove existing marker if it exists
+        if (vehicleMarkers.has(markerId)) {
+          fleetMap.removeLayer(vehicleMarkers.get(markerId));
+        }
+        
+        // Create custom icon based on vehicle status
+        const iconHtml = `<div class="vehicle-marker vehicle-${vehicle.status.toLowerCase().replace(' ', '-')}">${vehicle.type[0]}</div>`;
+        const customIcon = L.divIcon({
+          html: iconHtml,
+          className: 'custom-vehicle-marker',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+        
+        // Create marker with popup
+        const marker = L.marker([vehicle.lat, vehicle.lng], { icon: customIcon })
+          .bindPopup(`
+            <div class="p-2">
+              <h3 class="font-bold">${vehicle.id}${vehicle.zoneContext || ''}</h3>
+              <p><strong>Type:</strong> ${vehicle.type}</p>
+              <p><strong>Status:</strong> ${vehicle.status}</p>
+              <p><strong>Fuel:</strong> ${vehicle.fuel}%</p>
+              <p><strong>Speed:</strong> ${vehicle.speed} mph</p>
+              <p><strong>Location:</strong> ${vehicle.lat.toFixed(4)}, ${vehicle.lng.toFixed(4)}</p>
+              <p><strong>Last Update:</strong> ${vehicle.lastUpdate.toLocaleTimeString()}</p>
+              <div class="mt-2">
+                <button onclick="centerOnVehicle('${vehicle.id}')" class="px-2 py-1 bg-blue-500 text-white rounded text-xs mr-1">Center</button>
+                <button onclick="showVehicleHistory('${vehicle.id}')" class="px-2 py-1 bg-green-500 text-white rounded text-xs">History</button>
+              </div>
+            </div>
+          `);
+        
+        vehicleMarkers.set(markerId, marker);
+        marker.addTo(fleetMap);
+      });
+    }
+    
+    // Render geofence zones
+    function renderGeofenceZones() {
+      geofenceLayer.clearLayers();
+      
+      geofenceZones.forEach(zone => {
+        // Define colors and styles based on zone type
+        let color, fillColor;
+        switch(zone.type) {
+          case 'delivery':
+            color = '#16a34a';      // Green border
+            fillColor = '#16a34a';  // Green fill
+            break;
+          case 'restricted':
+            color = '#dc2626';      // Red border  
+            fillColor = '#dc2626';  // Red fill
+            break;
+          case 'pickup':
+            color = '#f59e42';      // Yellow/Orange border
+            fillColor = '#f59e42';  // Yellow/Orange fill
+            break;
+          default:
+            color = '#6b7280';      // Gray
+            fillColor = '#6b7280';
+        }
+        
+        const polygon = L.polygon(zone.coordinates, {
+          color: color,
+          fillColor: fillColor,
+          fillOpacity: 0.2,
+          weight: 3,
+          opacity: 0.8,
+          dashArray: '10, 10'  // Dashed border
+        }).bindPopup(`
+          <div class="p-2">
+            <h3 class="font-bold">${zone.name}</h3>
+            <p><strong>Type:</strong> ${zone.type.charAt(0).toUpperCase() + zone.type.slice(1)}</p>
+            <p class="text-xs text-gray-500 mt-1 italic">View Only - Zone management restricted to Admin</p>
+          </div>
+        `);
+        
+        geofenceLayer.addLayer(polygon);
+        console.log(`Added zone: ${zone.name} (${zone.type}) with coordinates:`, zone.coordinates);
+      });
+      
+      console.log(`Rendered ${geofenceZones.length} geofence zones`);
+    }
+    
+    // Start live GPS tracking simulation
+    function startLiveTracking() {
+      if (trackingInterval) clearInterval(trackingInterval);
+      
+      trackingInterval = setInterval(() => {
+        if (!isLiveTrackingActive) return;
+        
+        dispatchData.vehicles.forEach(vehicle => {
+          // Simulate GPS movement (small random changes)
+          const deltaLat = (Math.random() - 0.5) * 0.001; // ~100m movement
+          const deltaLng = (Math.random() - 0.5) * 0.001;
+          
+          // Store previous position in history
+          vehicle.history.push({ lat: vehicle.lat, lng: vehicle.lng, timestamp: new Date() });
+          
+          // Keep only last 50 positions for performance
+          if (vehicle.history.length > 50) {
+            vehicle.history = vehicle.history.slice(-50);
+          }
+          
+          // Update position
+          vehicle.lat += deltaLat;
+          vehicle.lng += deltaLng;
+          vehicle.speed = Math.max(0, vehicle.speed + (Math.random() - 0.5) * 10);
+          vehicle.heading = (vehicle.heading + (Math.random() - 0.5) * 30) % 360;
+          vehicle.lastUpdate = new Date();
+          
+          // Update marker position
+          if (vehicleMarkers.has(vehicle.id)) {
+            const marker = vehicleMarkers.get(vehicle.id);
+            marker.setLatLng([vehicle.lat, vehicle.lng]);
+            
+            // Update popup content
+            marker.setPopupContent(`
+              <div class="p-2">
+                <h3 class="font-bold">${vehicle.id}${vehicle.zoneContext || ''}</h3>
+                <p><strong>Type:</strong> ${vehicle.type}</p>
+                <p><strong>Status:</strong> ${vehicle.status}</p>
+                <p><strong>Fuel:</strong> ${vehicle.fuel}%</p>
+                <p><strong>Speed:</strong> ${vehicle.speed.toFixed(0)} mph</p>
+                <p><strong>Location:</strong> ${vehicle.lat.toFixed(4)}, ${vehicle.lng.toFixed(4)}</p>
+                <p><strong>Last Update:</strong> ${vehicle.lastUpdate.toLocaleTimeString()}</p>
+                <div class="mt-2">
+                  <button onclick="centerOnVehicle('${vehicle.id}')" class="px-2 py-1 bg-blue-500 text-white rounded text-xs mr-1">Center</button>
+                  <button onclick="showVehicleHistory('${vehicle.id}')" class="px-2 py-1 bg-green-500 text-white rounded text-xs">History</button>
+                </div>
+              </div>
+            `);
+          }
+        });
+      }, 5000); // Update every 5 seconds for demo (real-world would be 30 seconds)
+    }
+    
+    // Center map on specific vehicle
+    function centerOnVehicle(vehicleId) {
+      const vehicle = dispatchData.vehicles.find(v => v.id === vehicleId);
+      if (vehicle && fleetMap) {
+        fleetMap.setView([vehicle.lat, vehicle.lng], 15);
+        const marker = vehicleMarkers.get(vehicleId);
+        if (marker) {
+          marker.openPopup();
+        }
+      }
+    }
+    
+    // Show vehicle history trail
+    function showVehicleHistory(vehicleId) {
+      const vehicle = dispatchData.vehicles.find(v => v.id === vehicleId);
+      if (!vehicle || vehicle.history.length < 2) {
+        addNotification('No history available for this vehicle', 'info');
+        return;
+      }
+      
+      // Clear existing history layer for this vehicle
+      if (historyLayers.has(vehicleId)) {
+        fleetMap.removeLayer(historyLayers.get(vehicleId));
+      }
+      
+      // Create polyline from history points
+      const historyCoords = vehicle.history.map(point => [point.lat, point.lng]);
+      const historyLine = L.polyline(historyCoords, {
+        color: '#f59e42',
+        weight: 3,
+        className: 'route-breadcrumb'
+      }).bindPopup(`
+        <div class="p-2">
+          <h3 class="font-bold">${vehicleId} - Route History</h3>
+          <p>Points: ${vehicle.history.length}</p>
+          <p>Duration: ${Math.round((Date.now() - vehicle.history[0].timestamp) / 60000)} minutes</p>
+          <button onclick="clearVehicleHistory('${vehicleId}')" class="px-2 py-1 bg-red-500 text-white rounded text-xs mt-1">Clear Trail</button>
+        </div>
+      `);
+      
+      historyLayers.set(vehicleId, historyLine);
+      historyLine.addTo(fleetMap);
+      
+      // Fit map to show entire history
+      fleetMap.fitBounds(historyLine.getBounds());
+      
+      addNotification(`Showing route history for ${vehicleId}`, 'info');
+    }
+    
+    // Clear vehicle history trail
+    function clearVehicleHistory(vehicleId) {
+      if (historyLayers.has(vehicleId)) {
+        fleetMap.removeLayer(historyLayers.get(vehicleId));
+        historyLayers.delete(vehicleId);
+        addNotification(`Route history cleared for ${vehicleId}`, 'info');
+      }
+    }
+    
+    // Center map on all fleet vehicles
+    function centerFleet() {
+      if (!fleetMap || dispatchData.vehicles.length === 0) return;
+      
+      const group = new L.featureGroup(Array.from(vehicleMarkers.values()));
+      fleetMap.fitBounds(group.getBounds().pad(0.1));
+    }
+    
+    // View geofence zone (read-only for dispatchers)
+    function viewGeofenceZone(zoneId) {
+      const zone = geofenceZones.find(z => z.id === zoneId);
+      if (zone) {
+        addNotification(`Zone management is restricted to Admin users only`, 'warning');
+      }
+    }
+
+    // Utility functions
+    function showModal(modalId) {
+      document.getElementById(modalId).classList.remove('hidden');
+    }
+    
+    function hideModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    function clearForm(formId) {
+      const form = document.getElementById(formId);
+      if (form) {
+        const inputs = form.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+          if (input.type === 'checkbox' || input.type === 'radio') {
+            input.checked = false;
+          } else {
+            input.value = '';
+          }
+        });
+      }
+    }
+    
+    function validateRequired(fields) {
+      for (const field of fields) {
+        if (!field.value || !field.value.trim()) {
+          alert(`Please fill in the ${field.name || field.id} field.`);
+          field.focus();
+          return false;
+        }
+      }
+      return true;
+    }
+    
+    function addNotification(message, type = 'info') {
+      notifications.push({
+        id: `NOTIF-${Date.now()}`,
+        message,
+        type,
+        timestamp: new Date()
+      });
+      renderNotifications();
+    }
+
+    // Update dispatch board
+    function updateDispatchBoard() {
+      const list = document.getElementById('active-dispatch-list');
+      list.innerHTML = '';
+      dispatchData.dispatches.forEach(d => {
+        const li = document.createElement('li');
+        li.className = `dispatch-item bg-yellow-100 text-yellow-700 rounded-lg p-4`;
+        li.dataset.id = d.id;
+        li.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span>${d.id}: ${d.status} to ${d.destination} - ${d.vehicle} (${d.driver})</span>
+            <select class="status-select border border-gray-300 rounded px-2 py-1" data-id="${d.id}">
+              <option value="Active" ${d.status === 'Active' ? 'selected' : ''}>Active</option>
+              <option value="Completed" ${d.status === 'Completed' ? 'selected' : ''}>Completed</option>
+              <option value="Delayed" ${d.status === 'Delayed' ? 'selected' : ''}>Delayed</option>
+            </select>
+          </div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    // Render notifications
+    function renderNotifications() {
+      const list = document.getElementById('notifications-list');
+      const count = document.getElementById('notification-count');
+      list.innerHTML = '';
+      notifications.forEach(n => {
+        const div = document.createElement('div');
+        div.className = `p-2 rounded-lg ${n.severity ? (n.severity === 'error' ? 'bg-red-50' : 'bg-yellow-50') : 'bg-blue-50'}`;
+        div.innerHTML = `
+          <div class="flex justify-between">
+            <span>${n.message || n.content}</span>
+            <span class="text-xs text-gray-400">${new Date(n.timestamp).toLocaleTimeString()}</span>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+      count.textContent = notifications.length;
+      count.classList.toggle('hidden', notifications.length === 0);
+    }
+
+    // Render routes
+    function renderRoutes() {
+      const tbody = document.getElementById('routes-table');
+      tbody.innerHTML = '';
+      dispatchData.dispatches.forEach(d => {
+        const vehicle = dispatchData.vehicles.find(v => v.id === d.vehicle);
+        const driver = dispatchData.drivers.find(dr => dr.name === d.driver);
+        const progress = d.status === 'Completed' ? '100%' : 
+                        d.status === 'Active' ? `${Math.floor(Math.random() * 80) + 10}%` : '0%';
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${d.id}</td>
+          <td>${d.vehicle || 'Unassigned'}</td>
+          <td>${d.driver || 'Unassigned'}</td>
+          <td>${d.destination}</td>
+          <td>${d.eta}</td>
+          <td>${d.distance}</td>
+          <td>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-blue-600 h-2 rounded-full" style="width: ${progress}"></div>
+            </div>
+            <span class="text-xs text-gray-600">${progress}</span>
+          </td>
+          <td>
+            <button onclick="trackRoute('${d.id}')" class="px-2 py-1 bg-blue-500 text-white rounded text-xs mr-1" ${!vehicle ? 'disabled' : ''}>
+              <i class="fas fa-map-marker-alt"></i>
+            </button>
+            <button onclick="optimizeRoute('${d.id}')" class="px-2 py-1 bg-green-500 text-white rounded text-xs" ${!vehicle ? 'disabled' : ''}>
+              <i class="fas fa-route"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    
+    // Track specific route on map
+    function trackRoute(orderId) {
+      const dispatch = dispatchData.dispatches.find(d => d.id === orderId);
+      if (!dispatch || !dispatch.vehicle || dispatch.vehicle === 'Unassigned') {
+        addNotification('No vehicle assigned to this route', 'warning');
+        return;
+      }
+      
+      centerOnVehicle(dispatch.vehicle);
+      addNotification(`Tracking route ${orderId} - Vehicle ${dispatch.vehicle}`, 'info');
+    }
+    
+    // Optimize specific route
+    function optimizeRoute(orderId) {
+      const dispatch = dispatchData.dispatches.find(d => d.id === orderId);
+      if (!dispatch) return;
+      
+      // Simulate route optimization
+      const oldEta = dispatch.eta;
+      const oldDistance = dispatch.distance;
+      
+      // Improve ETA and distance by 10-20%
+      const etaMinutes = parseInt(oldEta) || 45;
+      const newEtaMinutes = Math.max(15, Math.floor(etaMinutes * (0.8 + Math.random() * 0.1)));
+      dispatch.eta = `${newEtaMinutes} min`;
+      
+      const distanceKm = parseInt(oldDistance) || 30;
+      const newDistanceKm = Math.max(5, Math.floor(distanceKm * (0.8 + Math.random() * 0.1)));
+      dispatch.distance = `${newDistanceKm} km`;
+      
+      renderRoutes();
+      updateDispatchBoard();
+      
+      addNotification(`Route optimized for ${orderId}: ${oldEta} → ${dispatch.eta}, ${oldDistance} → ${dispatch.distance}`, 'success');
+    }
+
+    // Render vehicles with enhanced information
+    function renderVehicles() {
+      const tbody = document.getElementById('vehicles-table');
+      tbody.innerHTML = '';
+      
+      // Update vehicle status counts
+      const statusCounts = {
+        Available: 0,
+        Assigned: 0,
+        Maintenance: 0
+      };
+      let totalFuel = 0;
+      
+      dispatchData.vehicles.forEach(v => {
+        statusCounts[v.status]++;
+        totalFuel += v.fuel;
+        
+        // Find current assignment
+        const assignment = dispatchData.dispatches.find(d => d.vehicle === v.id);
+        const assignedDriver = dispatchData.drivers.find(d => d.name === assignment?.driver);
+        
+        const tr = document.createElement('tr');
+        tr.className = v.fuel < 20 ? 'bg-red-50' : '';
+        tr.innerHTML = `
+          <td>
+            <div class="flex items-center">
+              <div class="w-3 h-3 rounded-full mr-2 ${
+                v.status === 'Available' ? 'bg-green-500' : 
+                v.status === 'Assigned' ? 'bg-yellow-500' : 'bg-red-500'
+              }"></div>
+              <span class="font-medium">${v.id}</span>
+            </div>
+          </td>
+          <td>${v.type}</td>
+          <td>
+            <span class="px-2 py-1 rounded text-xs font-medium ${
+              v.status === 'Available' ? 'bg-green-100 text-green-800' : 
+              v.status === 'Assigned' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+            }">${v.status}</span>
+          </td>
+          <td>${assignment ? assignment.id : 'None'}</td>
+          <td>${assignedDriver ? assignedDriver.name : 'Unassigned'}</td>
+          <td>
+            <div class="flex items-center">
+              <div class="w-full bg-gray-200 rounded-full h-2 mr-2">
+                <div class="h-2 rounded-full ${v.fuel < 20 ? 'bg-red-500' : v.fuel < 50 ? 'bg-yellow-500' : 'bg-green-500'}" 
+                     style="width: ${v.fuel}%"></div>
+              </div>
+              <span class="text-sm ${v.fuel < 20 ? 'text-red-600 font-bold' : ''}">${v.fuel}%</span>
+            </div>
+          </td>
+          <td>
+            <div class="text-xs">
+              <div>${v.lat.toFixed(4)}, ${v.lng.toFixed(4)}</div>
+              <div class="text-gray-500">${v.zoneContext || 'Transit'}</div>
+            </div>
+          </td>
+          <td class="text-sm text-gray-600">${v.lastUpdate.toLocaleTimeString()}</td>
+          <td>
+            <div class="flex gap-1">
+              <button onclick="locateVehicleOnMap('${v.id}')" class="action-btn px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600" data-tooltip="Locate on Map - Centers map on vehicle location">
+                <i class="fas fa-map-marker-alt"></i>
+              </button>
+              <button onclick="assignVehicleToOrder('${v.id}')" class="action-btn px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600" data-tooltip="Quick Assignment - Pre-fills vehicle in assignment modal" ${v.status !== 'Available' ? 'disabled' : ''}>
+                <i class="fas fa-plus"></i>
+              </button>
+              <button onclick="reportVehicleIssue('${v.id}')" class="action-btn px-2 py-1 bg-orange-500 text-white rounded text-xs hover:bg-orange-600" data-tooltip="Report Issue - Flag vehicle issues to maintenance team">
+                <i class="fas fa-exclamation-circle"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      
+      // Update status counts display
+      document.getElementById('available-vehicles-count').textContent = statusCounts.Available;
+      document.getElementById('assigned-vehicles-count').textContent = statusCounts.Assigned;
+      document.getElementById('maintenance-vehicles-count').textContent = statusCounts.Maintenance;
+      document.getElementById('average-fuel-level').textContent = `${Math.round(totalFuel / dispatchData.vehicles.length)}%`;
+    }
+
+    // Render drivers with enhanced information
+    function renderDrivers() {
+      const tbody = document.getElementById('drivers-table');
+      tbody.innerHTML = '';
+      
+      // Update driver status counts
+      const statusCounts = {
+        Available: 0,
+        Assigned: 0,
+        'On Break': 0
+      };
+      let hosCriticalCount = 0;
+      
+      dispatchData.drivers.forEach(d => {
+        statusCounts[d.status]++;
+        
+        // Parse HOS hours for critical check
+        const hosHours = parseFloat(d.hosStatus.replace('h remaining', '')) || 0;
+        if (hosHours < 2) hosCriticalCount++;
+        
+        // Find current assignment
+        const assignment = dispatchData.dispatches.find(dispatch => dispatch.driver === d.name);
+        const assignedVehicle = assignment ? dispatchData.vehicles.find(v => v.id === assignment.vehicle) : null;
+        
+        // Generate performance score (simulated)
+        const performanceScore = (Math.random() * 2 + 3).toFixed(1); // 3.0 - 5.0
+        
+        // Generate last communication time (simulated)
+        const lastComm = new Date(Date.now() - Math.random() * 3600000); // Within last hour
+        
+        const tr = document.createElement('tr');
+        tr.className = hosHours < 1 ? 'bg-red-50' : hosHours < 2 ? 'bg-yellow-50' : '';
+        tr.innerHTML = `
+          <td>
+            <div class="flex items-center">
+              <div class="w-3 h-3 rounded-full mr-2 ${
+                d.status === 'Available' ? 'bg-green-500' : 
+                d.status === 'Assigned' ? 'bg-blue-500' : 'bg-yellow-500'
+              }"></div>
+              <span class="font-medium">${d.name}</span>
+            </div>
+          </td>
+          <td class="text-sm">${d.license}</td>
+          <td>
+            <span class="px-2 py-1 rounded text-xs font-medium ${
+              d.status === 'Available' ? 'bg-green-100 text-green-800' : 
+              d.status === 'Assigned' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
+            }">${d.status}</span>
+          </td>
+          <td>${assignedVehicle ? assignedVehicle.id : 'None'}</td>
+          <td>
+            <div class="flex items-center">
+              <span class="text-sm ${hosHours < 1 ? 'text-red-600 font-bold' : hosHours < 2 ? 'text-yellow-600 font-medium' : ''}">${d.hosStatus}</span>
+              ${hosHours < 2 ? '<i class="fas fa-exclamation-triangle text-orange-500 ml-1"></i>' : ''}
+            </div>
+          </td>
+          <td>${assignment ? assignment.id : 'None'}</td>
+          <td>
+            <div class="flex items-center">
+              <div class="flex">
+                ${Array.from({length: 5}, (_, i) => 
+                  `<i class="fas fa-star text-xs ${i < Math.floor(performanceScore) ? 'text-yellow-400' : 'text-gray-300'}"></i>`
+                ).join('')}
+              </div>
+              <span class="ml-1 text-sm text-gray-600">${performanceScore}</span>
+            </div>
+          </td>
+          <td class="text-sm text-gray-600">${lastComm.toLocaleTimeString()}</td>
+          <td>
+            <div class="flex gap-1">
+              <button onclick="sendMessageToDriver('${d.name}')" class="action-btn px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600" data-tooltip="Send Message - Direct communication to individual driver">
+                <i class="fas fa-comment"></i>
+              </button>
+              <button onclick="assignDriverToOrder('${d.name}')" class="action-btn px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600" data-tooltip="Quick Assignment - Pre-fills driver in assignment modal" ${d.status !== 'Available' ? 'disabled' : ''}>
+                <i class="fas fa-plus"></i>
+              </button>
+              <button onclick="requestDriverCallBack('${d.name}')" class="action-btn px-2 py-1 bg-purple-500 text-white rounded text-xs hover:bg-purple-600" data-tooltip="Request Callback - Ask driver to contact dispatch">
+                <i class="fas fa-phone"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      
+      // Update status counts display
+      document.getElementById('available-drivers-count').textContent = statusCounts.Available || 0;
+      document.getElementById('assigned-drivers-count').textContent = statusCounts.Assigned || 0;
+      document.getElementById('break-drivers-count').textContent = statusCounts['On Break'] || 0;
+      document.getElementById('hos-critical-count').textContent = hosCriticalCount;
+    }
+
+    // Render alerts
+    function renderAlerts() {
+      const list = document.getElementById('alerts-list');
+      list.innerHTML = '';
+      dispatchData.alerts.forEach(a => {
+        const li = document.createElement('li');
+        li.className = `rounded-lg p-4 ${a.severity === 'error' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`;
+        li.innerHTML = `
+          <div class="flex justify-between">
+            <span>${a.message}</span>
+            <button class="clear-alert text-sm hover:underline" data-id="${a.id}">Clear</button>
+          </div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    // Render dispatch chart
+    function renderDispatchChart() {
+      try {
+        const chartElement = document.getElementById('dispatchChart');
+        if (!chartElement) {
+          console.error('Chart element not found');
+          return;
+        }
+        
+        // Destroy existing chart if it exists
+        if (window.dispatchChart && typeof window.dispatchChart.destroy === 'function') {
+          window.dispatchChart.destroy();
+        }
+        
+        window.dispatchChart = new Chart(chartElement.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: ['Completed', 'Active', 'Delayed'],
+            datasets: [{
+              label: 'Dispatches',
+              data: [dispatchData.stats.completed, dispatchData.stats.active, dispatchData.stats.delayed],
+              backgroundColor: ['#16a34a', '#f59e42', '#dc2626']
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { 
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `${context.label}: ${context.parsed.y} dispatches`;
+                  }
+                }
+              }
+            },
+            scales: { 
+              y: { 
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1
+                }
+              }
+            },
+            accessibility: {
+              enabled: true
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Error rendering dispatch chart:', error);
+        addNotification('Error loading chart data', 'error');
+      }
+    }
+
+    // Populate select options
+    function populateSelects() {
+      const vehicleSelect = document.getElementById('assign-vehicle-id');
+      const driverSelect = document.getElementById('assign-driver-id');
+      const messageDriverSelect = document.getElementById('message-driver');
+      vehicleSelect.innerHTML = dispatchData.vehicles.map(v => `<option value="${v.id}">${v.id} (${v.type})</option>`).join('');
+      driverSelect.innerHTML = dispatchData.drivers.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+      messageDriverSelect.innerHTML = dispatchData.drivers.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+    }
+
+    // User Profile Dropdown
+    const userMenuButton = document.getElementById('user-menu-button');
+    const userMenu = document.getElementById('user-menu');
+    userMenuButton.addEventListener('click', () => userMenu.classList.toggle('hidden'));
+    window.addEventListener('click', (e) => {
+      if (!userMenuButton.contains(e.target) && !userMenu.contains(e.target)) {
+        userMenu.classList.add('hidden');
+      }
+    });
+
+    // Navigation Tabs
+    const tabs = document.querySelectorAll('.nav-tab');
+    const sections = document.querySelectorAll('section[id$="-section"]'); // Only select sections with IDs ending in "-section"
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        tabs.forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        sections.forEach(s => s.classList.add('hidden'));
+        document.getElementById(`${this.dataset.tab}-section`).classList.remove('hidden');
+        
+        // Refresh map when switching tabs to ensure proper rendering
+        if (fleetMap) {
+          setTimeout(() => {
+            fleetMap.invalidateSize();
+          }, 100);
+        }
+      });
+    });
+
+    // Notification Tray
+    const notificationToggle = document.getElementById('notification-toggle');
+    const notificationTray = document.getElementById('notification-tray');
+    notificationToggle.addEventListener('click', () => {
+      notificationTray.classList.toggle('active');
+    });
+    document.getElementById('clear-notifications').addEventListener('click', () => {
+      notifications = [];
+      dispatchData.alerts = [];
+      renderAlerts();
+      renderNotifications();
+    });
+
+    // Customize Dashboard
+    document.getElementById('customize-dashboard').addEventListener('click', () => {
+      showModal('customize-modal');
+    });
+    document.getElementById('customize-cancel').addEventListener('click', () => {
+      hideModal('customize-modal');
+    });
+    document.getElementById('customize-save').addEventListener('click', () => {
+      const order = Array.from(document.querySelectorAll('#sortable-sections .widget-section')).map(el => el.dataset.id);
+      localStorage.setItem('dashboardOrder', JSON.stringify(order));
+      applyDashboardOrder();
+      hideModal('customize-modal');
+      addNotification('Dashboard layout saved', 'success');
+    });
+
+    // Sortable dashboard sections
+    new Sortable(document.getElementById('sortable-sections'), {
+      animation: 150,
+      handle: '.widget-section'
+    });
+
+    function applyDashboardOrder() {
+      const order = JSON.parse(localStorage.getItem('dashboardOrder')) || ['dispatch-board', 'quick-actions'];
+      const section = document.getElementById('dispatch-section');
+      const sections = order.map(id => document.getElementById(id));
+      section.innerHTML = '';
+      sections.forEach(s => section.appendChild(s));
+    }
+
+    // Sortable dispatch list
+    new Sortable(document.getElementById('active-dispatch-list'), {
+      animation: 150,
+      handle: '.dispatch-item',
+      onEnd: () => {
+        const order = Array.from(document.querySelectorAll('#active-dispatch-list .dispatch-item')).map(el => el.dataset.id);
+        dispatchData.dispatches = order.map(id => dispatchData.dispatches.find(d => d.id === id));
+      }
+    });
+
+    // Quick Actions
+    document.getElementById('create-dispatch-btn').addEventListener('click', () => {
+      showModal('create-dispatch-modal');
+    });
+    document.getElementById('create-dispatch-cancel').addEventListener('click', () => {
+      hideModal('create-dispatch-modal');
+      clearForm('create-dispatch-modal');
+    });
+    document.getElementById('create-dispatch-submit').addEventListener('click', () => {
+      const id = document.getElementById('order-id').value;
+      const destination = document.getElementById('destination').value;
+      
+      // Validation
+      if (!id || !destination) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+      
+      // Check for duplicate order ID
+      if (dispatchData.dispatches.find(d => d.id === id)) {
+        alert('Order ID already exists. Please use a unique Order ID.');
+        return;
+      }
+      
+      dispatchData.dispatches.push({
+        id,
+        destination,
+        vehicle: 'Unassigned',
+        driver: 'Unassigned',
+        status: 'Active',
+        eta: 'TBD',
+        distance: 'TBD'
+      });
+      dispatchData.stats.active++;
+      updateDispatchBoard();
+      renderDispatchChart();
+      renderRoutes();
+      
+      hideModal('create-dispatch-modal');
+      clearForm('create-dispatch-modal');
+      addNotification(`Dispatch ${id} created`, 'success');
+    });
+
+    document.getElementById('assign-vehicle-btn').addEventListener('click', () => {
+      showModal('assign-vehicle-modal');
+    });
+    document.getElementById('assign-vehicle-cancel').addEventListener('click', () => {
+      hideModal('assign-vehicle-modal');
+      clearForm('assign-vehicle-modal');
+    });
+    document.getElementById('assign-vehicle-submit').addEventListener('click', () => {
+      const orderId = document.getElementById('assign-vehicle-order').value;
+      const vehicleId = document.getElementById('assign-vehicle-id').value;
+      
+      // Validation
+      if (!orderId || !vehicleId) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+      
+      const dispatch = dispatchData.dispatches.find(d => d.id === orderId);
+      const vehicle = dispatchData.vehicles.find(v => v.id === vehicleId);
+      
+      if (!dispatch) {
+        alert('Order ID not found.');
+        return;
+      }
+      
+      if (!vehicle) {
+        alert('Vehicle not found.');
+        return;
+      }
+      
+      if (vehicle.status === 'Assigned') {
+        alert('Vehicle is already assigned to another dispatch.');
+        return;
+      }
+      
+      if (vehicle.status === 'Maintenance') {
+        alert('Vehicle is currently under maintenance and cannot be assigned.');
+        return;
+      }
+      
+      // Release previous vehicle if any
+      if (dispatch.vehicle && dispatch.vehicle !== 'Unassigned') {
+        const prevVehicle = dispatchData.vehicles.find(v => v.id === dispatch.vehicle);
+        if (prevVehicle) prevVehicle.status = 'Available';
+      }
+      
+      dispatch.vehicle = vehicleId;
+      vehicle.status = 'Assigned';
+      updateDispatchBoard();
+      renderVehicles();
+      renderRoutes();
+      addNotification(`Vehicle ${vehicleId} assigned to ${orderId}`, 'success');
+      
+      hideModal('assign-vehicle-modal');
+      clearForm('assign-vehicle-modal');
+    });
+
+    document.getElementById('assign-driver-btn').addEventListener('click', () => {
+      showModal('assign-driver-modal');
+    });
+    document.getElementById('assign-driver-cancel').addEventListener('click', () => {
+      hideModal('assign-driver-modal');
+      clearForm('assign-driver-modal');
+    });
+    document.getElementById('assign-driver-submit').addEventListener('click', () => {
+      const orderId = document.getElementById('assign-driver-order').value;
+      const driverName = document.getElementById('assign-driver-id').value;
+      
+      // Validation
+      if (!orderId || !driverName) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+      
+      const dispatch = dispatchData.dispatches.find(d => d.id === orderId);
+      const driver = dispatchData.drivers.find(d => d.name === driverName);
+      
+      if (!dispatch) {
+        alert('Order ID not found.');
+        return;
+      }
+      
+      if (!driver) {
+        alert('Driver not found.');
+        return;
+      }
+      
+      if (driver.status === 'Assigned') {
+        alert('Driver is already assigned to another dispatch.');
+        return;
+      }
+      
+      if (driver.status === 'On Break') {
+        alert('Driver is currently on break and cannot be assigned.');
+        return;
+      }
+      
+      // Check HOS availability
+      const hosHours = parseFloat(driver.hosStatus.replace('h remaining', '')) || 0;
+      if (hosHours < 1) {
+        alert('Driver does not have sufficient Hours of Service remaining (minimum 1 hour required).');
+        return;
+      }
+      
+      // Release previous driver if any
+      if (dispatch.driver && dispatch.driver !== 'Unassigned') {
+        const prevDriver = dispatchData.drivers.find(d => d.name === dispatch.driver);
+        if (prevDriver) prevDriver.status = 'Available';
+      }
+      
+      dispatch.driver = driverName;
+      driver.status = 'Assigned';
+      updateDispatchBoard();
+      renderDrivers();
+      renderRoutes();
+      addNotification(`Driver ${driverName} assigned to ${orderId}`, 'success');
+      
+      hideModal('assign-driver-modal');
+      clearForm('assign-driver-modal');
+    });
+
+    document.getElementById('send-message-btn').addEventListener('click', () => {
+      showModal('send-message-modal');
+    });
+    document.getElementById('send-message-cancel').addEventListener('click', () => {
+      hideModal('send-message-modal');
+      clearForm('send-message-modal');
+    });
+    document.getElementById('send-message-submit').addEventListener('click', () => {
+      const driver = document.getElementById('message-driver').value;
+      const content = document.getElementById('message-content').value;
+      
+      // Validation
+      if (!driver || !content.trim()) {
+        alert('Please select a driver and enter a message.');
+        return;
+      }
+      
+      if (content.length > 500) {
+        alert('Message is too long. Please keep it under 500 characters.');
+        return;
+      }
+      
+      dispatchData.messages.push({
+        id: `MSG-${Date.now()}`,
+        driver,
+        content: content.trim(),
+        status: 'sent',
+        timestamp: new Date()
+      });
+      addNotification(`Message sent to ${driver}: ${content.trim()}`, 'success');
+      
+      hideModal('send-message-modal');
+      clearForm('send-message-modal');
+    });
+
+    // Export Report
+    document.getElementById('export-report-btn').addEventListener('click', () => {
+      const csvContent = [
+        'Order ID,Destination,Vehicle,Driver,Status,ETA,Distance',
+        ...dispatchData.dispatches.map(d => `${d.id},${d.destination},${d.vehicle},${d.driver},${d.status},${d.eta},${d.distance}`)
+      ].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'dispatch_report.csv';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+
+    // Map Control Event Listeners
+    document.getElementById('toggle-live-tracking').addEventListener('click', function() {
+      isLiveTrackingActive = !isLiveTrackingActive;
+      this.classList.toggle('active');
+      if (isLiveTrackingActive) {
+        startLiveTracking();
+        addNotification('Live tracking enabled', 'success');
+      } else {
+        if (trackingInterval) clearInterval(trackingInterval);
+        addNotification('Live tracking disabled', 'info');
+      }
+    });
+    
+    document.getElementById('toggle-route-planning').addEventListener('click', function() {
+      this.classList.toggle('active');
+      const panel = document.getElementById('route-planning-panel');
+      panel.classList.toggle('hidden');
+      populateVehicleSelect();
+    });
+    
+    document.getElementById('toggle-geofencing').addEventListener('click', function() {
+      this.classList.toggle('active');
+      const panel = document.getElementById('geofencing-panel');
+      panel.classList.toggle('hidden');
+      
+      // Toggle geofence zone visibility on map
+      if (this.classList.contains('active')) {
+        // Show zones
+        console.log('Showing geofencing zones...');
+        if (fleetMap && geofenceLayer) {
+          // Make sure zones are rendered
+          renderGeofenceZones();
+          geofenceLayer.addTo(fleetMap);
+          console.log('Geofence layer added to map');
+        } else {
+          console.error('FleetMap or geofenceLayer not available');
+        }
+        addNotification(`Geofencing zones displayed on map (${geofenceZones.length} zones)`, 'success');
+        updateZoneList();
+      } else {
+        // Hide zones
+        console.log('Hiding geofencing zones...');
+        if (fleetMap && geofenceLayer) {
+          fleetMap.removeLayer(geofenceLayer);
+          console.log('Geofence layer removed from map');
+        }
+        addNotification('Geofencing zones hidden', 'info');
+      }
+    });
+    
+    document.getElementById('toggle-traffic').addEventListener('click', function() {
+      this.classList.toggle('active');
+      addNotification(this.classList.contains('active') ? 'Traffic overlay enabled' : 'Traffic overlay disabled', 'info');
+    });
+    
+    document.getElementById('toggle-history').addEventListener('click', function() {
+      this.classList.toggle('active');
+      if (this.classList.contains('active')) {
+        // Show all vehicle histories
+        dispatchData.vehicles.slice(0, 5).forEach(vehicle => {
+          if (vehicle.history.length > 1) showVehicleHistory(vehicle.id);
+        });
+        addNotification('Vehicle history trails enabled', 'info');
+      } else {
+        // Clear all histories
+        historyLayers.forEach((layer, vehicleId) => {
+          fleetMap.removeLayer(layer);
+        });
+        historyLayers.clear();
+        addNotification('Vehicle history trails cleared', 'info');
+      }
+    });
+    
+    document.getElementById('center-fleet').addEventListener('click', () => {
+      centerFleet();
+    });
+    
+    // Route Planning Controls
+    document.getElementById('calculate-route').addEventListener('click', () => {
+      const start = document.getElementById('route-start').value;
+      const end = document.getElementById('route-end').value;
+      const vehicleId = document.getElementById('route-vehicle').value;
+      
+      if (!start || !end) {
+        addNotification('Please enter both start and end points', 'warning');
+        return;
+      }
+      
+      // Simulate route calculation
+      addNotification(`Calculating route from ${start} to ${end}...`, 'info');
+      
+      setTimeout(() => {
+        const distance = Math.floor(Math.random() * 50) + 10;
+        const duration = Math.floor(Math.random() * 60) + 15;
+        addNotification(`Route calculated: ${distance}km, ${duration} minutes`, 'success');
+      }, 2000);
+    });
+    
+    document.getElementById('optimize-route').addEventListener('click', () => {
+      addNotification('Optimizing route for fuel efficiency and traffic...', 'info');
+      
+      setTimeout(() => {
+        addNotification('Route optimized! Saved 15% time and 10% fuel', 'success');
+      }, 1500);
+    });
+    
+    document.getElementById('clear-route').addEventListener('click', () => {
+      document.getElementById('route-start').value = '';
+      document.getElementById('route-end').value = '';
+      if (currentRoute) {
+        fleetMap.removeLayer(currentRoute);
+        currentRoute = null;
+      }
+      addNotification('Route cleared', 'info');
+    });
+    
+    // Populate vehicle select for route planning
+    function populateVehicleSelect() {
+      const select = document.getElementById('route-vehicle');
+      select.innerHTML = '<option value="">Select Vehicle</option>';
+      dispatchData.vehicles.filter(v => v.status === 'Available').forEach(vehicle => {
+        const option = document.createElement('option');
+        option.value = vehicle.id;
+        option.textContent = `${vehicle.id} (${vehicle.type})`;
+        select.appendChild(option);
+      });
+    }
+    
+    // Optimize All Routes
+    document.getElementById('optimize-all-routes').addEventListener('click', () => {
+      addNotification('Optimizing all active routes...', 'info');
+      
+      dispatchData.dispatches.forEach(d => {
+        if (d.status === 'Active') {
+          const etaMinutes = parseInt(d.eta) || 45;
+          const newEtaMinutes = Math.max(15, Math.floor(etaMinutes * 0.85));
+          d.eta = `${newEtaMinutes} min`;
+          
+          const distanceKm = parseInt(d.distance) || 30;
+          const newDistanceKm = Math.max(5, Math.floor(distanceKm * 0.9));
+          d.distance = `${newDistanceKm} km`;
+        }
+      });
+      
+      updateDispatchBoard();
+      renderRoutes();
+      addNotification('All routes optimized successfully!', 'success');
+    });
+    
+    document.getElementById('refresh-traffic').addEventListener('click', () => {
+      addNotification('Refreshing traffic data...', 'info');
+      
+      setTimeout(() => {
+        addNotification('Traffic data updated', 'success');
+      }, 1000);
+    });
+    
+    document.getElementById('export-routes').addEventListener('click', () => {
+      const routeData = dispatchData.dispatches.map(d => ({
+        orderId: d.id,
+        vehicle: d.vehicle,
+        driver: d.driver,
+        destination: d.destination,
+        eta: d.eta,
+        distance: d.distance,
+        status: d.status
+      }));
+      
+      const csvContent = [
+        'Order ID,Vehicle,Driver,Destination,ETA,Distance,Status',
+        ...routeData.map(d => `${d.orderId},${d.vehicle},${d.driver},${d.destination},${d.eta},${d.distance},${d.status}`)
+      ].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'fleet_routes.csv';
+      link.click();
+      URL.revokeObjectURL(link.href);
+      
+      addNotification('Routes exported successfully', 'success');
+    });
+    
+    // Vehicle Filter Event Listeners
+    document.getElementById('filter-available-vehicles').addEventListener('click', () => {
+      filterVehiclesByStatus('Available');
+      addNotification('Showing available vehicles only', 'info');
+    });
+    
+    document.getElementById('filter-assigned-vehicles').addEventListener('click', () => {
+      filterVehiclesByStatus('Assigned');
+      addNotification('Showing assigned vehicles only', 'info');
+    });
+    
+    document.getElementById('show-all-vehicles').addEventListener('click', () => {
+      filterVehiclesByStatus('all');
+      addNotification('Showing all vehicles', 'info');
+    });
+    
+    document.getElementById('fuel-alert-vehicles').addEventListener('click', () => {
+      const lowFuelVehicles = dispatchData.vehicles.filter(v => v.fuel < 20);
+      if (lowFuelVehicles.length > 0) {
+        addNotification(`${lowFuelVehicles.length} vehicles have low fuel levels`, 'warning');
+      } else {
+        addNotification('No vehicles with low fuel levels', 'success');
+      }
+    });
+    
+    // Driver Filter Event Listeners
+    document.getElementById('filter-available-drivers').addEventListener('click', () => {
+      filterDriversByStatus('Available');
+      addNotification('Showing available drivers only', 'info');
+    });
+    
+    document.getElementById('hos-alert-drivers').addEventListener('click', () => {
+      const criticalDrivers = dispatchData.drivers.filter(d => {
+        const hosHours = parseFloat(d.hosStatus.replace('h remaining', '')) || 0;
+        return hosHours < 2;
+      });
+      if (criticalDrivers.length > 0) {
+        addNotification(`${criticalDrivers.length} drivers have critical HOS status`, 'warning');
+      } else {
+        addNotification('No drivers with critical HOS status', 'success');
+      }
+    });
+    
+    document.getElementById('send-broadcast-message').addEventListener('click', () => {
+      showModal('send-message-modal');
+      document.getElementById('message-content').placeholder = 'Enter broadcast message for all drivers...';
+    });
+    
+    document.getElementById('check-driver-status').addEventListener('click', () => {
+      const availableDrivers = dispatchData.drivers.filter(d => d.status === 'Available').length;
+      const assignedDrivers = dispatchData.drivers.filter(d => d.status === 'Assigned').length;
+      const onBreakDrivers = dispatchData.drivers.filter(d => d.status === 'On Break').length;
+      
+      addNotification(`Driver Status: ${availableDrivers} Available, ${assignedDrivers} On Duty, ${onBreakDrivers} On Break`, 'info');
+    });
+    
+    document.getElementById('show-all-drivers').addEventListener('click', () => {
+      filterDriversByStatus('all');
+      addNotification('Showing all drivers', 'info');
+    });
+    
+    // Geofencing Display (View Only)
+    function updateZoneList() {
+      const zoneList = document.getElementById('zone-list');
+      if (!zoneList) return;
+      
+      zoneList.innerHTML = '';
+      geofenceZones.forEach(zone => {
+        const zoneItem = document.createElement('div');
+        zoneItem.className = 'flex items-center justify-between p-2 bg-white rounded border';
+        zoneItem.innerHTML = `
+          <div class="flex items-center">
+            <div class="w-3 h-3 rounded-full mr-2 ${
+              zone.type === 'delivery' ? 'bg-green-500' : 
+              zone.type === 'restricted' ? 'bg-red-500' : 'bg-yellow-500'
+            }"></div>
+            <span class="font-medium">${zone.name}</span>
+          </div>
+          <span class="text-xs text-gray-500">${zone.type.charAt(0).toUpperCase() + zone.type.slice(1)}</span>
+        `;
+        zoneList.appendChild(zoneItem);
+      });
+      
+      if (geofenceZones.length === 0) {
+        zoneList.innerHTML = '<div class="text-gray-500 text-sm italic">No zones configured</div>';
+      }
+    }
+    
+
+    
+    // Map Minimize/Maximize functionality
+    document.getElementById('minimize-map').addEventListener('click', function() {
+      const mapWidget = this.closest('.widget-card');
+      const mapContainer = document.getElementById('map-container');
+      const isMinimized = mapWidget.classList.contains('map-minimized');
+      
+      console.log('Minimize button clicked. Currently minimized:', isMinimized);
+      
+      if (isMinimized) {
+        // Maximize
+        mapWidget.classList.remove('map-minimized');
+        this.innerHTML = '<i class="fas fa-minus mr-1"></i> Minimize';
+        this.classList.remove('active');
+        setTimeout(() => {
+          if (fleetMap) {
+            fleetMap.invalidateSize();
+            console.log('Map invalidated after maximize');
+          }
+        }, 350);
+        addNotification('Map expanded', 'success');
+      } else {
+        // Minimize
+        mapWidget.classList.add('map-minimized');
+        this.innerHTML = '<i class="fas fa-plus mr-1"></i> Expand';
+        this.classList.add('active');
+        addNotification('Map minimized - Click Expand to restore', 'info');
+      }
+    });
+    
+    // Vehicle Management Functions
+    function locateVehicleOnMap(vehicleId) {
+      centerOnVehicle(vehicleId);
+      addNotification(`Located ${vehicleId} on map`, 'info');
+    }
+    
+    function assignVehicleToOrder(vehicleId) {
+      document.getElementById('assign-vehicle-id').value = vehicleId;
+      showModal('assign-vehicle-modal');
+    }
+    
+    function reportVehicleIssue(vehicleId) {
+      const vehicle = dispatchData.vehicles.find(v => v.id === vehicleId);
+      if (vehicle) {
+        addNotification(`Vehicle issue reported for ${vehicleId} - Maintenance team notified`, 'warning');
+        // Log the issue report (dispatcher doesn't change vehicle status)
+        dispatchData.alerts.push({
+          id: `ALERT-${Date.now()}`,
+          message: `${vehicleId}: Issue reported by dispatcher - requires maintenance review`,
+          severity: 'warning',
+          timestamp: new Date()
+        });
+        renderAlerts();
+      }
+    }
+    
+    // Driver Management Functions
+    function sendMessageToDriver(driverName) {
+      document.getElementById('message-driver').value = driverName;
+      showModal('send-message-modal');
+    }
+    
+    function assignDriverToOrder(driverName) {
+      document.getElementById('assign-driver-id').value = driverName;
+      showModal('assign-driver-modal');
+    }
+    
+    function requestDriverCallBack(driverName) {
+      const driver = dispatchData.drivers.find(d => d.name === driverName);
+      if (driver) {
+        addNotification(`Callback request sent to ${driverName}`, 'success');
+        // Log the callback request
+        dispatchData.messages.push({
+          id: `MSG-${Date.now()}`,
+          driver: driverName,
+          content: 'Please contact dispatch when available',
+          status: 'callback_requested',
+          timestamp: new Date()
+        });
+      }
+    }
+    
+    // Filter Functions
+    function filterVehiclesByStatus(status) {
+      const tbody = document.getElementById('vehicles-table');
+      const rows = tbody.querySelectorAll('tr');
+      rows.forEach(row => {
+        const statusCell = row.querySelector('td:nth-child(3) span');
+        if (status === 'all' || (statusCell && statusCell.textContent === status)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+    
+    function filterDriversByStatus(status) {
+      const tbody = document.getElementById('drivers-table');
+      const rows = tbody.querySelectorAll('tr');
+      rows.forEach(row => {
+        const statusCell = row.querySelector('td:nth-child(3) span');
+        if (status === 'all' || (statusCell && statusCell.textContent === status)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+    
+    // Global functions for popup buttons (need to be accessible from HTML)
+    window.centerOnVehicle = centerOnVehicle;
+    window.showVehicleHistory = showVehicleHistory;
+    window.clearVehicleHistory = clearVehicleHistory;
+    window.viewGeofenceZone = viewGeofenceZone;
+    window.trackRoute = trackRoute;
+    window.optimizeRoute = optimizeRoute;
+    window.locateVehicleOnMap = locateVehicleOnMap;
+    window.assignVehicleToOrder = assignVehicleToOrder;
+    window.reportVehicleIssue = reportVehicleIssue;
+    window.sendMessageToDriver = sendMessageToDriver;
+    window.assignDriverToOrder = assignDriverToOrder;
+    window.requestDriverCallBack = requestDriverCallBack;
+
+    // Dispatch Status Update
+    document.getElementById('active-dispatch-list').addEventListener('change', (e) => {
+      if (e.target.classList.contains('status-select')) {
+        const id = e.target.dataset.id;
+        const newStatus = e.target.value;
+        const dispatch = dispatchData.dispatches.find(d => d.id === id);
+        if (dispatch) {
+          const oldStatus = dispatch.status;
+          
+          // Update stats based on status change
+          if (oldStatus === 'Active') dispatchData.stats.active = Math.max(0, dispatchData.stats.active - 1);
+          else if (oldStatus === 'Completed') dispatchData.stats.completed = Math.max(0, dispatchData.stats.completed - 1);
+          else if (oldStatus === 'Delayed') dispatchData.stats.delayed = Math.max(0, dispatchData.stats.delayed - 1);
+          
+          if (newStatus === 'Active') dispatchData.stats.active++;
+          else if (newStatus === 'Completed') dispatchData.stats.completed++;
+          else if (newStatus === 'Delayed') dispatchData.stats.delayed++;
+          
+          dispatch.status = newStatus;
+          
+          // Release resources when completed
+          if (newStatus === 'Completed') {
+            if (dispatch.vehicle !== 'Unassigned') {
+              const vehicle = dispatchData.vehicles.find(v => v.id === dispatch.vehicle);
+              if (vehicle) vehicle.status = 'Available';
+            }
+            if (dispatch.driver !== 'Unassigned') {
+              const driver = dispatchData.drivers.find(d => d.name === dispatch.driver);
+              if (driver) driver.status = 'Available';
+            }
+          }
+          
+          updateDispatchBoard();
+          renderDispatchChart();
+          renderRoutes();
+          renderVehicles();
+          renderDrivers();
+          addNotification(`${id} status updated to ${newStatus}`, 'info');
+        }
+      }
+    });
+
+    // Clear Alerts
+    document.getElementById('alerts-list').addEventListener('click', (e) => {
+      if (e.target.classList.contains('clear-alert')) {
+        const id = e.target.dataset.id;
+        dispatchData.alerts = dispatchData.alerts.filter(a => a.id !== id);
+        notifications = notifications.filter(n => n.id !== id);
+        renderAlerts();
+        renderNotifications();
+      }
+    });
+
+    // Settings
+    document.getElementById('save-settings').addEventListener('click', () => {
+      const email = document.getElementById('email-notifications').checked;
+      const sms = document.getElementById('sms-notifications').checked;
+      alert(`Settings saved: Email=${email}, SMS=${sms}`);
+    });
+
+    // Dark Mode Toggle
+    document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      const isDarkMode = document.body.classList.contains('dark-mode');
+      localStorage.setItem('darkMode', isDarkMode);
+      document.getElementById('dark-mode-toggle').innerHTML = `<i class="fas fa-${isDarkMode ? 'sun' : 'moon'} text-xl"></i>`;
+    });
+
+    // Load dark mode preference
+    if (localStorage.getItem('darkMode') === 'true') {
+      document.body.classList.add('dark-mode');
+      document.getElementById('dark-mode-toggle').innerHTML = '<i class="fas fa-sun text-xl"></i>';
+    }
+
+    // Simulated WebSocket for real-time updates
+    let updateInterval;
+    function simulateWebSocketUpdates() {
+      updateInterval = setInterval(() => {
+        dispatchData.vehicles.forEach(v => {
+          // Only update fuel for vehicles that are assigned
+          if (v.status === 'Assigned') {
+            v.fuel = Math.max(10, v.fuel - Math.random() * 2);
+          }
+          // Don't randomly change status of assigned vehicles
+          if (v.status !== 'Assigned') {
+            v.status = ['Available', 'Maintenance'][Math.floor(Math.random() * 2)];
+          }
+        });
+        
+        dispatchData.drivers.forEach(d => {
+          // Only decrease HOS for assigned drivers
+          if (d.status === 'Assigned') {
+            const currentHours = parseFloat(d.hosStatus.replace('h remaining', '')) || 0;
+            const newHours = Math.max(0, currentHours - 0.1); // Slower decrease
+            d.hosStatus = `${newHours.toFixed(1)}h remaining`;
+          }
+          // Don't randomly change status of assigned drivers
+          if (d.status !== 'Assigned') {
+            d.status = ['Available', 'On Break'][Math.floor(Math.random() * 2)];
+          }
+        });
+        
+        // Generate alerts less frequently and more realistically
+        if (Math.random() < 0.2) {
+          const dispatcherAlerts = [
+            'Driver not responding to dispatch instructions',
+            'Route deviation detected - manual intervention needed', 
+            'Emergency assistance requested by driver',
+            'Delivery delayed beyond scheduled ETA',
+            'Driver approaching HOS limit - replacement needed',
+            'Vehicle breakdown reported - dispatch reassignment required',
+            'Customer complaint about delayed delivery',
+            'Driver requesting route change due to traffic',
+            'Load assignment mismatch detected',
+            'Communication lost with assigned driver'
+          ];
+          
+          // Use existing active dispatches for more realistic alerts
+          const activeDispatches = dispatchData.dispatches.filter(d => d.status === 'Active');
+          if (activeDispatches.length > 0) {
+            const randomDispatch = activeDispatches[Math.floor(Math.random() * activeDispatches.length)];
+            const newAlert = {
+              id: `ALERT-${Date.now()}`,
+              message: `${randomDispatch.id}: ${dispatcherAlerts[Math.floor(Math.random() * dispatcherAlerts.length)]}`,
+              severity: ['error', 'warning'][Math.floor(Math.random() * 2)],
+              timestamp: new Date()
+            };
+            dispatchData.alerts.push(newAlert);
+            notifications.push(newAlert);
+          }
+        }
+        
+        updateDispatchBoard();
+        renderVehicles();
+        renderDrivers();
+        renderAlerts();
+        renderRoutes();
+        renderDispatchChart();
+        renderNotifications();
+      }, 30000); // Update every 30 seconds
+    }
+    
+    // Cleanup function for the interval
+    function stopWebSocketUpdates() {
+      if (updateInterval) {
+        clearInterval(updateInterval);
+        updateInterval = null;
+      }
+    }
+    
+    // Clean up on page unload
+    window.addEventListener('beforeunload', stopWebSocketUpdates);
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      updateDispatchBoard();
+      renderNotifications();
+      renderRoutes();
+      renderVehicles();
+      renderDrivers();
+      renderAlerts();
+      renderDispatchChart();
+      populateSelects();
+      applyDashboardOrder();
+      simulateWebSocketUpdates();
+      
+      // Initialize map immediately since it's now always visible
+      setTimeout(() => {
+        initializeFleetMap();
+      }, 500);
+    });
+
+    // ===== FEEDBACK SYSTEM =====
+    class FeedbackManager {
+      constructor() {
+        this.storage = window.feedbackStorage;
+        this.setupEventListeners();
+      }
+
+      setupEventListeners() {
+        // Feedback toggle button
+        const feedbackToggle = document.getElementById('feedback-toggle');
+        if (feedbackToggle) {
+          feedbackToggle.addEventListener('click', () => this.openFeedbackModal());
+        }
+
+        // Modal controls
+        const closeFeedbackModal = document.getElementById('close-feedback-modal');
+        if (closeFeedbackModal) {
+          closeFeedbackModal.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        const cancelFeedbackBtn = document.getElementById('cancel-feedback-btn');
+        if (cancelFeedbackBtn) {
+          cancelFeedbackBtn.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        // Form submission
+        const feedbackForm = document.getElementById('feedback-form');
+        if (feedbackForm) {
+          feedbackForm.addEventListener('submit', (e) => this.handleSubmitFeedback(e));
+        }
+
+        // Character count
+        const feedbackNote = document.getElementById('feedback-note');
+        if (feedbackNote) {
+          feedbackNote.addEventListener('input', () => this.updateCharacterCount());
+        }
+
+        // Submit another feedback
+        const submitAnotherBtn = document.getElementById('submit-another-feedback');
+        if (submitAnotherBtn) {
+          submitAnotherBtn.addEventListener('click', () => this.resetFeedbackForm());
+        }
+
+        // Feedback controls
+        const refreshBtn = document.getElementById('refresh-feedback');
+        const exportBtn = document.getElementById('export-feedback');
+        const clearBtn = document.getElementById('clear-feedback');
+
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', () => this.loadFeedback());
+        }
+        if (exportBtn) {
+          exportBtn.addEventListener('click', () => this.exportFeedback());
+        }
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => this.clearAllFeedback());
+        }
+      }
+
+      openFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          // Auto-focus on name field
+          setTimeout(() => {
+            const nameInput = document.getElementById('feedback-name');
+            if (nameInput) {
+              nameInput.focus();
+            }
+          }, 100);
+        }
+      }
+
+      closeFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          this.resetFeedbackForm();
+        }
+      }
+
+      openViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          this.loadFeedback();
+        }
+      }
+
+      closeViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+        }
+      }
+
+      updateCharacterCount() {
+        const textarea = document.getElementById('feedback-note');
+        const charCount = document.getElementById('char-count');
+        if (textarea && charCount) {
+          const count = textarea.value.length;
+          charCount.textContent = `${count}/1000 characters`;
+          if (count > 1000) {
+            charCount.classList.add('text-red-500');
+            charCount.classList.remove('text-gray-500');
+          } else {
+            charCount.classList.remove('text-red-500');
+            charCount.classList.add('text-gray-500');
+          }
+        }
+      }
+
+      async handleSubmitFeedback(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        }
+
+        try {
+          const feedbackData = {
+            name: document.getElementById('feedback-name').value.trim(),
+            note: document.getElementById('feedback-note').value.trim(),
+            timestamp: new Date().toISOString(),
+            page: 'dispatcher-dashboard'
+          };
+
+          if (!feedbackData.name || !feedbackData.note) {
+            throw new Error('Please fill in all required fields');
+          }
+
+          // Save using the feedback storage system
+          const success = this.storage.saveFeedback(feedbackData);
+          if (!success) {
+            throw new Error('Failed to save feedback to storage');
+          }
+
+          this.showFeedbackSuccess();
+          this.showNotification('Feedback submitted successfully!', 'success');
+        } catch (error) {
+          console.error('Error submitting feedback:', error);
+          alert('Error submitting feedback: ' + error.message);
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Feedback';
+          }
+        }
+      }
+
+      showFeedbackSuccess() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        
+        if (form) form.classList.add('hidden');
+        if (success) success.classList.remove('hidden');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Feedback';
+        }
+      }
+
+      resetFeedbackForm() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        
+        if (form) {
+          form.classList.remove('hidden');
+          form.reset();
+        }
+        if (success) success.classList.add('hidden');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Feedback';
+        }
+        this.updateCharacterCount();
+      }
+
+      loadFeedback() {
+        const feedbackList = document.getElementById('feedback-list');
+        if (!feedbackList) return;
+
+        // Get all feedback from storage
+        const allFeedback = this.storage.getAllFeedback();
+
+        // Sort by timestamp (newest first)
+        allFeedback.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (allFeedback.length === 0) {
+          feedbackList.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-comment-slash text-4xl mb-4"></i>
+              <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Render feedback items
+        feedbackList.innerHTML = allFeedback.map(item => this.renderFeedbackItem(item)).join('');
+      }
+
+      renderFeedbackItem(feedback) {
+        const date = new Date(feedback.timestamp).toLocaleDateString();
+        const time = new Date(feedback.timestamp).toLocaleTimeString();
+        
+        return `
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div class="flex items-start space-x-3">
+              <div class="flex-shrink-0">
+                <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                  <span class="text-orange-600 font-semibold">${feedback.name.charAt(0).toUpperCase()}</span>
+                </div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-semibold text-gray-900">${feedback.name}</h4>
+                  <div class="text-xs text-gray-500">
+                    ${date} at ${time}
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <p class="text-gray-700 leading-relaxed">${feedback.note}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      exportFeedback() {
+        try {
+          this.storage.exportFeedback();
+          this.showNotification('Feedback exported successfully!', 'success');
+        } catch (error) {
+          console.error('Error exporting feedback:', error);
+          this.showNotification('Error exporting feedback', 'error');
+        }
+      }
+
+      clearAllFeedback() {
+        if (confirm('Are you sure you want to clear all feedback? This action cannot be undone.')) {
+          this.storage.clearAllFeedback();
+          this.loadFeedback();
+          this.showNotification('All feedback cleared successfully!', 'success');
+        }
+      }
+
+      showNotification(message, type = 'info') {
+        // Create a simple notification
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+          type === 'success' ? 'bg-green-500 text-white' : 
+          type === 'error' ? 'bg-red-500 text-white' : 
+          'bg-blue-500 text-white'
+        }`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 3000);
+      }
+    }
+
+    // Initialize feedback system
+    let feedbackManager;
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.feedbackStorage) {
+        feedbackManager = new FeedbackManager();
+      }
+    });
+  </script>
+
+  <!-- Feedback Submission Modal -->
+  <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">
+          Submit Feedback & Suggestions
+        </h3>
+        <button id="close-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        <p class="text-sm text-gray-600 mb-6">
+          Help us improve the dispatcher dashboard! Share your thoughts on the design, features, usability, or suggest new functionality. Your feedback is valuable and will be reviewed by our development team.
+        </p>
+      <form id="feedback-form" class="space-y-6">
+        <!-- Name Field -->
+        <div>
+          <label for="feedback-name" class="block text-sm font-medium text-gray-700 mb-2">
+            Your Name <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="feedback-name" 
+            name="name"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+            placeholder="Enter your name"
+            required
+          >
+        </div>
+
+        <!-- Feedback/Note Field -->
+        <div>
+          <label for="feedback-note" class="block text-sm font-medium text-gray-700 mb-2">
+            Feedback & Comments <span class="text-red-500">*</span>
+          </label>
+          <textarea 
+            id="feedback-note" 
+            name="note"
+            rows="6"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-none"
+            placeholder="Please describe your feedback, suggestions, or issues in detail. Be specific about what you liked, what could be improved, or what new features you'd like to see..."
+            required
+          ></textarea>
+          <div class="flex justify-between items-center mt-1">
+            <span id="char-count" class="text-xs text-gray-500">0/1000 characters</span>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end space-x-3">
+          <button 
+            type="submit"
+            id="submit-feedback-btn"
+            class="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium flex items-center gap-2"
+          >
+            <i class="fas fa-paper-plane"></i>
+            Submit Feedback
+          </button>
+          <button 
+            type="button"
+            id="cancel-feedback-btn"
+            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <!-- Success Message -->
+      <div id="feedback-success" class="hidden text-center py-8">
+        <div class="text-green-500 text-4xl mb-4">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h4 class="text-xl font-bold text-gray-900 mb-2">Feedback Submitted Successfully!</h4>
+        <p class="text-gray-600 mb-4">Thank you for your valuable feedback. Our team will review it and get back to you if needed.</p>
+        <button id="submit-another-feedback" class="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+          Submit Another Feedback
+        </button>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Feedback Modal -->
+  <div id="view-feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">
+          Submitted Feedback & Comments
+        </h3>
+        <button id="close-view-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+      <!-- Feedback Controls -->
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex space-x-2">
+          <button id="refresh-feedback" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+            <i class="fas fa-sync-alt mr-1"></i>Refresh
+          </button>
+          <button id="export-feedback" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
+            <i class="fas fa-download mr-1"></i>Export
+          </button>
+          <button id="clear-feedback" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
+            <i class="fas fa-trash mr-1"></i>Clear All
+          </button>
+        </div>
+      </div>
+
+      <!-- Feedback List -->
+      <div id="feedback-list" class="space-y-4 max-h-96 overflow-y-auto">
+        <!-- Feedback items will be populated here -->
+      </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

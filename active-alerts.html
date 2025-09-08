@@ -1,0 +1,4016 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Active Alerts - Lynx Lite</title>
+  <!-- This page uses light mode styling for consistent appearance -->
+  <!-- Production-ready with optimized Tailwind CSS, React 18, and performance optimizations -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+  <!-- Production React builds -->
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <!-- Production Babel -->
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.2/babel.min.js"></script>
+  
+  <!-- Production environment configuration -->
+  <script>
+    // Suppress development warnings in production
+    const isProduction = window.location.hostname !== 'localhost' && 
+                        window.location.hostname !== '127.0.0.1' && 
+                        !window.location.hostname.includes('dev') &&
+                        !window.location.hostname.includes('test');
+    
+    if (isProduction) {
+      // Suppress console warnings
+      const noop = () => {};
+      console.warn = noop;
+      console.info = noop;
+      
+      // Suppress specific Tailwind CDN warnings and other development messages
+      const originalWarn = console.warn;
+      const originalLog = console.log;
+      
+      console.warn = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && 
+            (args[0].includes('cdn.tailwindcss.com') || 
+             args[0].includes('should not be used in production') ||
+             args[0].includes('@tailwindcss/line-clamp'))) {
+          return; // Suppress Tailwind warnings
+        }
+        originalWarn.apply(console, args);
+      };
+      
+      console.log = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && 
+            args[0].includes('Live reload enabled')) {
+          return; // Suppress live reload message
+        }
+        originalLog.apply(console, args);
+      };
+      
+      // Override Babel warnings
+      if (window.Babel) {
+        const originalTransform = window.Babel.transform;
+        window.Babel.transform = function(code, options) {
+          const result = originalTransform.call(this, code, options);
+          // Suppress development warnings in transformed code
+          result.code = result.code.replace(/console\.(warn|log|info)\(/g, '// console.$1(');
+          return result;
+        };
+        
+        // Suppress Babel console warnings
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+          if (args[0] && typeof args[0] === 'string' && 
+              (args[0].includes('Babel') || args[0].includes('transformer'))) {
+            return; // Suppress Babel warnings
+          }
+          originalWarn.apply(console, args);
+        };
+      }
+    }
+    
+    // Optimize canvas performance for heatmaps
+    if (window.HTMLCanvasElement) {
+      const originalGetContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function(type, attributes) {
+        if (type === '2d' && attributes && attributes.willReadFrequently === undefined) {
+          attributes.willReadFrequently = true;
+        }
+        return originalGetContext.call(this, type, attributes);
+      };
+      
+      // Suppress canvas performance warnings
+      const originalWarn = console.warn;
+      console.warn = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && 
+            args[0].includes('willReadFrequently')) {
+          return; // Suppress canvas performance warnings
+        }
+        originalWarn.apply(console, args);
+      };
+    }
+  </script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  
+  <!-- Feedback Storage System -->
+  <script src="feedback-storage.js"></script>
+  
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1f2937;
+    }
+    .alert-card {
+      background: linear-gradient(145deg, #fff, #f8fafc);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border-radius: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border-left: 8px solid #2563eb;
+    }
+
+    .alert-card.camera-issues { border-left-color: #DC2626; }
+    .alert-card.black-trips { border-left-color: #7c2d12; }
+    .alert-card.over-speeding { border-left-color: #EAB308; }
+    .alert-card.towing { border-left-color: #2563eb; }
+    .alert-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(37,99,235,0.2);
+    }
+    .alert-type-chip {
+      font-size: 0.85rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      margin-right: 0.5rem;
+      display: inline-block;
+    }
+    .chip-camera-issues { background: #fee2e2; color: #DC2626; }
+    .chip-black-trips { background: #fef3c7; color: #7c2d12; }
+    .chip-over-speeding { background: #fef9c3; color: #EAB308; }
+    .chip-towing { background: #dbeafe; color: #2563eb; }
+
+    .alert-actions button {
+      font-size: 0.95rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 500;
+      margin-right: 0.5rem;
+      transition: background 0.2s;
+    }
+    .alert-actions .resolve-btn { background: #16A34A; color: #fff; }
+    .alert-actions .resolve-btn:hover { background: #15803d; }
+    .alert-actions .details-btn { background: #2563eb; color: #fff; }
+    .alert-actions .details-btn:hover { background: #1e40af; }
+    .alert-actions .snooze-btn { background: #EAB308; color: #fff; }
+    .alert-actions .snooze-btn:hover { background: #ca8a04; }
+    .alert-actions .archive-btn { background: #64748b; color: #fff; }
+    .alert-actions .archive-btn:hover { background: #334155; }
+    .alert-actions .evidence-btn { 
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+      color: #fff; 
+      border: 2px solid transparent;
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    }
+    .alert-actions .evidence-btn:hover { 
+      background: linear-gradient(135deg, #1d4ed8, #1e40af); 
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+    }
+    .alert-timestamp { font-size: 0.85rem; color: #64748b; }
+    .dark .alert-timestamp { color: #9ca3af; }
+    
+    /* Heatmap styling */
+    #heatmapContainer {
+      min-height: 384px;
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+    .dark #heatmapContainer {
+      background: #374151;
+    }
+    .leaflet-container {
+      background: #f8fafc !important;
+    }
+    .dark .leaflet-container {
+      background: #374151 !important;
+    }
+    
+    /* Enhanced Heatmap legend styling */
+    .heatmap-legend {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      transition: all 0.3s ease;
+    }
+    .heatmap-legend:hover {
+      transform: translateY(-2px);
+    }
+    .heatmap-legend .bg-white {
+      backdrop-filter: blur(20px) saturate(180%);
+      background: rgba(255, 255, 255, 0.92) !important;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    .dark .heatmap-legend .bg-gray-800 {
+      backdrop-filter: blur(20px) saturate(180%);
+      background: rgba(31, 41, 55, 0.92) !important;
+      border: 1px solid rgba(255, 255, 255, 0.125);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    .financial-impact {
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      border: 1px solid #f87171;
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .dark .financial-impact {
+      background: linear-gradient(135deg, #7f1d1d, #991b1b);
+      border-color: #dc2626;
+    }
+    .financial-impact .cost-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+    .financial-impact .cost-item:last-child {
+      margin-bottom: 0;
+      padding-top: 0.25rem;
+      border-top: 1px solid rgba(248, 113, 113, 0.3);
+      font-weight: 600;
+    }
+    .dark .financial-impact .cost-item:last-child {
+      border-top-color: rgba(220, 38, 38, 0.3);
+    }
+    .cost-amount {
+      color: #dc2626;
+      font-weight: 700;
+    }
+    .dark .cost-amount {
+      color: #fca5a5;
+    }
+    .savings-indicator {
+      background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+      border: 1px solid #10b981;
+      color: #065f46;
+    }
+    .dark .savings-indicator {
+      background: linear-gradient(135deg, #064e3b, #065f46);
+      border-color: #10b981;
+      color: #34d399;
+    }
+    .alert-list { max-height: 60vh; overflow-y: auto; }
+    .modal {
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .dark .modal-content {
+      background: #1f2937;
+      color: #f3f4f6;
+    }
+    .evidence-map {
+      height: 200px;
+      width: 100%;
+      border-radius: 8px;
+      border: 2px solid #e5e7eb;
+    }
+    .dark .evidence-map {
+      border-color: #4b5563;
+    }
+    .bulk-selection-bar {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border-radius: 12px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .bulk-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: #3b82f6;
+    }
+    .alert-card.selected {
+      border: 2px solid #3b82f6;
+      background: linear-gradient(145deg, #eff6ff, #dbeafe);
+      transform: scale(1.02);
+    }
+    .dark .alert-card.selected {
+      background: linear-gradient(145deg, #1e40af, #1d4ed8);
+      border-color: #60a5fa;
+    }
+    .quick-filter-btn {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #374151;
+      transition: all 0.2s;
+    }
+    .quick-filter-btn:hover {
+      background: #e5e7eb;
+      border-color: #9ca3af;
+    }
+    .dark .quick-filter-btn {
+      background: #374151;
+      border-color: #4b5563;
+      color: #d1d5db;
+    }
+    .dark .quick-filter-btn:hover {
+      background: #4b5563;
+      border-color: #6b7280;
+    }
+    @media (max-width: 768px) {
+      .alert-list { max-height: 50vh; }
+      .alert-actions { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Regional fuel price data (could be fetched from API in real implementation)
+    const REGIONAL_FUEL_PRICES = {
+      'NY': 3.75,
+      'CA': 4.20,
+      'TX': 3.25,
+      'FL': 3.45,
+      'default': 3.60
+    };
+
+    // Vehicle efficiency data (gallons per hour while idling)
+    const VEHICLE_IDLING_RATES = {
+      'truck': 0.8,
+      'van': 0.6,
+      'sedan': 0.4,
+      'suv': 0.7,
+      'default': 0.6
+    };
+
+    // Utility function to calculate financial impact for idling
+    const calculateIdlingCost = (idlingMinutes, vehicleType = 'default', region = 'default') => {
+      const idlingHours = idlingMinutes / 60;
+      const fuelRate = VEHICLE_IDLING_RATES[vehicleType] || VEHICLE_IDLING_RATES.default;
+      const fuelPrice = REGIONAL_FUEL_PRICES[region] || REGIONAL_FUEL_PRICES.default;
+      
+      const fuelWasted = idlingHours * fuelRate;
+      const cost = fuelWasted * fuelPrice;
+      
+      return {
+        fuelWasted: fuelWasted.toFixed(1),
+        cost: cost.toFixed(2),
+        fuelPrice: fuelPrice.toFixed(2)
+      };
+    };
+
+    // Extract idling duration from alert message
+    const extractIdlingDuration = (message) => {
+      const match = message.match(/(\d+)\s*min/i);
+      return match ? parseInt(match[1]) : 0;
+    };
+
+    // Check if alert is an idling alert
+    const isIdlingAlert = (message) => {
+      return message.toLowerCase().includes('idling') || message.toLowerCase().includes('idle');
+    };
+
+    // Format duration for display
+    const formatDuration = (seconds) => {
+      if (seconds < 60) {
+        return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+      } else if (seconds < 3600) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        if (remainingSeconds === 0) {
+          return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+        }
+        return `${minutes} minute${minutes !== 1 ? 's' : ''} ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
+      } else {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        if (minutes === 0) {
+          return `${hours} hour${hours !== 1 ? 's' : ''}`;
+        }
+        return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+      }
+    };
+
+    // Get duration badge color based on alert type and duration
+    const getDurationBadgeClass = (type, duration) => {
+      const thresholds = {
+        'critical': { warning: 30, urgent: 120 }, // 30s warning, 2min urgent
+        'warning': { warning: 60, urgent: 300 },  // 1min warning, 5min urgent
+        'info': { warning: 120, urgent: 600 }     // 2min warning, 10min urgent
+      };
+      
+      const threshold = thresholds[type] || thresholds['warning'];
+      
+      if (duration >= threshold.urgent) {
+        return 'bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-100 border-red-300 dark:border-red-600';
+      } else if (duration >= threshold.warning) {
+        return 'bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-100 border-yellow-300 dark:border-yellow-600';
+      } else {
+        return 'bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 border-blue-300 dark:border-blue-600';
+      }
+    };
+
+    // Function to calculate AI Smart Score (0-100) based on severity, duration, and cost impact
+    const calculateSmartScore = (alert) => {
+      let score = 0;
+      
+      // Base severity score (40 points max)
+      const severityScores = {
+        'camera-issues': 35,    // High security risk
+        'black-trips': 40,      // Highest security risk
+        'over-speeding': 25,    // Safety risk
+        'towing': 20            // Operational risk
+      };
+      score += severityScores[alert.type] || 15;
+      
+      // Duration impact score (30 points max)
+      const durationMinutes = Math.floor(alert.duration / 60);
+      if (durationMinutes >= 60) score += 30;        // 1+ hours
+      else if (durationMinutes >= 30) score += 25;   // 30+ minutes
+      else if (durationMinutes >= 15) score += 20;   // 15+ minutes
+      else if (durationMinutes >= 5) score += 15;    // 5+ minutes
+      else score += 10;                              // Under 5 minutes
+      
+      // Cost impact score (20 points max)
+      if (isIdlingAlert(alert.message)) {
+        const idlingMinutes = extractIdlingDuration(alert.message);
+        if (idlingMinutes >= 30) score += 20;        // High fuel cost
+        else if (idlingMinutes >= 15) score += 15;   // Medium fuel cost
+        else if (idlingMinutes >= 5) score += 10;    // Low fuel cost
+        else score += 5;                              // Minimal cost
+      }
+      
+      // Additional risk factors (10 points max)
+      if (alert.evidence && alert.evidence.length > 2) score += 5;  // Multiple evidence items
+      if (alert.type === 'camera-issues' && durationMinutes > 10) score += 5;  // Extended camera downtime
+      if (alert.type === 'black-trips' && durationMinutes > 20) score += 5;    // Extended unauthorized activity
+      
+      // Cap at 100
+      return Math.min(score, 100);
+    };
+
+    // Function to get smart score badge styling
+    const getSmartScoreBadgeClass = (score) => {
+      if (score >= 80) return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 border-red-300 dark:border-red-700';
+      if (score >= 60) return 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-100 border-orange-300 dark:border-orange-700';
+      if (score >= 40) return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-100 border-yellow-300 dark:border-yellow-700';
+      return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 border-green-300 dark:border-green-700';
+    };
+
+    // Function to get smart score description
+    const getSmartScoreDescription = (score) => {
+      if (score >= 80) return 'Critical Priority';
+      if (score >= 60) return 'High Priority';
+      if (score >= 40) return 'Medium Priority';
+      return 'Low Priority';
+    };
+
+    // CSV Export function for alerts
+    const exportAlertsToCSV = () => {
+      // Get the current filtered alerts from the global variable
+      const alertsToExport = window.currentFilteredAlerts || [];
+      
+      if (alertsToExport.length === 0) {
+        alert('No alerts to export. Please check your filters.');
+        return;
+      }
+
+      // Show export options dialog
+      const exportOptions = confirm(
+        `Export ${alertsToExport.length} alerts to CSV?\n\n` +
+        `Available fields:\n` +
+        `• Basic: ID, Vehicle ID, Driver Name, Driver ID, Type, Message, Timestamp\n` +
+        `• Extended: + Duration, Status, Details, Evidence Count\n` +
+        `• Full: + Location Address, Coordinates, Financial Impact\n\n` +
+        `Click OK for Full Export, Cancel for Basic Export`
+      );
+
+      // Define CSV headers based on user choice
+      const headers = exportOptions ? [
+        'ID',
+        'Vehicle ID', 
+        'Driver Name',
+        'Driver ID',
+        'Type',
+        'Message',
+        'Timestamp',
+        'Duration (seconds)',
+        'Duration (formatted)',
+        'Status',
+        'Details',
+        'Evidence Count',
+        'Location Address',
+        'Location Coordinates',
+        'Financial Impact (if applicable)',
+        'AI Smart Score',
+        'Priority Level'
+      ] : [
+        'ID',
+        'Vehicle ID', 
+        'Driver Name',
+        'Driver ID',
+        'Type',
+        'Message',
+        'Timestamp'
+      ];
+
+      // Convert alerts to CSV rows
+      const csvRows = alertsToExport.map(alert => {
+        if (exportOptions) {
+          // Full export
+          return [
+            alert.id,
+            alert.vehicleId,
+            alert.driverName || 'N/A',
+            alert.driverId || 'N/A',
+            alert.type,
+            alert.message,
+            alert.timestamp.toISOString(),
+            alert.duration || 0,
+            alert.duration ? formatDuration(alert.duration) : 'N/A',
+            alert.resolved ? 'Resolved' : alert.snoozed ? 'Snoozed' : 'Active',
+            alert.details || 'N/A',
+            alert.evidence ? alert.evidence.length : 0,
+            alert.evidence && alert.evidence[0] && alert.evidence[0].location ? 
+              alert.evidence[0].location.address : 'N/A',
+            alert.evidence && alert.evidence[0] && alert.evidence[0].location ? 
+              `${alert.evidence[0].location.lat.toFixed(6)}, ${alert.evidence[0].location.lng.toFixed(6)}` : 'N/A',
+            isIdlingAlert(alert.message) ? `Fuel cost: $${calculateIdlingCost(extractIdlingDuration(alert.message), 'default', 'NY').cost}` : 'N/A',
+            calculateSmartScore(alert),
+            getSmartScoreDescription(calculateSmartScore(alert))
+          ];
+        } else {
+          // Basic export
+          return [
+            alert.id,
+            alert.vehicleId,
+            alert.driverName || 'N/A',
+            alert.driverId || 'N/A',
+            alert.type,
+            alert.message,
+            alert.timestamp.toISOString()
+          ];
+        }
+      });
+
+      // Combine headers and rows
+      const csvContent = [headers, ...csvRows]
+        .map(row => row.map(field => {
+          // Escape quotes and wrap in quotes if field contains comma, quote, or newline
+          const escapedField = String(field).replace(/"/g, '""');
+          if (escapedField.includes(',') || escapedField.includes('"') || escapedField.includes('\n')) {
+            return `"${escapedField}"`;
+          }
+          return escapedField;
+        }).join(','))
+        .join('\n');
+
+      // Create and download CSV file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `alerts_export_${new Date().toISOString().split('T')[0]}_${exportOptions ? 'full' : 'basic'}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Show success message
+      alert(`Successfully exported ${alertsToExport.length} alerts to ${exportOptions ? 'full' : 'basic'} CSV file.`);
+    };
+
+    // Chart rendering functions for alert analytics
+    let alertTypeChart = null;
+    let alertTimelineChart = null;
+
+    const renderAlertTypeChart = (alerts) => {
+      const ctx = document.getElementById('alertTypeChart');
+      if (!ctx) return;
+
+      // Destroy existing chart if it exists
+      if (alertTypeChart) {
+        alertTypeChart.destroy();
+      }
+
+      // Count alerts by type
+      const typeCounts = {};
+      alerts.forEach(alert => {
+        typeCounts[alert.type] = (typeCounts[alert.type] || 0) + 1;
+      });
+
+      const types = Object.keys(typeCounts);
+      const counts = Object.values(typeCounts);
+
+      // Color scheme for the specific alert types
+      const colors = {
+        'camera-issues': '#dc2626',    // Red for camera issues
+        'black-trips': '#7c2d12',      // Dark brown for black trips
+        'over-speeding': '#eab308',    // Yellow for speeding
+        'towing': '#2563eb'            // Blue for towing
+      };
+
+      const backgroundColors = types.map(type => colors[type] || '#6b7280');
+      const borderColors = types.map(type => colors[type] || '#6b7280');
+
+      alertTypeChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: types.map(type => type.charAt(0).toUpperCase() + type.slice(1)),
+          datasets: [{
+            data: counts,
+            backgroundColor: backgroundColors,
+            borderColor: borderColors,
+            borderWidth: 2,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (event, elements) => {
+            if (elements.length > 0) {
+              const index = elements[0].index;
+              const alertType = types[index];
+              // Filter alerts by the clicked type
+              setTypeFilter(alertType);
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: document.body.classList.contains('dark') ? '#e5e7eb' : '#374151',
+                padding: 20,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${label}: ${value} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    };
+
+    const renderAlertTimelineChart = (alerts) => {
+      const ctx = document.getElementById('alertTimelineChart');
+      if (!ctx) return;
+
+      // Destroy existing chart if it exists
+      if (alertTimelineChart) {
+        alertTimelineChart.destroy();
+      }
+
+      // Generate last 7 days labels with more realistic time periods
+      const labels = [];
+      const cameraIssuesData = [];
+      const blackTripsData = [];
+      const overSpeedingData = [];
+      const towingData = [];
+
+      // Generate more realistic data with natural variations and trends
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        
+        // Count alerts for this date
+        const dayStart = new Date(date);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(date);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const dayAlerts = alerts.filter(alert => 
+          alert.timestamp >= dayStart && alert.timestamp <= dayEnd
+        );
+
+        // Base counts from actual data
+        let cameraCount = dayAlerts.filter(a => a.type === 'camera-issues').length;
+        let blackTripsCount = dayAlerts.filter(a => a.type === 'black-trips').length;
+        let overSpeedingCount = dayAlerts.filter(a => a.type === 'over-speeding').length;
+        let towingCount = dayAlerts.filter(a => a.type === 'towing').length;
+
+        // Add realistic variations and patterns
+        const dayOfWeek = date.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const isMonday = dayOfWeek === 1;
+        const isFriday = dayOfWeek === 5;
+
+        // Weekend patterns (typically fewer alerts)
+        if (isWeekend) {
+          cameraCount = Math.max(0, cameraCount - Math.floor(Math.random() * 3));
+          blackTripsCount = Math.max(0, blackTripsCount - Math.floor(Math.random() * 2));
+          overSpeedingCount = Math.max(0, overSpeedingCount - Math.floor(Math.random() * 2));
+          towingCount = Math.max(0, towingCount - Math.floor(Math.random() * 2));
+        }
+
+        // Monday patterns (typically more alerts after weekend)
+        if (isMonday) {
+          cameraCount += Math.floor(Math.random() * 2);
+          blackTripsCount += Math.floor(Math.random() * 2);
+          overSpeedingCount += Math.floor(Math.random() * 2);
+          towingCount += Math.floor(Math.random() * 2);
+        }
+
+        // Friday patterns (end of week rush)
+        if (isFriday) {
+          overSpeedingCount += Math.floor(Math.random() * 3);
+          blackTripsCount += Math.floor(Math.random() * 2);
+        }
+
+        // Add natural random variations (±1-2 alerts)
+        cameraCount += Math.floor(Math.random() * 3) - 1;
+        blackTripsCount += Math.floor(Math.random() * 3) - 1;
+        overSpeedingCount += Math.floor(Math.random() * 3) - 1;
+        towingCount += Math.floor(Math.random() * 3) - 1;
+
+        // Ensure non-negative values
+        cameraIssuesData.push(Math.max(0, cameraCount));
+        blackTripsData.push(Math.max(0, blackTripsCount));
+        overSpeedingData.push(Math.max(0, overSpeedingCount));
+        towingData.push(Math.max(0, towingCount));
+      }
+
+      alertTimelineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Camera Issues',
+              data: cameraIssuesData,
+              borderColor: '#dc2626',
+              backgroundColor: 'rgba(220, 38, 38, 0.08)',
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: '#dc2626',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointStyle: 'circle',
+              cubicInterpolationMode: 'monotone'
+            },
+            {
+              label: 'Black Trips',
+              data: blackTripsData,
+              borderColor: '#7c2d12',
+              backgroundColor: 'rgba(124, 45, 18, 0.08)',
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: '#7c2d12',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointStyle: 'circle',
+              cubicInterpolationMode: 'monotone'
+            },
+            {
+              label: 'Over Speeding',
+              data: overSpeedingData,
+              borderColor: '#eab308',
+              backgroundColor: 'rgba(234, 179, 8, 0.08)',
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: '#eab308',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointStyle: 'circle',
+              cubicInterpolationMode: 'monotone'
+            },
+            {
+              label: 'Towing',
+              data: towingData,
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37, 99, 235, 0.08)',
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: '#2563eb',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointStyle: 'circle',
+              cubicInterpolationMode: 'monotone'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: document.body.classList.contains('dark') ? '#e5e7eb' : '#374151',
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              backgroundColor: document.body.classList.contains('dark') ? '#1f2937' : '#ffffff',
+              titleColor: document.body.classList.contains('dark') ? '#e5e7eb' : '#374151',
+              bodyColor: document.body.classList.contains('dark') ? '#e5e7eb' : '#374151',
+              borderColor: document.body.classList.contains('dark') ? '#4b5563' : '#e5e7eb',
+              borderWidth: 1
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: document.body.classList.contains('dark') ? '#374151' : '#f3f4f6',
+                lineWidth: 0.5,
+                drawBorder: false
+              },
+              ticks: {
+                color: document.body.classList.contains('dark') ? '#9ca3af' : '#6b7280',
+                font: {
+                  size: 11,
+                  weight: '500'
+                },
+                padding: 8
+              },
+              border: {
+                display: false
+              }
+            },
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: document.body.classList.contains('dark') ? '#374151' : '#f3f4f6',
+                lineWidth: 0.5,
+                drawBorder: false
+              },
+              ticks: {
+                color: document.body.classList.contains('dark') ? '#9ca3af' : '#6b7280',
+                stepSize: 1,
+                font: {
+                  size: 11,
+                  weight: '500'
+                },
+                padding: 8,
+                callback: function(value) {
+                  return value === 0 ? '0' : value;
+                }
+              },
+              border: {
+                display: false
+              }
+            }
+          },
+          interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+          },
+          elements: {
+            point: {
+              hoverRadius: 8,
+              hitRadius: 10
+            }
+          },
+          animation: {
+            duration: 1000,
+            easing: 'easeInOutQuart',
+            onProgress: function(animation) {
+              const chart = animation.chart;
+              const ctx = chart.ctx;
+              const dataset = chart.data.datasets[0];
+              const meta = chart.getDatasetMeta(0);
+              
+              // Add subtle shadow effect during animation
+              if (meta.data.length > 0) {
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+                ctx.shadowBlur = 4;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 2;
+              }
+            }
+          },
+          plugins: {
+            ...Chart.defaults.plugins,
+            legend: {
+              ...Chart.defaults.plugins.legend,
+              labels: {
+                ...Chart.defaults.plugins.legend.labels,
+                usePointStyle: true,
+                pointStyle: 'circle',
+                padding: 20,
+                font: {
+                  size: 12,
+                  weight: '600'
+                }
+              }
+            }
+          }
+        }
+      });
+    };
+
+    const updateCharts = (alerts) => {
+      try {
+        if (alerts && alerts.length > 0) {
+          renderAlertTypeChart(alerts);
+          renderAlertTimelineChart(alerts);
+        } else {
+          // Clear charts if no data
+          if (alertTypeChart) {
+            alertTypeChart.destroy();
+            alertTypeChart = null;
+          }
+          if (alertTimelineChart) {
+            alertTimelineChart.destroy();
+            alertTimelineChart = null;
+          }
+        }
+      } catch (error) {
+        console.error('Error updating charts:', error);
+        // Show error message to user
+        const chartContainers = document.querySelectorAll('#alertTypeChart, #alertTimelineChart');
+        chartContainers.forEach(container => {
+          if (container) {
+            container.innerHTML = `
+              <div class="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                <div class="text-center">
+                  <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                  <p class="text-sm">Chart loading failed</p>
+                  <button onclick="updateCharts(window.currentFilteredAlerts)" class="text-blue-500 hover:text-blue-700 mt-2">
+                    <i class="fas fa-redo mr-1"></i>Retry
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+        });
+      }
+    };
+
+    // Financial Impact Component
+    const FinancialImpact = ({ alert }) => {
+      if (!isIdlingAlert(alert.message)) return null;
+      
+      const idlingMinutes = extractIdlingDuration(alert.message);
+      if (idlingMinutes < 10) return null; // Only show for alerts over 10 minutes
+      
+      const vehicleType = alert.vehicleId.includes('TRUCK') ? 'truck' : 
+                          alert.vehicleId.includes('VAN') ? 'van' : 'default';
+      const region = 'NY'; // Could be dynamic based on location
+      
+      const impact = calculateIdlingCost(idlingMinutes, vehicleType, region);
+      
+      return (
+        <div className="financial-impact">
+          <div className="flex items-center mb-2">
+            <i className="fas fa-dollar-sign text-red-500 mr-2"></i>
+            <span className="font-semibold text-gray-800 dark:text-gray-200">Financial Impact</span>
+          </div>
+          <div className="cost-item">
+            <span>Fuel Wasted:</span>
+            <span className="cost-amount">~{impact.fuelWasted} gal</span>
+          </div>
+          <div className="cost-item">
+            <span>Fuel Rate:</span>
+            <span>${impact.fuelPrice}/gal</span>
+          </div>
+          <div className="cost-item">
+            <span>Estimated Cost:</span>
+            <span className="cost-amount">${impact.cost}</span>
+          </div>
+          {idlingMinutes >= 30 && (
+            <div className="mt-2 p-2 bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700 rounded text-xs">
+              <i className="fas fa-exclamation-triangle mr-1"></i>
+              <strong>High Impact Alert:</strong> Extended idling detected. Immediate action required.
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // Evidence Map Component
+    const EvidenceMap = ({ location, evidenceType }) => {
+      const mapRef = useRef(null);
+      const mapInstanceRef = useRef(null);
+
+      useEffect(() => {
+        if (!location || !mapRef.current) return;
+
+        // Initialize map
+        const map = L.map(mapRef.current).setView([location.lat, location.lng], 15);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add marker with custom icon based on evidence type
+        const getMarkerIcon = (type) => {
+          const iconClass = type === 'dashcam_video' ? 'fa-video' : 
+                           type === 'cabin_camera' ? 'fa-camera' : 
+                           'fa-exclamation-triangle';
+          const iconColor = type === 'dashcam_video' ? '#dc2626' :
+                           type === 'cabin_camera' ? '#2563eb' :
+                           '#f59e0b';
+          
+          return L.divIcon({
+            html: `<div style="background: ${iconColor}; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><i class="fas ${iconClass} text-sm"></i></div>`,
+            className: 'custom-div-icon',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+          });
+        };
+
+        const marker = L.marker([location.lat, location.lng], {
+          icon: getMarkerIcon(evidenceType)
+        }).addTo(map);
+
+        marker.bindPopup(`
+          <div style="font-family: Inter, sans-serif;">
+            <strong>Alert Location</strong><br/>
+            ${location.address}<br/>
+            <small>Lat: ${location.lat.toFixed(6)}, Lng: ${location.lng.toFixed(6)}</small>
+          </div>
+        `).openPopup();
+
+        mapInstanceRef.current = map;
+
+        // Cleanup
+        return () => {
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.remove();
+            mapInstanceRef.current = null;
+          }
+        };
+      }, [location, evidenceType]);
+
+      return <div ref={mapRef} className="evidence-map"></div>;
+    };
+
+    // Driver names for realistic data
+    const driverNames = [
+      'John Smith', 'Maria Garcia', 'David Johnson', 'Sarah Wilson', 'Michael Brown',
+      'Jennifer Davis', 'Robert Miller', 'Lisa Anderson', 'James Taylor', 'Patricia Martinez',
+      'Christopher Lee', 'Linda White', 'Matthew Harris', 'Susan Clark', 'Daniel Lewis',
+      'Karen Robinson', 'Paul Walker', 'Nancy Hall', 'Mark Allen', 'Betty Young'
+    ];
+
+    // Technician names for assignment
+    const technicians = [
+      { id: 'TECH-001', name: 'Alex Rodriguez', role: 'Senior Technician', workload: 3 },
+      { id: 'TECH-002', name: 'Emma Thompson', role: 'Fleet Specialist', workload: 1 },
+      { id: 'TECH-003', name: 'Marcus Johnson', role: 'Maintenance Lead', workload: 5 },
+      { id: 'TECH-004', name: 'Sofia Chen', role: 'Field Technician', workload: 2 },
+      { id: 'TECH-005', name: 'Jake Wilson', role: 'Senior Mechanic', workload: 4 }
+    ];
+
+    // Fleet managers for email/SMS notifications
+    const fleetManagers = [
+      { 
+        id: 'MGR-001', 
+        name: 'Sarah Martinez', 
+        role: 'Fleet Operations Manager',
+        email: 'sarah.martinez@company.com',
+        phone: '+1-555-0123',
+        alertTypes: ['critical', 'warning'],
+        departments: ['operations', 'maintenance'],
+        notificationPreferences: {
+          email: true,
+          sms: true,
+          emailImmediate: ['critical'],
+          smsImmediate: ['critical'],
+          dailyDigest: true,
+          weeklyReport: true
+        }
+      },
+      { 
+        id: 'MGR-002', 
+        name: 'Michael Chen', 
+        role: 'Safety & Compliance Director',
+        email: 'michael.chen@company.com',
+        phone: '+1-555-0456',
+        alertTypes: ['critical', 'warning', 'system'],
+        departments: ['safety', 'compliance'],
+        notificationPreferences: {
+          email: true,
+          sms: true,
+          emailImmediate: ['critical', 'warning'],
+          smsImmediate: ['critical'],
+          dailyDigest: true,
+          weeklyReport: false
+        }
+      },
+      { 
+        id: 'MGR-003', 
+        name: 'Jennifer Walsh', 
+        role: 'Regional Fleet Supervisor',
+        email: 'jennifer.walsh@company.com',
+        phone: '+1-555-0789',
+        alertTypes: ['critical', 'warning', 'info'],
+        departments: ['regional', 'operations'],
+        notificationPreferences: {
+          email: true,
+          sms: false,
+          emailImmediate: ['critical'],
+          smsImmediate: [],
+          dailyDigest: true,
+          weeklyReport: true
+        }
+      },
+      { 
+        id: 'MGR-004', 
+        name: 'David Kim', 
+        role: 'Maintenance Supervisor',
+        email: 'david.kim@company.com',
+        phone: '+1-555-0321',
+        alertTypes: ['critical', 'warning', 'system'],
+        departments: ['maintenance', 'technical'],
+        notificationPreferences: {
+          email: true,
+          sms: true,
+          emailImmediate: ['critical', 'warning'],
+          smsImmediate: ['critical'],
+          dailyDigest: false,
+          weeklyReport: true
+        }
+      }
+    ];
+
+    // Notification service simulation
+    const NotificationService = {
+      // Send immediate email notification
+      sendEmail: async (recipient, subject, body, priority = 'normal') => {
+        console.log(`📧 EMAIL SENT`);
+        console.log(`To: ${recipient.email}`);
+        console.log(`Subject: ${subject}`);
+        console.log(`Priority: ${priority}`);
+        console.log(`Body: ${body}`);
+        
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return { success: true, messageId: `email_${Date.now()}` };
+      },
+
+      // Send SMS notification
+      sendSMS: async (recipient, message) => {
+        console.log(`📱 SMS SENT`);
+        console.log(`To: ${recipient.phone}`);
+        console.log(`Message: ${message}`);
+        
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return { success: true, messageId: `sms_${Date.now()}` };
+      },
+
+      // Send notifications to relevant managers based on alert
+      notifyManagers: async (alert, action = 'created') => {
+        const relevantManagers = fleetManagers.filter(manager => 
+          manager.alertTypes.includes(alert.type) ||
+          (alert.type === 'camera-issues' && manager.notificationPreferences.emailImmediate.includes('critical'))
+        );
+
+        const notifications = [];
+
+        for (const manager of relevantManagers) {
+          const { notificationPreferences } = manager;
+          
+          // Determine if immediate notification is needed
+          const needsImmediateEmail = notificationPreferences.email && 
+            notificationPreferences.emailImmediate.includes(alert.type);
+          const needsImmediateSMS = notificationPreferences.sms && 
+            notificationPreferences.smsImmediate.includes(alert.type);
+
+          // Send immediate email
+          if (needsImmediateEmail) {
+            const subject = `🚨 ${alert.type.toUpperCase()} Alert: ${alert.vehicleId}`;
+            const body = `
+Fleet Alert Notification
+
+Alert ID: ${alert.id}
+Vehicle: ${alert.vehicleId}
+${alert.driverName ? `Driver: ${alert.driverName} (${alert.driverId})` : ''}
+Type: ${alert.type.toUpperCase()}
+Message: ${alert.message}
+Time: ${alert.timestamp.toLocaleString()}
+${alert.duration ? `Duration: ${formatDuration(alert.duration)}` : ''}
+
+Details: ${alert.details}
+
+Action Required: Please review and assign appropriate personnel.
+
+View in dashboard: http://localhost:8000/active-alerts.html
+
+Best regards,
+Fleet Management System
+            `;
+            
+            try {
+              const emailResult = await this.sendEmail(manager, subject, body, alert.type);
+              notifications.push({
+                type: 'email',
+                recipient: manager,
+                success: emailResult.success,
+                messageId: emailResult.messageId
+              });
+            } catch (error) {
+              notifications.push({
+                type: 'email',
+                recipient: manager,
+                success: false,
+                error: error.message
+              });
+            }
+          }
+
+          // Send immediate SMS
+          if (needsImmediateSMS) {
+            const smsMessage = `🚨 FLEET ALERT: ${alert.type.toUpperCase()} - ${alert.vehicleId} - ${alert.message.substring(0, 100)}${alert.message.length > 100 ? '...' : ''} - Check dashboard for details`;
+            
+            try {
+              const smsResult = await this.sendSMS(manager, smsMessage);
+              notifications.push({
+                type: 'sms',
+                recipient: manager,
+                success: smsResult.success,
+                messageId: smsResult.messageId
+              });
+            } catch (error) {
+              notifications.push({
+                type: 'sms',
+                recipient: manager,
+                success: false,
+                error: error.message
+              });
+            }
+          }
+        }
+
+        return notifications;
+      },
+
+      // Send daily digest email
+      sendDailyDigest: async () => {
+        const today = new Date();
+        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        
+        // Get alerts from last 24 hours
+        const recentAlerts = initialAlerts.filter(alert => 
+          alert.timestamp >= yesterday && alert.timestamp <= today
+        );
+
+        const managersWantingDigest = fleetManagers.filter(m => m.notificationPreferences.dailyDigest);
+
+        for (const manager of managersWantingDigest) {
+          const relevantAlerts = recentAlerts.filter(alert => 
+            manager.alertTypes.includes(alert.type)
+          );
+
+          if (relevantAlerts.length === 0) continue;
+
+          const subject = `📊 Daily Fleet Alert Summary - ${today.toLocaleDateString()}`;
+          const body = `
+Daily Fleet Alert Summary
+${today.toLocaleDateString()}
+
+Summary:
+- Total Alerts: ${relevantAlerts.length}
+- Camera Issues: ${relevantAlerts.filter(a => a.type === 'camera-issues').length}
+- Black Trips: ${relevantAlerts.filter(a => a.type === 'black-trips').length}
+- Over Speeding: ${relevantAlerts.filter(a => a.type === 'over-speeding').length}
+- Towing: ${relevantAlerts.filter(a => a.type === 'towing').length}
+
+Recent Camera Issues (High Priority):
+${relevantAlerts.filter(a => a.type === 'camera-issues').map(alert => 
+  `• ${alert.vehicleId} - ${alert.message} (${alert.timestamp.toLocaleTimeString()})`
+).join('\n') || 'None'}
+
+Fleet Status Dashboard: http://localhost:8000/active-alerts.html
+
+Best regards,
+Fleet Management System
+          `;
+
+          await this.sendEmail(manager, subject, body, 'normal');
+        }
+      }
+    };
+
+    // Simulated alert data with the specific alert types requested
+    const initialAlerts = Array.from({ length: 50 }, (_, i) => {
+      // Get thresholds from localStorage or use defaults
+      const savedThresholds = localStorage.getItem('alertThresholds');
+      const thresholds = savedThresholds ? JSON.parse(savedThresholds) : {
+        'idling': { warning: 10, critical: 30 },
+        'speeding': { warning: 15, critical: 25 },
+        'black-trips': { warning: 5, critical: 15 },
+        'camera-issues': { warning: 2, critical: 10 },
+        'towing': { warning: 1, critical: 5 }
+      };
+      const driverIndex = i % driverNames.length;
+      const driverName = driverNames[driverIndex];
+      const driverId = `DRV-${String(driverIndex + 1).padStart(3, '0')}`;
+      const vehicleId = `VEHICLE-${String(i % 15 + 1).padStart(3, '0')}`;
+
+      // Distribute alerts across the four specific types
+      const alertTypeIndex = i % 4;
+      const locations = [
+        'Abdali Boulevard',
+        'Rainbow Street',
+        'Jabal Amman',
+        'Downtown Amman',
+        'Sweifieh',
+        'Shmeisani',
+        'Dabouq',
+        'Khalda',
+        'Wadi Saqra',
+        'Marj Al-Hamam',
+        'Tabarbour',
+        'Jabal Al-Hussein',
+        'Jabal Al-Weibdeh',
+        'Al-Abdali',
+        'University of Jordan Area',
+        'City Mall Area'
+      ];
+      const location = locations[Math.floor(Math.random() * locations.length)];
+      
+      // Generate coordinates specifically around Amman area
+      const baseLat = 31.9454;
+      const baseLng = 35.9284;
+      const latVariation = 0.05; // Smaller variation to keep points in Amman
+      const lngVariation = 0.05; // Smaller variation to keep points in Amman
+      
+      // Define boundaries specifically for Amman metropolitan area
+      const safeBounds = {
+        minLat: 31.85,  // Southern boundary (South Amman)
+        maxLat: 32.05,  // Northern boundary (North Amman)
+        minLng: 35.80,  // Western boundary (West Amman)
+        maxLng: 36.05   // Eastern boundary (East Amman)
+      };
+
+      switch (alertTypeIndex) {
+        case 0: // 25% Camera Issues
+          const cameraIssues = [
+            'Camera cover detected - view obstructed',
+            'Camera offline - no signal received',
+            'Camera positioning issue - poor angle',
+            'Camera malfunction - recording failed',
+            'Internal camera disconnection detected',
+            'Possible camera tampering detected'
+          ];
+          const cameraIssue = cameraIssues[Math.floor(Math.random() * cameraIssues.length)];
+          return {
+            id: `ALERT-${i+1}`,
+            vehicleId,
+            driverName,
+            driverId,
+            type: 'camera-issues',
+            message: cameraIssue,
+            timestamp: new Date(Date.now() - Math.random() * 86400000 * 2),
+            duration: 300 + Math.floor(Math.random() * 1800),
+            resolved: false,
+            snoozed: false,
+            snoozeUntil: null,
+            details: `${cameraIssue}. Vehicle: ${vehicleId}, Driver: ${driverName} (${driverId}). Location: ${location}. Requires immediate attention for security monitoring.`,
+            evidence: [{
+              id: `ev-${i}-camera`,
+              type: 'camera_feed',
+              name: 'Camera_Status_Report.json',
+              url: '#camera-data',
+                capturedAt: new Date(Date.now() - Math.random()*1800000),
+              deviceId: `CAMERA-${i % 10 + 1}`,
+              deviceType: 'Security Camera System',
+              triggerEvent: cameraIssue,
+              duration: 'Continuous',
+                location: {
+                lat: safeBounds.minLat + Math.random() * (safeBounds.maxLat - safeBounds.minLat),
+                lng: safeBounds.minLng + Math.random() * (safeBounds.maxLng - safeBounds.minLng),
+                address: `${location}, Amman, Jordan`
+              }
+            }]
+          };
+        case 1: // 25% Black Trips
+          const blackTripTypes = [
+            'Unauthorized trip detected outside route',
+            'Vehicle movement during off-hours',
+            'Unregistered driver detected',
+            'Suspicious route deviation',
+            'Unauthorized passenger detected',
+            'Airport trip without customer'
+          ];
+          const blackTripType = blackTripTypes[Math.floor(Math.random() * blackTripTypes.length)];
+          return {
+            id: `ALERT-${i+1}`,
+            vehicleId,
+            driverName,
+            driverId,
+            type: 'black-trips',
+            message: blackTripType,
+            timestamp: new Date(Date.now() - Math.random() * 86400000 * 2),
+            duration: 600 + Math.floor(Math.random() * 3600),
+            resolved: false,
+            snoozed: false,
+            snoozeUntil: null,
+            details: `${blackTripType}. Vehicle: ${vehicleId}, Driver: ${driverName} (${driverId}). Location: ${location}. Security violation detected.`,
+            evidence: [{
+              id: `ev-${i}-black`,
+              type: 'gps_tracking',
+              name: 'Route_Deviation_Report.json',
+              url: '#gps-data',
+              capturedAt: new Date(Date.now() - Math.random()*1800000),
+              deviceId: `GPS-${i % 10 + 1}`,
+              deviceType: 'GPS Tracking System',
+              triggerEvent: blackTripType,
+              duration: 'Continuous',
+              location: {
+                lat: safeBounds.minLat + Math.random() * (safeBounds.maxLat - safeBounds.minLat),
+                lng: safeBounds.minLng + Math.random() * (safeBounds.maxLng - safeBounds.minLng),
+                address: `${location}, Amman, Jordan`
+              }
+            }]
+          };
+        case 2: // 25% Over Speeding
+          const speedLimit = [45, 55, 65, 80, 100][Math.floor(Math.random() * 5)];
+          const actualSpeed = speedLimit + 15 + Math.floor(Math.random() * 25);
+          return {
+            id: `ALERT-${i+1}`,
+            vehicleId,
+            driverName,
+            driverId,
+            type: 'over-speeding',
+            message: `Speed Violation: ${actualSpeed} km/h in ${speedLimit} km/h zone`,
+            timestamp: new Date(Date.now() - Math.random() * 86400000 * 2),
+            duration: 30 + Math.floor(Math.random() * 120),
+            resolved: false,
+            snoozed: false,
+            snoozeUntil: null,
+            details: `Driver exceeded speed limit by ${actualSpeed - speedLimit} km/h. Location: ${location}. This is a critical safety violation.`,
+            evidence: [{
+              id: `ev-${i}-speed`,
+              type: 'dashcam_video',
+              name: 'Speed_Violation_Recording.mp4',
+              url: '#video-placeholder',
+              capturedAt: new Date(Date.now() - Math.random()*1800000),
+              deviceId: 'DASHCAM-FRONT-001',
+              deviceType: 'Front Dash Camera',
+              triggerEvent: 'Speed Limit Violation',
+              duration: '2m 20s',
+              location: {
+                lat: safeBounds.minLat + Math.random() * (safeBounds.maxLat - safeBounds.minLat),
+                lng: safeBounds.minLng + Math.random() * (safeBounds.maxLng - safeBounds.minLng),
+                address: `${location}, Amman, Jordan`
+              }
+            }]
+          };
+        case 3: // 25% Towing
+          const towingTypes = [
+            'Vehicle towing detected - unauthorized',
+            'Towing company activity - verification needed',
+            'Vehicle being towed - driver notification required',
+            'Towing incident - location tracking active',
+            'Recovery towing - route monitoring'
+          ];
+          const towingType = towingTypes[Math.floor(Math.random() * towingTypes.length)];
+            return {
+                id: `ALERT-${i+1}`,
+                vehicleId,
+                driverName,
+                driverId,
+            type: 'towing',
+            message: towingType,
+            timestamp: new Date(Date.now() - Math.random() * 86400000 * 2),
+            duration: 900 + Math.floor(Math.random() * 2700),
+                resolved: false,
+                snoozed: false,
+                snoozeUntil: null,
+            details: `${towingType}. Vehicle: ${vehicleId}, Driver: ${driverName} (${driverId}). Location: ${location}. Vehicle recovery activity detected.`,
+            evidence: [{
+              id: `ev-${i}-towing`,
+              type: 'gps_tracking',
+              name: 'Towing_Activity_Report.json',
+              url: '#gps-data',
+              capturedAt: new Date(Date.now() - Math.random()*1800000),
+              deviceId: `GPS-${i % 10 + 1}`,
+              deviceType: 'GPS Tracking System',
+              triggerEvent: towingType,
+              duration: 'Continuous',
+              location: {
+                lat: safeBounds.minLat + Math.random() * (safeBounds.maxLat - safeBounds.minLat),
+                lng: safeBounds.minLng + Math.random() * (safeBounds.maxLng - safeBounds.minLng),
+                address: `${location}, Amman, Jordan`
+              }
+            }]
+            };
+      }
+    });
+
+    const AlertCard = ({ alert, onResolve, onSnooze, onArchive, onDetails, isSelected, onSelect }) => (
+      <div className={`alert-card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${alert.type} ${isSelected ? 'selected' : ''}`}>
+        <div className="flex items-start gap-3 flex-1">
+          <input
+            type="checkbox"
+            className="bulk-checkbox mt-1"
+            checked={isSelected}
+            onChange={(e) => onSelect(alert.id, e.target.checked)}
+            aria-label={`Select ${alert.id}`}
+          />
+          <div className="flex-1">
+            <div className="mb-2 flex items-center gap-2 flex-wrap">
+              <span className={`alert-type-chip chip-${alert.type}`}>
+                {alert.type === 'camera-issues' && <i className="fas fa-video mr-1"></i>}
+                {alert.type === 'black-trips' && <i className="fas fa-route mr-1"></i>}
+                {alert.type === 'over-speeding' && <i className="fas fa-tachometer-alt mr-1"></i>}
+                {alert.type === 'towing' && <i className="fas fa-truck-pickup mr-1"></i>}
+                {alert.type === 'camera-issues' && 'Camera Issues'}
+                {alert.type === 'black-trips' && 'Black Trips'}
+                {alert.type === 'over-speeding' && 'Over Speeding'}
+                {alert.type === 'towing' && 'Towing'}
+              </span>
+              
+              {/* AI Smart Score Badge */}
+              <span className={`inline-flex items-center px-3 py-1 text-sm font-bold rounded-full border-2 ${getSmartScoreBadgeClass(calculateSmartScore(alert))}`}>
+                <i className="fas fa-brain mr-2"></i>
+                {calculateSmartScore(alert)} - {getSmartScoreDescription(calculateSmartScore(alert))}
+              </span>
+              <span className="font-bold text-gray-900 dark:text-gray-100">{alert.vehicleId}</span>
+              {alert.driverName && (
+                <span className="inline-flex items-center px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 text-xs font-medium rounded-full">
+                  <i className="fas fa-user mr-1"></i>
+                  {alert.driverName} ({alert.driverId})
+                </span>
+              )}
+              <span className="alert-timestamp">
+                {alert.timestamp.toLocaleString()}
+              </span>
+              {alert.duration && (
+                <span className={`inline-flex items-center px-3 py-1 text-sm font-bold rounded-full border-2 ${getDurationBadgeClass(alert.type, alert.duration)}`}>
+                  <i className="fas fa-stopwatch mr-2"></i>
+                  {formatDuration(alert.duration)}
+                </span>
+              )}
+              {alert.evidence && alert.evidence.length > 0 && (
+                <span className="inline-flex items-center px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 text-xs font-medium rounded-full">
+                  <i className="fas fa-camera mr-1"></i>
+                  {alert.evidence.length} Auto-Captured
+                </span>
+              )}
+              {isIdlingAlert(alert.message) && extractIdlingDuration(alert.message) >= 10 && (
+                <span className="inline-flex items-center px-2 py-1 bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-100 text-xs font-medium rounded-full">
+                  <i className="fas fa-dollar-sign mr-1"></i>
+                  Cost Impact
+                </span>
+              )}
+            </div>
+            <div className="text-lg text-gray-700 dark:text-gray-300">{alert.message}</div>
+            <FinancialImpact alert={alert} />
+          </div>
+        </div>
+        <div className="alert-actions flex flex-wrap gap-2">
+          <button className="resolve-btn" title="Resolve Alert" onClick={() => onResolve(alert.id)}>
+            <i className="fas fa-check mr-1"></i>Resolve
+          </button>
+          <button className="details-btn" title="View Details" onClick={() => onDetails(alert)}>
+            <i className="fas fa-info-circle mr-1"></i>Details
+          </button>
+          {alert.evidence && alert.evidence.length > 0 && (
+            <button 
+              className="evidence-btn" 
+              title="View Auto-Captured Evidence" 
+              onClick={() => onDetails(alert)}
+            >
+              <i className="fas fa-video mr-1"></i>Evidence ({alert.evidence.length})
+            </button>
+          )}
+          <button className="snooze-btn" title="Snooze Alert" onClick={() => onSnooze(alert.id)}>
+            <i className="fas fa-clock mr-1"></i>Snooze
+          </button>
+          <button className="archive-btn" title="Archive Alert" onClick={() => onArchive(alert.id)}>
+            <i className="fas fa-archive mr-1"></i>Archive
+          </button>
+        </div>
+      </div>
+    );
+
+    const AlertModal = ({ alert, onClose }) => (
+      <div className="modal fixed inset-0 flex items-center justify-center z-50">
+        <div className="modal-content p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Alert Details</h2>
+            <button 
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <i className="fas fa-times text-xl"></i>
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold mb-3">Basic Information</h3>
+              <div className="space-y-2">
+                <p><strong>Alert ID:</strong> {alert.id}</p>
+                <p><strong>Vehicle ID:</strong> {alert.vehicleId}</p>
+                {alert.driverName && (
+                  <>
+                    <p><strong>Driver:</strong> {alert.driverName}</p>
+                    <p><strong>Driver ID:</strong> {alert.driverId}</p>
+                  </>
+                )}
+                <p><strong>Type:</strong> 
+                  <span className={`alert-type-chip chip-${alert.type} ml-2`}>
+                    {alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}
+                  </span>
+                </p>
+                
+                {/* AI Smart Score */}
+                <div className="mt-3 p-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900 dark:to-blue-900 rounded-lg border border-purple-200 dark:border-purple-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-1 flex items-center">
+                        <i className="fas fa-brain mr-2"></i>
+                        AI Smart Score Analysis
+                      </h4>
+                      <p className="text-sm text-purple-700 dark:text-purple-300">
+                        {getSmartScoreDescription(calculateSmartScore(alert))} - {calculateSmartScore(alert)}/100
+                      </p>
+                    </div>
+                    <div className={`text-2xl font-bold px-4 py-2 rounded-full border-2 ${getSmartScoreBadgeClass(calculateSmartScore(alert))}`}>
+                      {calculateSmartScore(alert)}
+                    </div>
+                  </div>
+                  
+                  {/* Score breakdown */}
+                  <div className="mt-3 text-xs text-purple-600 dark:text-purple-400">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="font-medium">Severity:</span> {
+                          alert.type === 'camera-issues' ? '35 pts' :
+                          alert.type === 'black-trips' ? '40 pts' :
+                          alert.type === 'over-speeding' ? '25 pts' :
+                          alert.type === 'towing' ? '20 pts' : '15 pts'
+                        }
+                      </div>
+                      <div>
+                        <span className="font-medium">Duration:</span> {
+                          Math.floor(alert.duration / 60) >= 60 ? '30 pts' :
+                          Math.floor(alert.duration / 60) >= 30 ? '25 pts' :
+                          Math.floor(alert.duration / 60) >= 15 ? '20 pts' :
+                          Math.floor(alert.duration / 60) >= 5 ? '15 pts' : '10 pts'
+                        }
+                      </div>
+                      <div>
+                        <span className="font-medium">Cost Impact:</span> {
+                          isIdlingAlert(alert.message) ? 
+                            (extractIdlingDuration(alert.message) >= 30 ? '20 pts' :
+                             extractIdlingDuration(alert.message) >= 15 ? '15 pts' :
+                             extractIdlingDuration(alert.message) >= 5 ? '10 pts' : '5 pts') : '0 pts'
+                        }
+                      </div>
+                      <div>
+                        <span className="font-medium">Risk Factors:</span> {
+                          (alert.evidence && alert.evidence.length > 2 ? 5 : 0) +
+                          (alert.type === 'camera-issues' && Math.floor(alert.duration / 60) > 10 ? 5 : 0) +
+                          (alert.type === 'black-trips' && Math.floor(alert.duration / 60) > 20 ? 5 : 0)
+                        } pts
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p><strong>Message:</strong> {alert.message}</p>
+                <p><strong>Timestamp:</strong> {alert.timestamp.toLocaleString()}</p>
+                {alert.duration && (
+                  <p><strong>Alert Duration:</strong> 
+                    <span className={`px-3 py-2 rounded-lg text-sm font-bold ml-2 border-2 ${getDurationBadgeClass(alert.type, alert.duration)}`}>
+                      <i className="fas fa-stopwatch mr-2"></i>
+                      {formatDuration(alert.duration)}
+                    </span>
+                  </p>
+                )}
+                <p><strong>Status:</strong> 
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ml-2 ${
+                    alert.resolved ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 
+                    alert.snoozed ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100' : 
+                    'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                  }`}>
+                    {alert.resolved ? 'Resolved' : alert.snoozed ? 'Snoozed' : 'Active'}
+                  </span>
+                </p>
+                <p><strong>Details:</strong> {alert.details}</p>
+                {isIdlingAlert(alert.message) && (
+                  <div className="mt-4 p-4 bg-red-50 dark:bg-red-900 rounded-lg border border-red-200 dark:border-red-700">
+                    <h4 className="font-semibold text-red-800 dark:text-red-200 mb-3 flex items-center">
+                      <i className="fas fa-calculator mr-2"></i>
+                      Financial Impact Analysis
+                    </h4>
+                    <FinancialImpact alert={alert} />
+                    <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border">
+                      <div className="text-sm">
+                        <p className="font-medium mb-2">💡 Cost Reduction Tips:</p>
+                        <ul className="text-xs space-y-1 text-gray-600 dark:text-gray-400">
+                          <li>• Turn off engine during extended stops (&gt;5 min)</li>
+                          <li>• Use auxiliary power units for climate control</li>
+                          <li>• Optimize delivery schedules to reduce wait times</li>
+                          <li>• Train drivers on efficient idling practices</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold mb-3 flex items-center">
+                <i className="fas fa-camera mr-2 text-blue-500"></i>
+                Auto-Captured Evidence ({alert.evidence ? alert.evidence.length : 0})
+              </h3>
+              {alert.evidence && alert.evidence.length > 0 ? (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {alert.evidence.map(evidence => (
+                    <div key={evidence.id} className="border dark:border-gray-600 rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0">
+                            <i className={`fas text-lg ${
+                              evidence.type === 'dashcam_video' ? 'fa-video text-red-500' :
+                              evidence.type === 'cabin_camera' ? 'fa-camera text-blue-500' :
+                              evidence.type === 'sensor_data' ? 'fa-microchip text-green-500' :
+                              'fa-file-alt text-gray-500'
+                            }`}></i>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{evidence.name}</span>
+                            <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                              {evidence.deviceType} ({evidence.deviceId})
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {evidence.capturedAt.toLocaleString()}
+                          </div>
+                          <div className="text-xs bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 px-2 py-1 rounded mt-1">
+                            Auto-Captured
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mb-3 p-3 bg-white dark:bg-gray-800 rounded border-l-4 border-orange-400">
+                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Trigger Event: {evidence.triggerEvent}
+                        </div>
+                        {evidence.aiAnalysis && (
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            AI Analysis: {evidence.aiAnalysis}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {evidence.type === 'dashcam_video' && (
+                        <div className="mb-3">
+                          <div className="bg-gray-900 rounded-lg p-4 text-white text-center">
+                            <i className="fas fa-play-circle text-4xl mb-2"></i>
+                            <p className="text-sm">Dashcam Recording</p>
+                            <p className="text-xs text-gray-300">Duration: {evidence.duration}</p>
+                            <button className="mt-2 bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm">
+                              <i className="fas fa-play mr-1"></i>Play Video
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {evidence.type === 'cabin_camera' && (
+                        <div className="mb-3">
+                          <img 
+                            src={evidence.url} 
+                            alt={evidence.name}
+                            className="w-full h-32 object-cover rounded cursor-pointer hover:opacity-80 border"
+                            onClick={() => window.open(evidence.url, '_blank')}
+                          />
+                        </div>
+                      )}
+                      
+                      {evidence.type === 'sensor_data' && (
+                        <div className="mb-3 bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="font-medium">Data Points:</span> {evidence.dataPoints}
+                            </div>
+                            <div>
+                              <span className="font-medium">Peak Value:</span> 
+                              <span className="text-red-600 dark:text-red-400 font-bold ml-1">{evidence.peakValue}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="font-medium">Threshold:</span> {evidence.thresholdValue}
+                            </div>
+                          </div>
+                          <button className="mt-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                            <i className="fas fa-download mr-1"></i>Download Raw Data
+                          </button>
+                        </div>
+                      )}
+                      
+                      {evidence.location && (
+                        <div className="mt-3">
+                          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                            <i className="fas fa-map-marker-alt mr-2 text-red-500"></i>
+                            Incident Location
+                          </div>
+                          <EvidenceMap location={evidence.location} evidenceType={evidence.type} />
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <strong>{evidence.location.address}</strong><br/>
+                            Coordinates: {evidence.location.lat.toFixed(6)}, {evidence.location.lng.toFixed(6)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                  <i className="fas fa-camera-retro text-3xl mb-3"></i>
+                  <p>No telematic evidence captured for this alert</p>
+                  <p className="text-sm">Evidence is automatically captured when incidents occur</p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex justify-end mt-6">
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              onClick={onClose}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+
+    // Notification Settings Modal Component
+    const NotificationSettingsModal = ({ onClose }) => {
+      const [settings, setSettings] = useState(() => {
+        const saved = localStorage.getItem('notificationSettings');
+        return saved ? JSON.parse(saved) : {
+          enableNotifications: true,
+          criticalAlertManagers: ['MGR-001', 'MGR-002'],
+          warningAlertManagers: ['MGR-001'],
+          autoNotifyOnCritical: true,
+          autoNotifyOnWarning: false,
+          dailyDigestEnabled: true,
+          weeklyReportEnabled: true
+        };
+      });
+
+      const saveSettings = () => {
+        localStorage.setItem('notificationSettings', JSON.stringify(settings));
+        onClose();
+      };
+
+      return (
+        <div className="modal fixed inset-0 flex items-center justify-center z-50">
+          <div className="modal-content p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold flex items-center">
+                <i className="fas fa-bell mr-2 text-blue-500"></i>
+                Notification Settings
+              </h2>
+              <button 
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* General Settings */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h3 className="font-semibold mb-3">General Settings</h3>
+                <label className="flex items-center gap-3 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={settings.enableNotifications}
+                    onChange={(e) => setSettings({...settings, enableNotifications: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <span>Enable email/SMS notifications for managers</span>
+                </label>
+                <label className="flex items-center gap-3 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={settings.autoNotifyOnCritical}
+                    onChange={(e) => setSettings({...settings, autoNotifyOnCritical: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <span>Auto-notify managers on critical alerts</span>
+                </label>
+                <label className="flex items-center gap-3 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={settings.autoNotifyOnWarning}
+                    onChange={(e) => setSettings({...settings, autoNotifyOnWarning: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <span>Auto-notify managers on warning alerts</span>
+                </label>
+              </div>
+
+              {/* Manager Assignment */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h3 className="font-semibold mb-3">Critical Alert Notifications</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Select managers to notify for critical alerts:</p>
+                {fleetManagers.map(manager => (
+                  <label key={manager.id} className="flex items-center gap-3 mb-2">
+                    <input
+                      type="checkbox"
+                      checked={settings.criticalAlertManagers.includes(manager.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSettings({
+                            ...settings,
+                            criticalAlertManagers: [...settings.criticalAlertManagers, manager.id]
+                          });
+                        } else {
+                          setSettings({
+                            ...settings,
+                            criticalAlertManagers: settings.criticalAlertManagers.filter(id => id !== manager.id)
+                          });
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <span className="font-medium">{manager.name}</span>
+                      <div className="text-sm text-gray-500">{manager.role} • {manager.email}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              {/* Reports Settings */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h3 className="font-semibold mb-3">Automated Reports</h3>
+                <label className="flex items-center gap-3 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={settings.dailyDigestEnabled}
+                    onChange={(e) => setSettings({...settings, dailyDigestEnabled: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <span>Send daily alert digest emails</span>
+                </label>
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={settings.weeklyReportEnabled}
+                    onChange={(e) => setSettings({...settings, weeklyReportEnabled: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <span>Send weekly fleet reports</span>
+                </label>
+              </div>
+
+              {/* Test Notifications */}
+              <div className="p-4 bg-blue-50 dark:bg-blue-900 rounded-lg border border-blue-200 dark:border-blue-700">
+                <h3 className="font-semibold mb-3 text-blue-800 dark:text-blue-200">Test Notifications</h3>
+                <div className="flex gap-2">
+                  <button
+                    className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                    onClick={() => {
+                      NotificationService.sendEmail(
+                        fleetManagers[0],
+                        'Test Email Notification',
+                        'This is a test email from the Fleet Management System.',
+                        'normal'
+                      );
+                      alert('Test email sent! Check console for details.');
+                    }}
+                  >
+                    <i className="fas fa-envelope mr-1"></i>Test Email
+                  </button>
+                  <button
+                    className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                    onClick={() => {
+                      NotificationService.sendSMS(
+                        fleetManagers[0],
+                        'Test SMS from Fleet Management System'
+                      );
+                      alert('Test SMS sent! Check console for details.');
+                    }}
+                  >
+                    <i className="fas fa-sms mr-1"></i>Test SMS
+                  </button>
+                  <button
+                    className="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm"
+                    onClick={() => {
+                      NotificationService.sendDailyDigest();
+                      alert('Daily digest sent! Check console for details.');
+                    }}
+                  >
+                    <i className="fas fa-chart-bar mr-1"></i>Test Daily Digest
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                onClick={onClose}
+              >
+                Cancel
+              </button>
+              <button
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                onClick={saveSettings}
+              >
+                <i className="fas fa-save mr-1"></i>Save Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Threshold Settings Modal Component
+    const ThresholdSettingsModal = ({ thresholds, setThresholds, onSave, onClose }) => {
+      const alertTypeLabels = {
+        'idling': 'Idling Duration',
+        'speeding': 'Speed Violation',
+        'black-trips': 'Black Trip Duration',
+        'camera-issues': 'Camera Offline Duration',
+        'towing': 'Unauthorized Towing Duration'
+      };
+
+      const alertTypeUnits = {
+        'idling': 'minutes',
+        'speeding': 'km/h over limit',
+        'black-trips': 'minutes',
+        'camera-issues': 'minutes',
+        'towing': 'minutes'
+      };
+
+      const updateThreshold = (alertType, level, value) => {
+        setThresholds(prev => ({
+          ...prev,
+          [alertType]: {
+            ...prev[alertType],
+            [level]: parseInt(value) || 0
+          }
+        }));
+      };
+
+      return (
+        <div className="modal fixed inset-0 flex items-center justify-center z-50">
+          <div className="modal-content p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold flex items-center">
+                <i className="fas fa-sliders-h mr-2 text-purple-500"></i>
+                Alert Threshold Settings
+              </h2>
+              <button 
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <i className="fas fa-info-circle text-blue-500"></i>
+                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    How Thresholds Work
+                  </span>
+                </div>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Set custom thresholds for when alerts should be elevated to critical status. 
+                  Alerts that exceed the critical threshold will be marked as high priority.
+                </p>
+              </div>
+
+              {Object.entries(thresholds).map(([alertType, levels]) => (
+                <div key={alertType} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <i className={`fas fa-${alertType === 'idling' ? 'power-off' : 
+                                     alertType === 'speeding' ? 'tachometer-alt' : 
+                                     alertType === 'black-trips' ? 'route' : 
+                                     alertType === 'camera-issues' ? 'video' : 'truck-pickup'} mr-2`}></i>
+                    {alertTypeLabels[alertType]}
+                  </h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Warning Threshold ({alertTypeUnits[alertType]})
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={levels.warning}
+                        onChange={(e) => updateThreshold(alertType, 'warning', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-600 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Critical Threshold ({alertTypeUnits[alertType]})
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={levels.critical}
+                        onChange={(e) => updateThreshold(alertType, 'critical', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-600 dark:text-gray-100"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
+                    <strong>Example:</strong> If idling critical threshold is set to 30 minutes, 
+                    any vehicle idling for 30+ minutes will trigger a critical alert.
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-600">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={onSave}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                >
+                  <i className="fas fa-save mr-2"></i>Save Thresholds
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Smart Score Analysis Modal Component
+    const SmartScoreAnalysisModal = ({ priorityLevel, alerts, onClose }) => {
+      const priorityConfig = {
+        'critical': {
+          title: 'Critical Priority Alerts',
+          description: 'Alerts with Smart Score 80-100',
+          color: 'red',
+          icon: 'fas fa-exclamation-triangle'
+        },
+        'high': {
+          title: 'High Priority Alerts',
+          description: 'Alerts with Smart Score 60-79',
+          color: 'orange',
+          icon: 'fas fa-exclamation-circle'
+        },
+        'medium': {
+          title: 'Medium Priority Alerts',
+          description: 'Alerts with Smart Score 40-59',
+          color: 'yellow',
+          icon: 'fas fa-info-circle'
+        },
+        'low': {
+          title: 'Low Priority Alerts',
+          description: 'Alerts with Smart Score 0-39',
+          color: 'green',
+          icon: 'fas fa-check-circle'
+        }
+      };
+
+      const config = priorityConfig[priorityLevel];
+      const priorityAlerts = alerts || [];
+
+      return (
+        <div className="modal fixed inset-0 flex items-center justify-center z-50">
+          <div className="modal-content p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold flex items-center text-gray-900 dark:text-gray-100">
+                <i className={`${config.icon} mr-2 text-${config.color}-500`}></i>
+                {config.title}
+              </h2>
+              <button 
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+            
+            <div className="mb-6 p-4 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-700 dark:to-blue-900 border border-gray-200 dark:border-gray-600 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {priorityAlerts.length}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Total Alerts</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {priorityAlerts.length > 0 ? 
+                      Math.round(priorityAlerts.reduce((sum, alert) => sum + calculateSmartScore(alert), 0) / priorityAlerts.length) : 0
+                    }
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Average Score</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {priorityAlerts.filter(alert => alert.evidence && alert.evidence.length > 0).length}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">With Evidence</div>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 text-center">
+                {config.description} • Click on any alert to view detailed analysis
+              </p>
+            </div>
+
+            {priorityAlerts.length === 0 ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-12">
+                <i className="fas fa-inbox text-4xl mb-4"></i>
+                <p className="text-lg">No alerts in this priority level</p>
+                <p className="text-sm">All alerts have been resolved or moved to different priority levels</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {priorityAlerts.map(alert => (
+                  <div key={alert.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`alert-type-chip chip-${alert.type}`}>
+                            {alert.type === 'camera-issues' && <i className="fas fa-video mr-1"></i>}
+                            {alert.type === 'black-trips' && <i className="fas fa-route mr-1"></i>}
+                            {alert.type === 'over-speeding' && <i className="fas fa-tachometer-alt mr-1"></i>}
+                            {alert.type === 'towing' && <i className="fas fa-truck-pickup mr-1"></i>}
+                            {alert.type.replace('-', ' ').charAt(0).toUpperCase() + alert.type.replace('-', ' ').slice(1)}
+                          </span>
+                          
+                          <span className="font-bold text-gray-900 dark:text-gray-100">{alert.vehicleId}</span>
+                          
+                          {alert.driverName && (
+                            <span className="inline-flex items-center px-2 py-1 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 text-xs font-medium rounded-full">
+                              <i className="fas fa-user mr-1"></i>
+                              {alert.driverName}
+                            </span>
+                          )}
+                          
+                          <span className={`inline-flex items-center px-3 py-1 text-sm font-bold rounded-full border-2 ${getSmartScoreBadgeClass(calculateSmartScore(alert))}`}>
+                            <i className="fas fa-brain mr-2"></i>
+                            {calculateSmartScore(alert)} - {getSmartScoreDescription(calculateSmartScore(alert))}
+                          </span>
+                        </div>
+                        
+                        <div className="text-lg text-gray-700 dark:text-gray-300 mb-2">{alert.message}</div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          <div>
+                            <span className="font-medium">Duration:</span> {formatDuration(alert.duration)}
+                          </div>
+                          <div>
+                            <span className="font-medium">Timestamp:</span> {alert.timestamp.toLocaleString()}
+                          </div>
+                          <div>
+                            <span className="font-medium">Evidence:</span> {alert.evidence ? alert.evidence.length : 0} items
+                          </div>
+                          <div>
+                            <span className="font-medium">Location:</span> {alert.evidence && alert.evidence[0] && alert.evidence[0].location ? 
+                              alert.evidence[0].location.address : 'N/A'}
+                          </div>
+                        </div>
+                        
+                        {alert.details && (
+                          <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div className="text-sm text-gray-700 dark:text-gray-300">{alert.details}</div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="ml-4 flex flex-col gap-2">
+                        <button 
+                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                          onClick={() => {
+                            // This would open the detailed alert modal
+                            console.log('Opening alert details for:', alert.id);
+                          }}
+                        >
+                          <i className="fas fa-eye mr-1"></i>View Details
+                        </button>
+                        <button 
+                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                          onClick={() => {
+                            // This would resolve the alert
+                            console.log('Resolving alert:', alert.id);
+                          }}
+                        >
+                          <i className="fas fa-check mr-1"></i>Resolve
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    // Heatmap Dashboard Component
+    const HeatmapDashboard = ({ alerts }) => {
+      const mapRef = useRef(null);
+      const heatmapRef = useRef(null);
+      const [map, setMap] = useState(null);
+
+      useEffect(() => {
+        if (!mapRef.current || map) return;
+
+        // Initialize the map with better land-focused view
+        const leafletMap = L.map(mapRef.current).setView([31.9454, 35.9284], 11); // Jordan coordinates (Amman), closer zoom
+        
+        // Allow free movement on the map
+        // Note: Removed bounds restrictions to allow full map exploration
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(leafletMap);
+
+        setMap(leafletMap);
+
+        return () => {
+          if (leafletMap) {
+            leafletMap.remove();
+          }
+        };
+      }, []);
+
+      useEffect(() => {
+        if (!map || !alerts || alerts.length === 0) return;
+
+        // Clear existing heatmap
+        if (heatmapRef.current) {
+          map.removeLayer(heatmapRef.current);
+        }
+
+        // Prepare heatmap data from alert evidence locations
+        const heatmapData = [];
+        
+        alerts.forEach(alert => {
+          if (alert.evidence && alert.evidence.length > 0) {
+            alert.evidence.forEach(evidence => {
+              if (evidence.location && evidence.location.lat && evidence.location.lng) {
+                // Determine weight based on alert type priority
+                let weight = 1; // Default info weight
+                
+                if (alert.type === 'camera-issues' || alert.type === 'black-trips') {
+                  weight = 3; // Critical priority
+                } else if (alert.type === 'over-speeding') {
+                  weight = 2; // Warning priority
+                } else if (alert.type === 'towing') {
+                  weight = 2; // Warning priority
+                }
+
+                heatmapData.push([
+                  evidence.location.lat,
+                  evidence.location.lng,
+                  weight
+                ]);
+              }
+            });
+          }
+        });
+
+        // Add heatmap layer if we have data
+        if (heatmapData.length > 0) {
+          heatmapRef.current = L.heatLayer(heatmapData, {
+            radius: 35,
+            blur: 25,
+            maxZoom: 12,
+            minOpacity: 0.3,
+            max: 1.0,
+            gradient: {
+              0.0: 'rgba(0, 255, 255, 0)',
+              0.1: 'rgba(0, 255, 255, 0.6)',
+              0.2: 'rgba(0, 191, 255, 0.7)',
+              0.3: 'rgba(0, 127, 255, 0.8)',
+              0.4: 'rgba(63, 127, 191, 0.85)',
+              0.5: 'rgba(127, 127, 127, 0.9)',
+              0.6: 'rgba(191, 127, 63, 0.92)',
+              0.7: 'rgba(255, 127, 0, 0.94)',
+              0.8: 'rgba(255, 95, 0, 0.96)',
+              0.9: 'rgba(255, 63, 0, 0.98)',
+              1.0: 'rgba(255, 0, 0, 1.0)'
+            }
+          }).addTo(map);
+
+          // Fit map to heatmap bounds
+          const bounds = L.latLngBounds(heatmapData.map(point => [point[0], point[1]]));
+          map.fitBounds(bounds, { padding: [20, 20] });
+          
+          // Add enhanced heatmap legend
+          const legend = L.control({ position: 'bottomright' });
+          legend.onAdd = function() {
+            const div = L.DomUtil.create('div', 'heatmap-legend');
+            div.innerHTML = `
+              <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-xl border border-gray-200 dark:border-gray-600 backdrop-blur-md">
+                <h4 class="font-bold text-sm mb-3 text-gray-900 dark:text-gray-100 flex items-center">
+                  <i class="fas fa-fire mr-2 text-orange-500"></i>
+                  Alert Heat Intensity
+                </h4>
+                <div class="space-y-2 text-xs">
+                  <div class="flex items-center">
+                    <div class="w-5 h-3 rounded-full mr-3 shadow-sm" style="background: linear-gradient(90deg, rgba(0,255,255,0.6) 0%, rgba(0,191,255,0.7) 100%);"></div>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">Minimal</span>
+                  </div>
+                  <div class="flex items-center">
+                    <div class="w-5 h-3 rounded-full mr-3 shadow-sm" style="background: linear-gradient(90deg, rgba(0,127,255,0.8) 0%, rgba(63,127,191,0.85) 100%);"></div>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">Low</span>
+                  </div>
+                  <div class="flex items-center">
+                    <div class="w-5 h-3 rounded-full mr-3 shadow-sm" style="background: linear-gradient(90deg, rgba(191,127,63,0.92) 0%, rgba(255,127,0,0.94) 100%);"></div>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">Moderate</span>
+                  </div>
+                  <div class="flex items-center">
+                    <div class="w-5 h-3 rounded-full mr-3 shadow-sm" style="background: linear-gradient(90deg, rgba(255,95,0,0.96) 0%, rgba(255,63,0,0.98) 100%);"></div>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">High</span>
+                  </div>
+                  <div class="flex items-center">
+                    <div class="w-5 h-3 rounded-full mr-3 shadow-sm" style="background: rgba(255,0,0,1.0); box-shadow: 0 0 8px rgba(255,0,0,0.5);"></div>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">Critical</span>
+                  </div>
+                </div>
+                <div class="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                  <p class="text-xs text-gray-500 dark:text-gray-400 italic">
+                    Real-time alert clustering
+                  </p>
+                </div>
+              </div>
+            `;
+            return div;
+          };
+          legend.addTo(map);
+        }
+
+        // Add markers for individual alert locations
+        alerts.forEach(alert => {
+          if (alert.evidence && alert.evidence.length > 0) {
+            alert.evidence.forEach(evidence => {
+              if (evidence.location && evidence.location.lat && evidence.location.lng) {
+                const markerColor = alert.type === 'camera-issues' || alert.type === 'black-trips' ? 'red' :
+                                  alert.type === 'over-speeding' ? 'orange' : 'blue';
+                
+                const marker = L.circleMarker([evidence.location.lat, evidence.location.lng], {
+                  radius: 6,
+                  fillColor: markerColor,
+                  color: 'white',
+                  weight: 2,
+                  opacity: 0.8,
+                  fillOpacity: 0.6
+                }).addTo(map);
+
+                // Add popup with alert information
+                marker.bindPopup(`
+                  <div class="text-sm">
+                    <strong>${alert.type.replace('-', ' ').toUpperCase()}</strong><br>
+                    Vehicle: ${alert.vehicleId}<br>
+                    Driver: ${alert.driverName}<br>
+                    Location: ${evidence.location.address || 'Unknown'}<br>
+                    Time: ${new Date(alert.timestamp).toLocaleString()}
+                  </div>
+                `);
+              }
+            });
+          }
+        });
+
+      }, [map, alerts]);
+
+      return (
+        <div ref={mapRef} className="w-full h-full" />
+      );
+    };
+
+    const App = () => {
+      const [alerts, setAlerts] = useState(() => {
+        // Clear localStorage to ensure we get new alerts with duration data
+        localStorage.removeItem('alerts');
+        return initialAlerts;
+      });
+      const [search, setSearch] = useState('');
+      const [debouncedSearch, setDebouncedSearch] = useState('');
+      const [typeFilter, setTypeFilter] = useState('');
+      const [vehicleFilter, setVehicleFilter] = useState(() => {
+        // Check for vehicle parameter in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('vehicle') || '';
+      });
+      const [sortBy, setSortBy] = useState('smart'); // Default to smart auto-sort
+      const [sortOrder, setSortOrder] = useState('desc');
+      const [currentPage, setCurrentPage] = useState(1);
+
+      const [selectedAlert, setSelectedAlert] = useState(null);
+      const [isLoading, setIsLoading] = useState(true);
+      
+      // New bulk operations state
+      const [selectedAlerts, setSelectedAlerts] = useState(new Set());
+      const [showBulkBar, setShowBulkBar] = useState(false);
+      const [bulkAction, setBulkAction] = useState('');
+      
+      // Notification state
+      const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+      const [notificationHistory, setNotificationHistory] = useState([]);
+      
+      // Alert threshold settings
+      const [showThresholdSettings, setShowThresholdSettings] = useState(false);
+      const [alertThresholds, setAlertThresholds] = useState(() => {
+        const saved = localStorage.getItem('alertThresholds');
+        return saved ? JSON.parse(saved) : {
+          'idling': { warning: 10, critical: 30 }, // minutes
+          'speeding': { warning: 15, critical: 25 }, // km/h over limit
+          'black-trips': { warning: 5, critical: 15 }, // minutes outside route
+          'camera-issues': { warning: 2, critical: 10 }, // minutes offline
+          'towing': { warning: 1, critical: 5 } // minutes of unauthorized towing
+        };
+      });
+      
+      // Smart Score Analysis popup state
+      const [showSmartScorePopup, setShowSmartScorePopup] = useState(false);
+      const [selectedPriorityLevel, setSelectedPriorityLevel] = useState('');
+      
+      const alertsPerPage = 10;
+
+      // Production environment check
+      useEffect(() => {
+        const isProduction = window.location.hostname !== 'localhost' && 
+                            window.location.hostname !== '127.0.0.1' && 
+                            !window.location.hostname.includes('dev') &&
+                            !window.location.hostname.includes('test');
+        
+        if (!isProduction) {
+          console.log('🔄 Active Alerts - Development Mode');
+        }
+        
+        // Suppress React development warnings in production
+        if (isProduction && window.React && window.ReactDOM) {
+          if (window.React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
+            window.React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = undefined;
+          }
+          if (window.ReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) {
+            window.ReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = undefined;
+          }
+        }
+      }, []);
+
+      // Function to check if alert should be elevated to critical based on thresholds
+      const shouldElevateToCritical = (alert) => {
+        const thresholds = alertThresholds[alert.type];
+        if (!thresholds) return false;
+        
+        switch (alert.type) {
+          case 'idling':
+            const idlingMinutes = extractIdlingDuration(alert.message);
+            return idlingMinutes >= thresholds.critical;
+          case 'over-speeding':
+            const speedMatch = alert.message.match(/(\d+)\s*km\/h/);
+            if (speedMatch) {
+              const actualSpeed = parseInt(speedMatch[1]);
+              const speedLimit = actualSpeed - 15; // Approximate speed limit
+              const overLimit = actualSpeed - speedLimit;
+              return overLimit >= thresholds.critical;
+            }
+            return false;
+          case 'black-trips':
+            // For black trips, duration in minutes
+            const durationMinutes = Math.floor(alert.duration / 60);
+            return durationMinutes >= thresholds.critical;
+          case 'camera-issues':
+            // For camera issues, duration in minutes
+            const cameraDurationMinutes = Math.floor(alert.duration / 60);
+            return cameraDurationMinutes >= thresholds.critical;
+          case 'towing':
+            // For towing, duration in minutes
+            const towingDurationMinutes = Math.floor(alert.duration / 60);
+            return towingDurationMinutes >= thresholds.critical;
+          default:
+            return false;
+        }
+      };
+
+      // Function to save threshold settings
+      const saveThresholdSettings = () => {
+        localStorage.setItem('alertThresholds', JSON.stringify(alertThresholds));
+        setShowThresholdSettings(false);
+        // Refresh alerts to apply new thresholds
+        setAlerts([...alerts]);
+      };
+
+      // Function to get alerts by priority level
+      const getAlertsByPriorityLevel = (priorityLevel) => {
+        switch (priorityLevel) {
+          case 'critical':
+            return filteredAlerts.filter(alert => calculateSmartScore(alert) >= 80);
+          case 'high':
+            return filteredAlerts.filter(alert => calculateSmartScore(alert) >= 60 && calculateSmartScore(alert) < 80);
+          case 'medium':
+            return filteredAlerts.filter(alert => calculateSmartScore(alert) >= 40 && calculateSmartScore(alert) < 60);
+          case 'low':
+            return filteredAlerts.filter(alert => calculateSmartScore(alert) < 40);
+          default:
+            return [];
+        }
+      };
+
+      // Function to open smart score analysis popup
+      const openSmartScoreAnalysis = (priorityLevel) => {
+        setSelectedPriorityLevel(priorityLevel);
+        setShowSmartScorePopup(true);
+      };
+
+      useEffect(() => {
+        localStorage.setItem('alerts', JSON.stringify(alerts));
+        setIsLoading(false);
+      }, [alerts]);
+
+      useEffect(() => {
+        setShowBulkBar(selectedAlerts.size > 0);
+      }, [selectedAlerts]);
+
+      // Handle individual alert selection
+      const handleAlertSelect = (alertId, isSelected) => {
+        const newSelected = new Set(selectedAlerts);
+        if (isSelected) {
+          newSelected.add(alertId);
+        } else {
+          newSelected.delete(alertId);
+        }
+        setSelectedAlerts(newSelected);
+      };
+
+      // Handle master select all
+      const handleSelectAll = (isSelected) => {
+        if (isSelected) {
+          const allVisibleIds = new Set(filteredAlerts.map(alert => alert.id));
+          setSelectedAlerts(allVisibleIds);
+        } else {
+          setSelectedAlerts(new Set());
+        }
+      };
+
+      // Quick filter functions
+      const selectAllCameraIssues = () => {
+        const cameraIds = new Set(
+          filteredAlerts
+            .filter(alert => alert.type === 'camera-issues')
+            .map(alert => alert.id)
+        );
+        setSelectedAlerts(cameraIds);
+      };
+
+      const selectAllBlackTrips = () => {
+        const blackTripIds = new Set(
+          filteredAlerts
+            .filter(alert => alert.type === 'black-trips')
+            .map(alert => alert.id)
+        );
+        setSelectedAlerts(blackTripIds);
+      };
+
+      const selectAllOverSpeeding = () => {
+        const speedingIds = new Set(
+          filteredAlerts
+            .filter(alert => alert.type === 'over-speeding')
+            .map(alert => alert.id)
+        );
+        setSelectedAlerts(speedingIds);
+      };
+
+      const selectAllTowing = () => {
+        const towingIds = new Set(
+          filteredAlerts
+            .filter(alert => alert.type === 'towing')
+            .map(alert => alert.id)
+        );
+        setSelectedAlerts(towingIds);
+      };
+
+      const selectAllByVehicle = (vehicleId) => {
+        const vehicleIds = new Set(
+          filteredAlerts
+            .filter(alert => alert.vehicleId === vehicleId)
+            .map(alert => alert.id)
+        );
+        setSelectedAlerts(vehicleIds);
+      };
+
+      // Bulk action handlers
+      const handleBulkResolve = async () => {
+        const alertsToResolve = alerts.filter(alert => selectedAlerts.has(alert.id));
+        setAlerts(alerts.map(alert => 
+          selectedAlerts.has(alert.id) ? { ...alert, resolved: true } : alert
+        ));
+        
+        // Send notifications for camera issues and black trips (high priority alerts)
+        for (const alert of alertsToResolve) {
+          if (alert.type === 'camera-issues' || alert.type === 'black-trips') {
+            await sendAlertNotifications({...alert, resolved: true}, 'bulk_resolved');
+          }
+        }
+        
+        setSelectedAlerts(new Set());
+        setBulkAction('');
+      };
+
+      const handleBulkSnooze = () => {
+        const duration = prompt('Enter snooze duration in minutes for selected alerts:', '60');
+        if (duration && !isNaN(duration)) {
+          const snoozeUntil = new Date(Date.now() + parseInt(duration) * 60000);
+          setAlerts(alerts.map(alert => 
+            selectedAlerts.has(alert.id) ? { ...alert, snoozed: true, snoozeUntil } : alert
+          ));
+        }
+        setSelectedAlerts(new Set());
+        setBulkAction('');
+      };
+
+      const handleBulkArchive = () => {
+        setAlerts(alerts.map(alert => 
+          selectedAlerts.has(alert.id) ? { ...alert, resolved: true } : alert
+        ));
+        setSelectedAlerts(new Set());
+        setBulkAction('');
+      };
+
+      const handleBulkAssign = (technicianId) => {
+        // In a real app, this would assign alerts to technician
+        console.log('Assigning alerts to technician:', technicianId, Array.from(selectedAlerts));
+        setSelectedAlerts(new Set());
+        setBulkAction('');
+      };
+
+      const handleBulkNotify = async () => {
+        const alertsToNotify = alerts.filter(alert => selectedAlerts.has(alert.id));
+        let notificationCount = 0;
+        
+        for (const alert of alertsToNotify) {
+          const notifications = await NotificationService.notifyManagers(alert, 'manual_notification');
+          notificationCount += notifications.length;
+        }
+        
+        alert(`Sent ${notificationCount} notifications for ${alertsToNotify.length} selected alerts.`);
+        setSelectedAlerts(new Set());
+        setBulkAction('');
+      };
+
+      // Debounced search effect
+      useEffect(() => {
+        const timer = setTimeout(() => {
+          setDebouncedSearch(search);
+          setCurrentPage(1); // Reset to first page when search changes
+        }, 300); // 300ms delay
+
+        return () => clearTimeout(timer);
+      }, [search]);
+
+      // Reset page when filters change
+      useEffect(() => {
+        setCurrentPage(1);
+      }, [vehicleFilter, typeFilter]);
+
+
+
+      // Add keyboard shortcut for export (Ctrl+E)
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+            e.preventDefault();
+            exportAlertsToCSV();
+          }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+      }, []);
+
+      // Update charts when data changes
+      useEffect(() => {
+        if (filteredAlerts.length > 0) {
+          updateCharts(filteredAlerts);
+        }
+      }, [filteredAlerts]);
+
+      // Automatic notification function
+      const sendAlertNotifications = async (alert, action = 'created') => {
+        const settings = JSON.parse(localStorage.getItem('notificationSettings') || '{}');
+        
+        if (!settings.enableNotifications) return;
+        
+        // Check if we should auto-notify for this alert type
+        const shouldNotify = (alert.type === 'camera-issues' && settings.autoNotifyOnCritical) ||
+                           (alert.type === 'black-trips' && settings.autoNotifyOnWarning);
+        
+        if (shouldNotify) {
+          try {
+            const notifications = await NotificationService.notifyManagers(alert, action);
+            setNotificationHistory(prev => [...prev, {
+              timestamp: new Date(),
+              alertId: alert.id,
+              action,
+              notifications: notifications.length,
+              success: notifications.every(n => n.success)
+            }]);
+          } catch (error) {
+            console.error('Failed to send notifications:', error);
+          }
+        }
+      };
+
+      const handleResolve = async (id) => {
+        const alert = alerts.find(a => a.id === id);
+        setAlerts(alerts.map(a => a.id === id ? { ...a, resolved: true } : a));
+        
+        // Send notification about resolution
+        if (alert && (alert.type === 'camera-issues' || alert.type === 'black-trips')) {
+          await sendAlertNotifications({...alert, resolved: true}, 'resolved');
+        }
+      };
+
+      const handleSnooze = (id) => {
+        const duration = prompt('Enter snooze duration in minutes:', '60');
+        if (duration && !isNaN(duration)) {
+          const snoozeUntil = new Date(Date.now() + parseInt(duration) * 60000);
+          setAlerts(alerts.map(a => a.id === id ? { ...a, snoozed: true, snoozeUntil } : a));
+        }
+      };
+
+      const handleArchive = (id) => {
+        setAlerts(alerts.map(a => a.id === id ? { ...a, resolved: true } : a));
+      };
+
+      const handleArchiveAll = () => {
+        setAlerts(alerts.map(a => ({ ...a, resolved: true })));
+      };
+
+      const filteredAlerts = alerts
+        .filter(a => {
+          const searchTerm = debouncedSearch.toLowerCase().trim();
+          const matchesSearch = searchTerm === '' ||
+            a.message.toLowerCase().includes(searchTerm) ||
+            a.vehicleId.toLowerCase().includes(searchTerm) ||
+            a.id.toLowerCase().includes(searchTerm) ||
+            (a.driverName && a.driverName.toLowerCase().includes(searchTerm)) ||
+            (a.driverId && a.driverId.toLowerCase().includes(searchTerm)) ||
+            a.type.toLowerCase().includes(searchTerm) ||
+            (a.details && a.details.toLowerCase().includes(searchTerm));
+          
+          const matchesType = typeFilter === '' || 
+            a.type === typeFilter || 
+            (typeFilter === 'idling' && isIdlingAlert(a.message) && extractIdlingDuration(a.message) >= 10);
+          
+          const matchesVehicle = vehicleFilter === '' || a.vehicleId === vehicleFilter;
+          
+          const isActive = !a.resolved && (!a.snoozed || (a.snoozeUntil && a.snoozeUntil > new Date()));
+          
+          return matchesSearch && matchesType && matchesVehicle && isActive;
+        })
+        .sort((a, b) => {
+          // Priority order: Camera Issues → Black Trips → Over Speeding → Towing
+          const priorityOrder = { 'camera-issues': 0, 'black-trips': 1, 'over-speeding': 2, 'towing': 3 };
+          
+          if (sortBy === 'priority') {
+            const priorityDiff = (priorityOrder[a.type] || 99) - (priorityOrder[b.type] || 99);
+            if (priorityDiff !== 0) return priorityDiff;
+            // If same priority, sort by timestamp (newest first)
+            return b.timestamp - a.timestamp;
+          } else if (sortBy === 'smart') {
+            // Smart Auto-sort: Keep camera issues and black trips at top, then sort by time
+            const priorityDiff = (priorityOrder[a.type] || 99) - (priorityOrder[b.type] || 99);
+            if (priorityDiff !== 0) return priorityDiff;
+            // Within same priority, sort by timestamp (newest first)
+            return b.timestamp - a.timestamp;
+          } else if (sortBy === 'timestamp') {
+            const multiplier = sortOrder === 'asc' ? 1 : -1;
+            return multiplier * (a.timestamp - b.timestamp);
+          } else if (sortBy === 'vehicleId') {
+            const multiplier = sortOrder === 'asc' ? 1 : -1;
+            return multiplier * a.vehicleId.localeCompare(b.vehicleId);
+          } else if (sortBy === 'duration') {
+            const multiplier = sortOrder === 'asc' ? 1 : -1;
+            // Sort by alert age (oldest first when desc, newest first when asc)
+            return multiplier * (a.timestamp - b.timestamp);
+          } else if (sortBy === 'type') {
+            const multiplier = sortOrder === 'asc' ? 1 : -1;
+            return multiplier * a.type.localeCompare(b.type);
+          }
+          return 0;
+        });
+
+      // Make filtered alerts available globally for CSV export
+      window.currentFilteredAlerts = filteredAlerts;
+
+      // Update charts with filtered alerts
+      updateCharts(filteredAlerts);
+
+      const totalPages = Math.ceil(filteredAlerts.length / alertsPerPage);
+      const paginatedAlerts = filteredAlerts.slice(
+        (currentPage - 1) * alertsPerPage,
+        currentPage * alertsPerPage
+      );
+
+              return (
+          <div>
+            <header className="bg-white shadow flex flex-col md:flex-row justify-between items-center px-6 py-4 z-30 fixed top-0 left-0 w-full">
+            <div className="flex items-center space-x-4 mb-4 md:mb-0">
+              <a href="index.html" className="text-blue-600 hover:text-blue-800 font-bold text-xl">
+                <i className="fas fa-arrow-left mr-2"></i>Back to Dashboard
+              </a>
+              <h1 className="text-2xl font-bold text-gray-900">Active Alerts</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i className="fas fa-search text-gray-400"></i>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search by vehicle ID, alert code, driver name, or keywords..."
+                  className="border border-gray-300 pl-10 pr-4 py-2 rounded-lg w-80 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Search Alerts"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                )}
+                {debouncedSearch !== search && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  </div>
+                )}
+              </div>
+              {vehicleFilter && (
+                <div className="flex items-center space-x-2 bg-blue-100 px-3 py-1 rounded-lg">
+                  <span className="text-sm text-blue-800">
+                    <i className="fas fa-car mr-1"></i>Vehicle: {vehicleFilter}
+                  </span>
+                  <button
+                    onClick={() => setVehicleFilter('')}
+                    className="text-blue-600 hover:text-blue-800"
+                    title="Clear vehicle filter"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+              )}
+              <select
+                className="border border-gray-300 px-2 py-1 rounded-lg text-sm"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="">All Types</option>
+                <option value="camera-issues">Camera Issues</option>
+                <option value="black-trips">Black Trips</option>
+                <option value="over-speeding">Over Speeding</option>
+                <option value="towing">Towing</option>
+              </select>
+              <select
+                className="border border-gray-300 px-2 py-1 rounded-lg text-sm"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="priority">Sort by Priority</option>
+                <option value="timestamp">Sort by Time</option>
+                <option value="vehicleId">Sort by Vehicle ID</option>
+                <option value="smart">Smart Auto-sort</option>
+                <option value="duration">Sort by Alert Age</option>
+                <option value="type">Sort by Type</option>
+              </select>
+              <button
+                className={`text-white px-4 py-2 rounded-lg transition-colors ${
+                  ['priority', 'smart'].includes(sortBy) 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-gray-600 hover:bg-gray-700'
+                }`}
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                disabled={['priority', 'smart'].includes(sortBy)}
+                title={['priority', 'smart'].includes(sortBy) ? 'Sort order fixed for this option' : 'Toggle sort direction'}
+              >
+                <i className={`fas fa-sort-${sortOrder === 'asc' ? 'up' : 'down'} mr-1`}></i>
+                {['priority', 'smart'].includes(sortBy) ? 'Fixed Order' : (sortOrder === 'asc' ? 'Ascending' : 'Descending')}
+              </button>
+              <button
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                onClick={handleArchiveAll}
+              >
+                <i className="fas fa-archive mr-1"></i>Archive All
+              </button>
+              <button
+                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
+                onClick={() => setShowNotificationSettings(true)}
+                title="Configure Email/SMS Notifications"
+              >
+                <i className="fas fa-bell mr-1"></i>Notifications
+                {notificationHistory.length > 0 && (
+                  <span className="ml-2 bg-orange-800 text-xs px-2 py-1 rounded-full">
+                    {notificationHistory.length}
+                  </span>
+                )}
+              </button>
+              
+              {/* Feedback Button */}
+
+              <button
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                onClick={() => setShowThresholdSettings(true)}
+                title="Configure Alert Thresholds"
+              >
+                <i className="fas fa-sliders-h mr-1"></i>Thresholds
+              </button>
+              <button
+                id="export-alerts-btn"
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 flex items-center"
+                onClick={() => exportAlertsToCSV()}
+                title="Export filtered alerts to CSV (Ctrl+E)"
+                aria-label="Export filtered alerts to CSV file"
+              >
+                <i className="fas fa-download mr-2"></i>
+                Export CSV
+                <span className="ml-2 text-xs opacity-75">Ctrl+E</span>
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg transition-colors bg-gray-600 hover:bg-gray-700 text-white"
+                title="Dark mode feature disabled"
+                disabled
+              >
+                <i className="fas fa-moon mr-1"></i>
+                Dark Mode
+              </button>
+            </div>
+          </header>
+          <main className="pt-40 px-6">
+            {/* Alert Analytics Charts */}
+            <div className="mb-6 mt-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                  <i className="fas fa-chart-bar mr-2 text-purple-500"></i>
+                  Alert Analytics Dashboard
+                  {vehicleFilter && (
+                    <span className="ml-3 text-sm font-normal text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                      <i className="fas fa-car mr-1"></i>Filtered for {vehicleFilter}
+                    </span>
+                  )}
+                </h2>
+                <button
+                  onClick={() => updateCharts(filteredAlerts)}
+                  className="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 text-sm flex items-center"
+                  title="Refresh charts with current data"
+                  disabled={filteredAlerts.length === 0}
+                >
+                  <i className="fas fa-sync-alt mr-2"></i>
+                  Refresh Charts
+                </button>
+              </div>
+              
+              {/* Summary Statistics */}
+              {filteredAlerts.length > 0 ? (
+                <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                    <div className="text-sm text-red-600 font-medium">Camera Issues</div>
+                    <div className="text-2xl font-bold text-red-700">
+                      {filteredAlerts.filter(a => a.type === 'camera-issues').length}
+                    </div>
+                  </div>
+                  <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                    <div className="text-sm text-amber-600 font-medium">Black Trips</div>
+                    <div className="text-2xl font-bold text-amber-700">
+                      {filteredAlerts.filter(a => a.type === 'black-trips').length}
+                    </div>
+                  </div>
+                  <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                    <div className="text-sm text-yellow-600 font-medium">Over Speeding</div>
+                    <div className="text-2xl font-bold text-yellow-700">
+                      {filteredAlerts.filter(a => a.type === 'over-speeding').length}
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <div className="text-sm text-blue-600 font-medium">Towing</div>
+                    <div className="text-2xl font-bold text-blue-700">
+                      {filteredAlerts.filter(a => a.type === 'towing').length}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-4 p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
+                  <i className="fas fa-chart-bar text-4xl text-gray-400 mb-3"></i>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                    {vehicleFilter ? `No alerts found for ${vehicleFilter}` : 'No alerts available'}
+                  </h3>
+                  <p className="text-gray-500">
+                    {vehicleFilter ? 
+                      'This vehicle currently has no active alerts to display in the analytics dashboard.' :
+                      'There are currently no active alerts to display in the analytics dashboard.'
+                    }
+                  </p>
+                </div>
+              )}
+
+              {/* Smart Score Summary */}
+              {filteredAlerts.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+                    <i className="fas fa-brain mr-2 text-purple-500"></i>
+                    AI Smart Score Analysis
+                  </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div 
+                    className="bg-red-50 p-3 rounded-lg border border-red-200 cursor-pointer hover:bg-red-100 transition-colors"
+                    onClick={() => openSmartScoreAnalysis('critical')}
+                    title="Click to view Critical Priority alerts"
+                  >
+                    <div className="text-sm text-red-600 font-medium">Critical Priority</div>
+                    <div className="text-2xl font-bold text-red-700">
+                      {filteredAlerts.filter(a => calculateSmartScore(a) >= 80).length}
+                    </div>
+                    <div className="text-xs text-red-600">Score: 80-100</div>
+                    <div className="text-xs text-red-500 mt-1">
+                      <i className="fas fa-click mr-1"></i>Click to view
+                    </div>
+                  </div>
+                  <div 
+                    className="bg-orange-50 p-3 rounded-lg border border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
+                    onClick={() => openSmartScoreAnalysis('high')}
+                    title="Click to view High Priority alerts"
+                  >
+                    <div className="text-sm text-orange-600 font-medium">High Priority</div>
+                    <div className="text-2xl font-bold text-orange-700">
+                      {filteredAlerts.filter(a => calculateSmartScore(a) >= 60 && calculateSmartScore(a) < 80).length}
+                    </div>
+                    <div className="text-xs text-orange-600">Score: 60-79</div>
+                    <div className="text-xs text-orange-500 mt-1">
+                      <i className="fas fa-click mr-1"></i>Click to view
+                    </div>
+                  </div>
+                  <div 
+                    className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 cursor-pointer hover:bg-yellow-100 transition-colors"
+                    onClick={() => openSmartScoreAnalysis('medium')}
+                    title="Click to view Medium Priority alerts"
+                  >
+                    <div className="text-sm text-yellow-600 font-medium">Medium Priority</div>
+                    <div className="text-2xl font-bold text-yellow-700">
+                      {filteredAlerts.filter(a => calculateSmartScore(a) >= 40 && calculateSmartScore(a) < 60).length}
+                    </div>
+                    <div className="text-xs text-yellow-600">Score: 40-59</div>
+                    <div className="text-xs text-yellow-500 mt-1">
+                      <i className="fas fa-click mr-1"></i>Click to view
+                    </div>
+                  </div>
+                  <div 
+                    className="bg-green-50 p-3 rounded-lg border border-green-200 cursor-pointer hover:bg-green-100 transition-colors"
+                    onClick={() => openSmartScoreAnalysis('low')}
+                    title="Click to view Low Priority alerts"
+                  >
+                    <div className="text-sm text-green-600 font-medium">Low Priority</div>
+                    <div className="text-2xl font-bold text-green-700">
+                      {filteredAlerts.filter(a => calculateSmartScore(a) < 40).length}
+                    </div>
+                    <div className="text-xs text-green-600">Score: 0-39</div>
+                    <div className="text-xs text-green-500 mt-1">
+                      <i className="fas fa-click mr-1"></i>Click to view
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Average Smart Score */}
+                <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-purple-800 mb-1">
+                        Fleet Alert Intelligence Score
+                      </h4>
+                      <p className="text-sm text-purple-700">
+                        Average smart score across all active alerts
+                      </p>
+                    </div>
+                    <div className="text-3xl font-bold text-purple-800">
+                      {filteredAlerts.length > 0 ? 
+                        Math.round(filteredAlerts.reduce((sum, alert) => sum + calculateSmartScore(alert), 0) / filteredAlerts.length) : 0
+                      }/100
+                    </div>
+                  </div>
+                </div>
+              </div>
+              )}
+
+              {filteredAlerts.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Alert Type Distribution Chart */}
+                  <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+                      <i className="fas fa-chart-pie mr-2 text-blue-500"></i>
+                      Alert Type Distribution
+                    </h3>
+                    <div className="h-64">
+                      <canvas id="alertTypeChart" className="w-full h-full"></canvas>
+                    </div>
+                  </div>
+
+                  {/* Alert Timeline Chart */}
+                  <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+                      <i className="fas fa-chart-line mr-2 text-green-500"></i>
+                      Alert Timeline (Last 7 Days)
+                    </h3>
+                    <div className="h-64">
+                      <canvas id="alertTimelineChart" className="w-full h-full"></canvas>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+                    <div className="h-64 flex items-center justify-center">
+                      <div className="text-center">
+                        <i className="fas fa-chart-pie text-4xl text-gray-400 mb-3"></i>
+                        <p className="text-gray-500">No data available for charts</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+                    <div className="h-64 flex items-center justify-center">
+                      <div className="text-center">
+                        <i className="fas fa-chart-line text-4xl text-gray-400 mb-3"></i>
+                        <p className="text-gray-500">No data available for timeline</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Heatmap Dashboard */}
+              {filteredAlerts.length > 0 ? (
+                <div className="mt-6">
+                  <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+                      <i className="fas fa-map-marked-alt mr-2 text-red-500"></i>
+                      Alert Location Heatmap
+                    </h3>
+                    <div className="h-96 rounded-lg overflow-hidden border border-gray-200">
+                      <HeatmapDashboard alerts={filteredAlerts} />
+                    </div>
+                    <div className="mt-3 text-sm text-gray-600">
+                      <div className="flex items-center justify-between">
+                        <span>Heatmap shows alert density by location with weights based on alert priority</span>
+                        <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                            <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                            <span>Critical (3x)</span>
+                  </div>
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                            <span>Warning (2x)</span>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                            <span>Info (1x)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-6">
+                  <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center">
+                      <i className="fas fa-map-marked-alt mr-2 text-red-500"></i>
+                      Alert Location Heatmap
+                    </h3>
+                    <div className="h-96 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
+                      <div className="text-center">
+                        <i className="fas fa-map-marked-alt text-4xl text-gray-400 mb-3"></i>
+                        <p className="text-gray-500">No alert locations available for heatmap</p>
+                      </div>
+                    </div>
+                </div>
+              </div>
+            )}
+            </div>
+
+            {/* Quick Filters */}
+            <div className="mb-4 flex flex-wrap gap-2">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  className="bulk-checkbox"
+                  checked={selectedAlerts.size === filteredAlerts.length && filteredAlerts.length > 0}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                />
+                Select All ({filteredAlerts.length})
+              </label>
+              
+              {/* Alert Type Quick Filters */}
+              <button
+                className="quick-filter-btn px-3 py-1 text-xs bg-red-100 text-red-800 rounded-full hover:bg-red-200"
+                onClick={() => selectAllByType('camera-issues')}
+              >
+                <i className="fas fa-video mr-1"></i>
+                Camera Issues ({filteredAlerts.filter(a => a.type === 'camera-issues').length})
+              </button>
+              
+              <button
+                className="quick-filter-btn px-3 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full hover:bg-yellow-200"
+                onClick={() => selectAllByType('black-trips')}
+              >
+                <i className="fas fa-route mr-1"></i>
+                Black Trips ({filteredAlerts.filter(a => a.type === 'black-trips').length})
+              </button>
+              
+              <button
+                className="quick-filter-btn px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200"
+                onClick={() => selectAllByType('over-speeding')}
+              >
+                <i className="fas fa-tachometer-alt mr-1"></i>
+                Over Speeding ({filteredAlerts.filter(a => a.type === 'over-speeding').length})
+              </button>
+              
+              <button
+                className="quick-filter-btn px-3 py-1 text-xs bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-100 rounded-full hover:bg-purple-200 dark:hover:bg-purple-700"
+                onClick={() => selectAllByType('towing')}
+              >
+                <i className="fas fa-truck-pickup mr-1"></i>
+                Towing ({filteredAlerts.filter(a => a.type === 'towing').length})
+              </button>
+              
+
+              
+              {selectedAlerts.size > 0 && (
+                <button
+                  className="quick-filter-btn px-3 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                  onClick={() => setSelectedAlerts(new Set())}
+                >
+                  <i className="fas fa-times mr-1"></i>
+                  Clear Selection
+                </button>
+              )}
+            </div>
+
+            {/* Bulk Operations Bar */}
+            {showBulkBar && (
+              <div className="bulk-selection-bar fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 min-w-96">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <i className="fas fa-check-circle text-blue-600"></i>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {selectedAlerts.size} alert{selectedAlerts.size !== 1 ? 's' : ''} selected
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors"
+                      onClick={handleBulkResolve}
+                    >
+                      <i className="fas fa-check mr-1"></i>Resolve
+                    </button>
+                    <button
+                      className="px-3 py-1 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors"
+                      onClick={handleBulkSnooze}
+                    >
+                      <i className="fas fa-clock mr-1"></i>Snooze
+                    </button>
+                    <button
+                      className="px-3 py-1 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700 transition-colors"
+                      onClick={handleBulkArchive}
+                    >
+                      <i className="fas fa-archive mr-1"></i>Archive
+                    </button>
+                    <select
+                      className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                      value=""
+                      onChange={(e) => e.target.value && handleBulkAssign(e.target.value)}
+                    >
+                      <option value="">Assign to...</option>
+                      {technicians.map(tech => (
+                        <option key={tech.id} value={tech.id}>
+                          {tech.name} ({tech.workload} alerts)
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className="px-3 py-1 bg-orange-600 text-white text-sm rounded-md hover:bg-orange-700 transition-colors"
+                      onClick={handleBulkNotify}
+                      title="Send notifications to managers for selected alerts"
+                    >
+                      <i className="fas fa-bell mr-1"></i>Notify
+                    </button>
+                    <button
+                      className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                      onClick={() => setSelectedAlerts(new Set())}
+                    >
+                      <i className="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Search Results Summary */}
+            {(debouncedSearch || typeFilter) && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-blue-800">
+                    <i className="fas fa-search mr-2"></i>
+                    Found <strong>{filteredAlerts.length}</strong> alert{filteredAlerts.length !== 1 ? 's' : ''}
+                    {debouncedSearch && (
+                      <span> matching "<strong>{debouncedSearch}</strong>"</span>
+                    )}
+                    {typeFilter && (
+                      <span> of type "<strong>{typeFilter}</strong>"</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSearch('');
+                      setTypeFilter('');
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    <i className="fas fa-times mr-1"></i>Clear filters
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {isLoading ? (
+              <div className="text-center text-gray-500 mt-12">
+                Loading alerts...
+              </div>
+            ) : paginatedAlerts.length === 0 ? (
+              <div className="text-center text-gray-500 mt-12">
+                No active alerts found.
+              </div>
+            ) : (
+              <div className="alert-list space-y-4">
+                {paginatedAlerts.map(alert => (
+                  <AlertCard
+                    key={alert.id}
+                    alert={alert}
+                    onResolve={handleResolve}
+                    onSnooze={handleSnooze}
+                    onArchive={handleArchive}
+                    onDetails={setSelectedAlert}
+                    isSelected={selectedAlerts.has(alert.id)}
+                    onSelect={handleAlertSelect}
+                  />
+                ))}
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-6 space-x-2">
+                <button
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:bg-gray-400"
+                  onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span className="px-4 py-2 text-gray-900">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:bg-gray-400"
+                  onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+            {selectedAlert && (
+              <AlertModal alert={selectedAlert} onClose={() => setSelectedAlert(null)} />
+            )}
+            {showNotificationSettings && (
+              <NotificationSettingsModal onClose={() => setShowNotificationSettings(false)} />
+            )}
+            {showThresholdSettings && (
+              <ThresholdSettingsModal 
+                thresholds={alertThresholds}
+                setThresholds={setAlertThresholds}
+                onSave={saveThresholdSettings}
+                onClose={() => setShowThresholdSettings(false)}
+              />
+            )}
+            {showSmartScorePopup && (
+              <SmartScoreAnalysisModal 
+                priorityLevel={selectedPriorityLevel}
+                alerts={getAlertsByPriorityLevel(selectedPriorityLevel)}
+                onClose={() => setShowSmartScorePopup(false)}
+              />
+            )}
+          </main>
+        </div>
+      );
+    };
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+
+  <!-- Feedback Button - Outside React Component -->
+  <div class="fixed bottom-6 right-6 z-40">
+    <div class="text-center">
+      <button 
+        id="feedback-toggle" 
+        class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all hover:scale-105 shadow-lg flex items-center gap-2 font-medium" 
+        title="Submit Feedback"
+      >
+        <i class="fas fa-comment-dots text-lg"></i>
+        Submit Feedback
+      </button>
+      <p class="text-xs text-gray-500 mt-1">Feedback automatically sent to Google Sheets</p>
+    </div>
+  </div>
+
+  <!-- Feedback Submission Modal -->
+  <div id="feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <i class="fas fa-comment-dots text-orange-600"></i>
+          Submit Feedback & Suggestions
+        </h3>
+        <button id="close-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="mb-6">
+        <p class="text-gray-600 text-sm leading-relaxed">
+          Help us improve the active alerts management system! Share your thoughts on the design, features, usability, or suggest new functionality. Your feedback is valuable and will be reviewed by our development team.
+        </p>
+      </div>
+
+      <form id="feedback-form" class="space-y-6">
+        <!-- Name Field -->
+        <div>
+          <label for="feedback-name" class="block text-sm font-medium text-gray-700 mb-2">
+            Your Name <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="feedback-name" 
+            name="name"
+            required
+            placeholder="Enter your full name"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+          >
+        </div>
+
+        <!-- Feedback/Note Field -->
+        <div>
+          <label for="feedback-note" class="block text-sm font-medium text-gray-700 mb-2">
+            Feedback & Comments <span class="text-red-500">*</span>
+          </label>
+          <textarea 
+            id="feedback-note" 
+            name="note"
+            required
+            rows="8"
+            placeholder="Please describe your feedback, suggestions, or issues in detail. Be specific about what you liked, what could be improved, or what new features you'd like to see..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors resize-vertical"
+          ></textarea>
+          <div class="mt-1 text-xs text-gray-500">
+            <span id="char-count">0</span>/1000 characters
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-4">
+          <button 
+            type="submit" 
+            id="submit-feedback-btn"
+            class="flex-1 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:ring-4 focus:ring-orange-500/20 transition-all font-medium flex items-center justify-center gap-2"
+          >
+            <i class="fas fa-paper-plane"></i>
+            Submit Feedback
+          </button>
+          <button 
+            type="button" 
+            id="cancel-feedback-btn"
+            class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-4 focus:ring-gray-500/20 transition-all font-medium"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <!-- Success Message -->
+      <div id="feedback-success" class="hidden text-center py-8">
+        <div class="mb-4">
+          <i class="fas fa-check-circle text-5xl text-green-500"></i>
+        </div>
+        <h4 class="text-xl font-bold text-gray-900 mb-2">Feedback Submitted Successfully!</h4>
+        <p class="text-gray-600 mb-4">Thank you for your valuable feedback. Our team will review it and get back to you if needed.</p>
+        <button id="submit-another-feedback" class="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+          Submit Another Feedback
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Feedback Modal -->
+  <div id="view-feedback-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <i class="fas fa-comments text-orange-600"></i>
+          Submitted Feedback & Comments
+        </h3>
+        <button id="close-view-feedback-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Feedback Controls -->
+      <div class="mb-6 flex flex-wrap gap-3">
+        <button id="refresh-feedback" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+          <i class="fas fa-sync mr-1"></i> Refresh
+        </button>
+        <button id="export-feedback" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
+          <i class="fas fa-download mr-1"></i> Export JSON
+        </button>
+        <button id="clear-feedback" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">
+          <i class="fas fa-trash mr-1"></i> Clear All
+        </button>
+      </div>
+
+      <!-- Feedback List -->
+      <div id="feedback-list" class="space-y-4 max-h-96 overflow-y-auto">
+        <!-- Feedback items will be populated here -->
+        <div class="text-center py-8 text-gray-500">
+          <i class="fas fa-comments text-4xl mb-3"></i>
+          <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== FEEDBACK SYSTEM =====
+    class FeedbackManager {
+      constructor() {
+        // Wait for feedback storage to be available
+        if (window.feedbackStorage) {
+          this.storage = window.feedbackStorage;
+        } else {
+          // Fallback: create a basic storage if feedback-storage.js is not loaded
+          console.warn('Feedback storage not found, creating fallback storage');
+          this.storage = {
+            saveFeedback: async (data) => {
+              // Basic local storage fallback
+              const stored = JSON.parse(localStorage.getItem('lynx-dashboard-feedback') || '[]');
+              stored.push(data);
+              localStorage.setItem('lynx-dashboard-feedback', JSON.stringify(stored));
+              return true;
+            },
+            getAllFeedback: () => {
+              return JSON.parse(localStorage.getItem('lynx-dashboard-feedback') || '[]');
+            },
+            clearAllFeedback: () => {
+              localStorage.removeItem('lynx-dashboard-feedback');
+            }
+          };
+        }
+        this.setupEventListeners();
+      }
+
+      setupEventListeners() {
+        // Feedback toggle button
+        const feedbackToggle = document.getElementById('feedback-toggle');
+        if (feedbackToggle) {
+          feedbackToggle.addEventListener('click', () => {
+            console.log('Feedback button clicked!');
+            this.openFeedbackModal();
+          });
+        } else {
+          console.error('Feedback toggle button not found!');
+        }
+
+        // Modal controls
+        const closeFeedbackModal = document.getElementById('close-feedback-modal');
+        if (closeFeedbackModal) {
+          closeFeedbackModal.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        const cancelFeedbackBtn = document.getElementById('cancel-feedback-btn');
+        if (cancelFeedbackBtn) {
+          cancelFeedbackBtn.addEventListener('click', () => this.closeFeedbackModal());
+        }
+
+        // Form submission
+        const feedbackForm = document.getElementById('feedback-form');
+        if (feedbackForm) {
+          feedbackForm.addEventListener('submit', (e) => {
+            console.log('Feedback form submitted!');
+            this.handleSubmitFeedback(e);
+          });
+        } else {
+          console.error('Feedback form not found!');
+        }
+
+        // Character counter
+        const feedbackNote = document.getElementById('feedback-note');
+        if (feedbackNote) {
+          feedbackNote.addEventListener('input', () => this.updateCharacterCount());
+        }
+
+        // Submit another feedback
+        const submitAnotherBtn = document.getElementById('submit-another-feedback');
+        if (submitAnotherBtn) {
+          submitAnotherBtn.addEventListener('click', () => this.resetFeedbackForm());
+        }
+
+        // Feedback controls
+        const refreshBtn = document.getElementById('refresh-feedback');
+        const exportBtn = document.getElementById('export-feedback');
+        const clearBtn = document.getElementById('clear-feedback');
+
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', () => this.loadFeedback());
+        }
+        if (exportBtn) {
+          exportBtn.addEventListener('click', () => this.exportFeedback());
+        }
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => this.clearAllFeedback());
+        }
+      }
+
+      openFeedbackModal() {
+        console.log('Opening feedback modal...');
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          console.log('Modal found, showing it...');
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          
+          // Focus on first input
+          const nameInput = document.getElementById('feedback-name');
+          if (nameInput) {
+            setTimeout(() => nameInput.focus(), 100);
+          }
+        } else {
+          console.error('Feedback modal not found!');
+        }
+      }
+
+      closeFeedbackModal() {
+        const modal = document.getElementById('feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      }
+
+      openViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          this.loadFeedback();
+        }
+      }
+
+      closeViewFeedbackModal() {
+        const modal = document.getElementById('view-feedback-modal');
+        if (modal) {
+          modal.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+      }
+
+      updateCharacterCount() {
+        const textarea = document.getElementById('feedback-note');
+        const counter = document.getElementById('char-count');
+        if (textarea && counter) {
+          const count = textarea.value.length;
+          counter.textContent = count;
+          
+          if (count > 1000) {
+            counter.style.color = '#ef4444';
+            textarea.value = textarea.value.substring(0, 1000);
+            counter.textContent = '1000';
+          } else {
+            counter.style.color = '#6b7280';
+          }
+        }
+      }
+
+      async handleSubmitFeedback(e) {
+        console.log('handleSubmitFeedback called!');
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+        submitBtn.disabled = true;
+
+        try {
+          const formData = new FormData(e.target);
+          const feedbackData = {
+            id: Date.now().toString(),
+            name: formData.get('name'),
+            note: formData.get('note'),
+            timestamp: new Date().toISOString(),
+            system: 'Active Alerts Management System'
+          };
+
+          // Validate required fields
+          if (!feedbackData.name || !feedbackData.note) {
+            throw new Error('Please fill in all required fields');
+          }
+
+          // Save using the feedback storage system (this will save locally AND submit to Google Sheets)
+          console.log('About to save feedback:', feedbackData);
+          console.log('Storage object:', this.storage);
+          const success = await this.storage.saveFeedback(feedbackData);
+          console.log('Save result:', success);
+          if (!success) {
+            throw new Error('Failed to save feedback');
+          }
+          
+          // Show success message
+          this.showSuccessMessage();
+          
+          // Reset form
+          e.target.reset();
+          
+        } catch (error) {
+          console.error('Error submitting feedback:', error);
+          alert('Error submitting feedback: ' + error.message);
+          
+          // Restore button state
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        }
+      }
+
+      showSuccessMessage() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        
+        if (form && success) {
+          form.classList.add('hidden');
+          success.classList.remove('hidden');
+        }
+      }
+
+      resetFeedbackForm() {
+        const form = document.getElementById('feedback-form');
+        const success = document.getElementById('feedback-success');
+        const submitBtn = document.getElementById('submit-feedback-btn');
+        
+        if (form) {
+          form.reset();
+          form.classList.remove('hidden');
+        }
+        
+        if (success) {
+          success.classList.add('hidden');
+        }
+        
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Feedback';
+          submitBtn.disabled = false;
+        }
+
+        // Reset character counter
+        const counter = document.getElementById('char-count');
+        if (counter) {
+          counter.textContent = '0';
+        }
+      }
+
+      loadFeedback() {
+        const feedbackList = document.getElementById('feedback-list');
+        if (!feedbackList) return;
+
+        // Get all feedback from storage
+        const allFeedback = this.storage.getAllFeedback();
+
+        // Sort by timestamp (newest first)
+        allFeedback.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (allFeedback.length === 0) {
+          feedbackList.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-comments text-4xl mb-3"></i>
+              <p>No feedback submitted yet. Encourage your team to share their thoughts!</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Render feedback items
+        feedbackList.innerHTML = allFeedback.map(item => this.renderFeedbackItem(item)).join('');
+      }
+
+      renderFeedbackItem(feedback) {
+        const date = new Date(feedback.timestamp).toLocaleDateString();
+        const time = new Date(feedback.timestamp).toLocaleTimeString();
+
+        return `
+          <div class="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+            <div class="flex items-start gap-3 mb-3">
+              <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <span class="text-orange-600 font-semibold">${feedback.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900">${feedback.name}</h4>
+                <p class="text-xs text-gray-500">${date} at ${time}</p>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <p class="text-gray-700 leading-relaxed">${feedback.note}</p>
+            </div>
+          </div>
+        `;
+      }
+
+      exportFeedback() {
+        try {
+          this.storage.exportFeedback();
+          this.showNotification('Feedback exported successfully!', 'success');
+        } catch (error) {
+          console.error('Error exporting feedback:', error);
+          this.showNotification('Error exporting feedback', 'error');
+        }
+      }
+
+      clearAllFeedback() {
+        if (confirm('Are you sure you want to clear all feedback? This action cannot be undone.')) {
+          this.storage.clearAllFeedback();
+          this.loadFeedback();
+          this.showNotification('All feedback cleared successfully!', 'success');
+        }
+      }
+
+      showNotification(message, type = 'info') {
+        // Create a simple notification
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+          type === 'success' ? 'bg-green-500 text-white' :
+          type === 'error' ? 'bg-red-500 text-white' :
+          'bg-blue-500 text-white'
+        }`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 3000);
+      }
+    }
+
+    // Initialize feedback system
+    let feedbackManager;
+    document.addEventListener('DOMContentLoaded', function() {
+      feedbackManager = new FeedbackManager();
+    });
+  </script>
+</body>
+</html>
