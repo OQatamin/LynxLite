@@ -86,8 +86,6 @@ LynxLite-main/
 │   ├── active-alerts.html      # Current system alerts
 │   └── closed-alerts.html      # Historical alert records
 └── 
-└── Backup Files/
-    └── vehicles-backup.html    # Backup vehicle interface
 ```
 
 ## Exploring the Prototype
