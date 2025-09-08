@@ -8,11 +8,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <!-- OpenLayers (Advanced Free Mapping Library) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
   
   <!-- Feedback Storage System -->
   <script src="feedback-storage.js"></script>
@@ -167,6 +165,120 @@
     .help-icon:focus + .help-tooltip,
     .help-icon:hover + .help-tooltip {
       display: block;
+    }
+    
+    /* Map specific styles */
+    .ol-viewport {
+      border-radius: 8px;
+    }
+    
+    .ol-control {
+      z-index: 2 !important;
+    }
+    
+    .ol-popup {
+      z-index: 3 !important;
+    }
+    
+    .ol-zoom {
+      top: 10px;
+      left: 10px;
+    }
+    
+    .ol-popup {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .ol-popup-content {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    body.dark-mode .ol-popup {
+      background: #1f2937 !important;
+      color: #f3f4f6;
+      border-color: #4b5563 !important;
+    }
+    
+    body.dark-mode .ol-popup .device-popup {
+      color: #f3f4f6;
+    }
+    
+    body.dark-mode .ol-popup .text-gray-600 {
+      color: #d1d5db !important;
+    }
+    
+    body.dark-mode .ol-popup .bg-gray-100 {
+      background: #374151 !important;
+      color: #f3f4f6 !important;
+    }
+    
+    body.dark-mode .ol-popup .text-gray-800 {
+      color: #f3f4f6 !important;
+    }
+    
+    .ol-popup .status-online { background-color: rgba(22, 163, 74, 0.2) !important; color: #15803d !important; }
+    .ol-popup .status-offline { background-color: rgba(220, 38, 38, 0.2) !important; color: #b91c1c !important; }
+    .ol-popup .status-warning { background-color: rgba(245, 158, 66, 0.2) !important; color: #ea580c !important; }
+    .ol-popup .status-error { background-color: rgba(244, 63, 94, 0.2) !important; color: #e11d48 !important; }
+    
+    .device-popup {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .device-popup .status-online { color: #16A34A; font-weight: 600; }
+    .device-popup .status-offline { color: #DC2626; font-weight: 600; }
+    .device-popup .status-maintenance { color: #f59e42; font-weight: 600; }
+    .device-popup .status-alert { color: #f43f5e; font-weight: 600; }
+    .device-popup .status-unknown { color: #6b7280; font-weight: 600; }
+    
+    .map-error {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #ef4444;
+      font-weight: 500;
+      background: #fef2f2;
+      border: 1px dashed #fecaca;
+      border-radius: 8px;
+    }
+    
+    body.dark-mode .map-error {
+      background: #450a0a;
+      border-color: #7f1d1d;
+      color: #f87171;
+    }
+    
+    /* Dashboard widget styles */
+    .dashboard-widget {
+      background: linear-gradient(145deg, #ffffff, #f8fafc);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    body.dark-mode .dashboard-widget {
+      background: linear-gradient(145deg, #374151, #1f2937);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    body.dark-mode .dashboard-widget h3 {
+      color: #f3f4f6;
+    }
+    
+    body.dark-mode .dashboard-widget .text-gray-600 {
+      color: #d1d5db;
+    }
+    
+    body.dark-mode .dashboard-widget .text-gray-800 {
+      color: #f3f4f6;
     }
      
            /* Modal styles */
@@ -442,12 +554,72 @@
     </aside>
     <main id="main-content-container" class="flex-1 ml-64 pt-20 px-6 min-h-screen" aria-label="Main Content">
 
+      <!-- Device Tracking Map Widget -->
       <section class="mb-8">
-        <h2 class="text-xl font-bold mb-4">Device Overview</h2>
-        <div class="mb-6">
-          <h3 class="text-lg font-bold mb-2">Device Locations</h3>
-                       <div id="device-map" style="height:300px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08);" aria-label="Interactive map showing device locations and status"></div>
+        <div class="dashboard-widget w-full bg-gradient-to-br from-gray-50 via-white to-blue-50 relative">
+          <div class="flex justify-between items-center mb-4 pt-2">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <i class="fas fa-map-marked-alt text-blue-500"></i>
+              Device Location Map
+            </h3>
+            <div class="flex gap-2">
+              <span class="px-3 py-1 bg-blue-100 text-blue-600 rounded text-sm">
+                <i class="fas fa-layer-group"></i> OpenLayers
+              </span>
+              <span class="px-3 py-1 bg-green-100 text-green-600 rounded text-sm" id="device-status-indicator">
+                <i class="fas fa-wifi"></i> Live Updates
+              </span>
+            </div>
+          </div>
+          
+          <!-- Map Controls -->
+          <div class="mb-4 flex flex-wrap gap-2">
+            <button id="center-devices" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+              <i class="fas fa-crosshairs mr-1"></i>Center Devices
+            </button>
+            <button id="toggle-device-clustering" class="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm">
+              <i class="fas fa-layer-group mr-1"></i>Clustering ON
+            </button>
+            <button id="filter-by-status" class="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm">
+              <i class="fas fa-filter mr-1"></i>Filter by Status
+            </button>
+            <button id="toggle-heatmap" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm">
+              <i class="fas fa-fire mr-1"></i>Heatmap View
+            </button>
+            <button id="toggle-satellite-view" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm">
+              <i class="fas fa-satellite mr-1"></i>Satellite View
+            </button>
+            <button id="refresh-device-map" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
+              <i class="fas fa-sync mr-1"></i>Refresh
+            </button>
+          </div>
+          
+          <!-- Device Map Container -->
+          <div id="device-map" style="height: 400px; width: 100%; border-radius: 8px; border: 1px solid #e5e7eb; position: relative; overflow: hidden;" aria-label="Interactive map showing device locations and status"></div>
+          
+          <!-- Map Statistics -->
+          <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div class="text-center">
+              <div class="font-semibold text-green-600" id="online-devices-count">0</div>
+              <div class="text-gray-600">Online Devices</div>
+            </div>
+            <div class="text-center">
+              <div class="font-semibold text-blue-600" id="total-devices-count">0</div>
+              <div class="text-gray-600">Total Devices</div>
+            </div>
+            <div class="text-center">
+              <div class="font-semibold text-orange-600" id="maintenance-devices-count">0</div>
+              <div class="text-gray-600">Maintenance</div>
+            </div>
+            <div class="text-center">
+              <div class="font-semibold text-purple-600" id="device-coverage-area">0 km²</div>
+              <div class="text-gray-600">Coverage Area</div>
+            </div>
+          </div>
         </div>
+      </section>
+      
+      <!-- Device Overview Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <div class="widget-card bg-white dark:bg-gray-800 rounded-lg shadow p-4 md:p-6 flex justify-between items-center cursor-pointer hover:shadow-lg transition-shadow" 
                  onclick="filterByOverviewCard('online')" 
@@ -740,7 +912,7 @@
      
 
                    // Sample device data for fleet management system
-    const devices = Array.from({ length: 50 }, (_, i) => {
+    const devices = Array.from({ length: 100 }, (_, i) => {
         const deviceTypes = [
           'Vehicle Tracking Unit', 'Vehicle Tracking Unit', // More common
           'SIM Card', 'SIM Card', // More common
@@ -783,15 +955,23 @@
             id = `DEV-${String(i + 1).padStart(3, '0')}`;
         }
         
+      // Generate locations around Amman, Jordan area (matching index page spread)
       const location = {
-        lat: 30 + Math.random() * 10,
-        lng: 35 + Math.random() * 10
+        lat: 31.9539 + (Math.random() - 0.5) * 0.1, // ±0.05 degrees around Amman (matching index page)
+        lng: 35.9106 + (Math.random() - 0.5) * 0.1  // ±0.05 degrees around Amman (matching index page)
       };
         
         // Base device properties
         const baseDevice = {
           id,
-        status: ['Online', 'Offline', 'Warning', 'Error'][Math.floor(Math.random() * 4)],
+        status: (() => {
+          // Status distribution similar to index page: mostly online, some warning, fewer offline/error
+          const rand = Math.random();
+          if (rand < 0.65) return 'Online';      // 65% online
+          else if (rand < 0.85) return 'Warning'; // 20% warning
+          else if (rand < 0.95) return 'Offline'; // 10% offline  
+          else return 'Error';                    // 5% error
+        })(),
         signal: Math.floor(Math.random() * 100),
         battery: Math.floor(Math.random() * 100),
         lastPing: new Date(Date.now() - Math.random() * 3600000).toLocaleTimeString(),
@@ -2007,35 +2187,720 @@
           });
         });
         
-        // Then initialize device list
+        // Then initialize device list with delay to ensure OpenLayers is loaded
         setTimeout(() => {
-    renderDeviceList();
-        }, 100);
+          renderDeviceList();
+        }, 500);
      });
 
-         // Device map rendering
+         // Device map rendering with OpenLayers
      let deviceMap;
-     let markerClusterGroup;
+     let deviceMapSource;
+     let deviceLayer;
+     let satelliteLayer;
+     let clusteringEnabled = true;
+     let heatmapEnabled = false;
+     let satelliteEnabled = false;
      function renderDeviceMap(list) {
-       if (!document.getElementById('device-map')) return;
-       if (!deviceMap) {
-         deviceMap = L.map('device-map').setView([35, 35], 6);
-         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-           attribution: '© OpenStreetMap contributors'
-         }).addTo(deviceMap);
-         markerClusterGroup = L.markerClusterGroup();
-         deviceMap.addLayer(markerClusterGroup);
+       const mapContainer = document.getElementById('device-map');
+       if (!mapContainer) return;
+       
+       try {
+         if (!deviceMap) {
+           // Check if OpenLayers is loaded
+           if (typeof ol === 'undefined') {
+             throw new Error('OpenLayers library is not loaded');
+           }
+           
+           console.log('OpenLayers version:', ol.VERSION || 'unknown');
+           console.log('Available ol objects:', Object.keys(ol));
+           console.log('Available controls:', Object.keys(ol.control || {}));
+           
+           // Initialize OpenLayers map
+           deviceMapSource = new ol.source.Vector();
+           
+           deviceLayer = new ol.layer.Vector({
+             source: deviceMapSource,
+             style: createDeviceStyle
+           });
+           
+           const osmLayer = new ol.layer.Tile({
+             source: new ol.source.OSM()
+           });
+           
+           deviceMap = new ol.Map({
+             target: 'device-map',
+             layers: [osmLayer, deviceLayer],
+             view: new ol.View({
+               center: ol.proj.fromLonLat([35.9106, 31.9539]), // Amman, Jordan
+               zoom: 11
+             })
+           });
+           
+           // Add popup overlay
+           const popupContainer = document.createElement('div');
+           popupContainer.className = 'ol-popup';
+           popupContainer.style.cssText = `
+             position: absolute;
+             background: white;
+             border: 1px solid #ccc;
+             border-radius: 8px;
+             padding: 0;
+             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+             display: none;
+             z-index: 1000;
+             max-width: 250px;
+           `;
+           popupContainer.innerHTML = `
+             <div class="ol-popup-content"></div>
+             <div class="ol-popup-closer" style="position: absolute; top: 8px; right: 8px; cursor: pointer; font-size: 16px; color: #666;">×</div>
+           `;
+           
+           const popup = new ol.Overlay({
+             element: popupContainer,
+             autoPan: {
+               animation: {
+                 duration: 250,
+               },
+             },
+             positioning: 'bottom-center',
+             stopEvent: false,
+             offset: [0, -10]
+           });
+           
+           deviceMap.addOverlay(popup);
+           
+           // Add click handler for popups
+           deviceMap.on('click', function(event) {
+             const feature = deviceMap.forEachFeatureAtPixel(event.pixel, function(feature) {
+               return feature;
+             });
+             
+             if (feature) {
+               const device = feature.get('device');
+               const cluster = feature.get('cluster');
+               
+               // Handle cluster popup
+               if (cluster) {
+                 const statusCounts = cluster.devices.reduce((acc, d) => {
+                   const status = d.status?.toLowerCase() || 'unknown';
+                   acc[status] = (acc[status] || 0) + 1;
+                   return acc;
+                 }, {});
+                 
+                 const statusSummary = Object.entries(statusCounts)
+                   .map(([status, count]) => `${count} ${status}`)
+                   .join(', ');
+                 
+                 const popupContent = `
+                   <div class="cluster-popup p-3">
+                     <div class="flex items-center mb-2">
+                       <strong class="text-lg mr-2">Device Cluster (${cluster.count})</strong>
+                     </div>
+                     <div class="text-sm text-gray-600 mb-3">
+                       <div><strong>Status Distribution:</strong> ${statusSummary}</div>
+                       <div><strong>Location:</strong> ${cluster.lat.toFixed(4)}, ${cluster.lng.toFixed(4)}</div>
+                     </div>
+                     <div class="text-xs text-gray-500">
+                       Click clustering toggle to view individual devices
+                     </div>
+                   </div>
+                 `;
+                 popupContainer.querySelector('.ol-popup-content').innerHTML = popupContent;
+                 popup.setPosition(event.coordinate);
+                 popupContainer.style.display = 'block';
+                 return;
+               }
+               
+               // Create device-specific popup content
+               let specificInfo = '';
+               switch(device.type) {
+                 case 'Vehicle Tracking Unit':
+                   specificInfo = `
+                     <div><strong>Vehicle:</strong> ${device.vehicleRegistration || 'N/A'}</div>
+                     <div><strong>GPS Accuracy:</strong> ${device.gpsAccuracy || 0}m</div>
+                     <div><strong>Odometer:</strong> ${device.odometerReading ? device.odometerReading.toLocaleString() + ' km' : 'N/A'}</div>
+                     <div><strong>Fuel Level:</strong> ${device.fuelLevel || 0}%</div>
+                   `;
+                   break;
+                 case 'SIM Card':
+                   specificInfo = `
+                     <div><strong>Carrier:</strong> ${device.carrier || 'Unknown'}</div>
+                     <div><strong>Data Usage:</strong> ${device.dataUsage || 0}MB/${device.monthlyLimit || 1000}MB</div>
+                     <div><strong>MSISDN:</strong> ${device.msisdn || 'N/A'}</div>
+                   `;
+                   break;
+                 case 'Camera':
+                   specificInfo = `
+                     <div><strong>Recording:</strong> ${device.recordingStatus || 'Unknown'}</div>
+                     <div><strong>Resolution:</strong> ${device.resolution || 'Unknown'}</div>
+                     <div><strong>Storage:</strong> ${device.storageUsed || 0}%</div>
+                     <div><strong>Positioning:</strong> ${device.positioningStatus || 'Unknown'}</div>
+                   `;
+                   break;
+                 case 'ELD Device':
+                   specificInfo = `
+                     <div><strong>Driver:</strong> ${device.driverId || 'N/A'}</div>
+                     <div><strong>Status:</strong> ${device.currentStatus || 'Unknown'}</div>
+                     <div><strong>Hours:</strong> ${device.hoursOfService || 0}h</div>
+                     <div><strong>Compliance:</strong> ${device.complianceStatus || 'Unknown'}</div>
+                   `;
+                   break;
+                 case 'IoT Device':
+                   specificInfo = `
+                     <div><strong>Protocol:</strong> ${device.iotProtocol || 'Unknown'}</div>
+                     <div><strong>Temperature:</strong> ${device.sensorData?.temperature || 0}°C</div>
+                     <div><strong>Humidity:</strong> ${device.sensorData?.humidity || 0}%</div>
+                     <div><strong>Queue:</strong> ${device.commandQueue || 0} commands</div>
+                   `;
+                   break;
+                 case 'Meter':
+                   specificInfo = `
+                     <div><strong>Type:</strong> ${device.meterType || 'Unknown'}</div>
+                     <div><strong>Reading:</strong> ${device.currentReading || 0}</div>
+                     <div><strong>Accuracy:</strong> ${device.accuracy || 'N/A'}</div>
+                     <div><strong>Next Cal:</strong> ${device.nextCalibration || 'N/A'}</div>
+                   `;
+                   break;
+               }
+               
+               const popupContent = `
+                 <div class="device-popup p-3">
+                   <div class="flex items-center mb-2">
+                     <strong class="text-lg mr-2">${device.id || 'Unknown Device'}</strong>
+                     <span class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">${device.model || 'Unknown Model'}</span>
+                   </div>
+                   <div class="status-${device.status?.toLowerCase() || 'unknown'} font-semibold mb-3 px-2 py-1 rounded text-sm bg-opacity-20">
+                     Status: ${device.status || 'Unknown'}
+                   </div>
+                   <div class="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-3">
+                     <div><strong>Battery:</strong> ${device.battery || 0}%</div>
+                     <div><strong>Signal:</strong> ${device.signal || 0}%</div>
+                     <div><strong>Firmware:</strong> ${device.firmware || 'N/A'}</div>
+                     <div><strong>Last Ping:</strong> ${device.lastPing || 'N/A'}</div>
+                   </div>
+                   ${specificInfo ? `<div class="border-t pt-2 text-sm text-gray-600 space-y-1">${specificInfo}</div>` : ''}
+                   <div class="text-xs text-gray-500 mt-2 pt-2 border-t">
+                     Location: ${device.location.lat.toFixed(4)}, ${device.location.lng.toFixed(4)}
+                   </div>
+                 </div>
+               `;
+               popupContainer.querySelector('.ol-popup-content').innerHTML = popupContent;
+               popup.setPosition(event.coordinate);
+               popupContainer.style.display = 'block';
+             } else {
+               popupContainer.style.display = 'none';
+             }
+           });
+           
+           // Close popup when clicking the X
+           popupContainer.querySelector('.ol-popup-closer').onclick = function() {
+             popupContainer.style.display = 'none';
+           };
+           
+           // Handle map resize when container changes
+           setTimeout(() => {
+             deviceMap.getTargetElement() && deviceMap.updateSize();
+           }, 100);
+         }
+         
+         // Clear existing features
+         deviceMapSource.clear();
+         
+         // Add device markers with validation and clustering support
+         const features = [];
+         const validDevices = list.filter(device => {
+           return device.location && 
+                  typeof device.location.lat === 'number' && 
+                  typeof device.location.lng === 'number' &&
+                  !isNaN(device.location.lat) && 
+                  !isNaN(device.location.lng);
+         });
+         
+         if (clusteringEnabled) {
+           // Group nearby devices into clusters
+           const clusters = clusterDevices(validDevices);
+           clusters.forEach(cluster => {
+             const feature = new ol.Feature({
+               geometry: new ol.geom.Point(ol.proj.fromLonLat([cluster.lng, cluster.lat])),
+               device: cluster.devices.length === 1 ? cluster.devices[0] : null,
+               cluster: cluster.devices.length > 1 ? cluster : null
+             });
+             features.push(feature);
+           });
+         } else {
+           // Individual device markers
+           validDevices.forEach(device => {
+             const feature = new ol.Feature({
+               geometry: new ol.geom.Point(ol.proj.fromLonLat([device.location.lng, device.location.lat])),
+               device: device,
+               cluster: null
+             });
+             features.push(feature);
+           });
+         }
+         
+         deviceMapSource.addFeatures(features);
+         
+         // Fit view to show all devices
+         if (features.length > 0) {
+           const extent = deviceMapSource.getExtent();
+           deviceMap.getView().fit(extent, { 
+             padding: [20, 20, 20, 20], 
+             maxZoom: 15,
+             duration: 1000 
+           });
+         }
+         
+         // Update statistics
+         updateDeviceMapStatistics(list);
+         
+       } catch (error) {
+         console.error('Error rendering device map:', error);
+         mapContainer.innerHTML = '<div class="map-error">Unable to load map. Please refresh the page.</div>';
+       }
+     }
+     
+     // Create device marker style based on status (matching index page style)
+     function createDeviceStyle(feature) {
+       const device = feature.get('device');
+       const cluster = feature.get('cluster');
+       
+       // Handle cluster styling
+       if (cluster) {
+         const count = cluster.count;
+         const radius = Math.min(25, 15 + Math.log(count) * 3);
+         
+         return new ol.style.Style({
+           image: new ol.style.Circle({
+             radius: radius,
+             fill: new ol.style.Fill({
+               color: [59, 130, 246, 0.8] // Blue cluster color
+             }),
+             stroke: new ol.style.Stroke({
+               color: [255, 255, 255, 1],
+               width: 3
+             })
+           }),
+           text: new ol.style.Text({
+             text: count.toString(),
+             font: 'bold 14px sans-serif',
+             fill: new ol.style.Fill({
+               color: [255, 255, 255, 1]
+             }),
+             stroke: new ol.style.Stroke({
+               color: [0, 0, 0, 0.8],
+               width: 2
+             })
+           })
+         });
        }
        
-       // Clear existing markers from cluster group
-       markerClusterGroup.clearLayers();
+       // Individual device styling
+       const status = device.status?.toLowerCase() || 'unknown';
        
-       list.forEach(device => {
-         const marker = L.marker([device.location.lat, device.location.lng]);
-         marker.bindPopup(`<strong>${device.id}</strong><br>Status: ${device.status}<br>Type: ${device.type}<br>Battery: ${device.battery}%<br>Signal: ${device.signal}%`);
-         markerClusterGroup.addLayer(marker);
+       let color, iconText;
+       switch(status) {
+         case 'online':
+           color = [16, 185, 129, 1]; // green (matching index page active)
+           break;
+         case 'offline':
+           color = [107, 114, 128, 1]; // gray (matching index page offline)
+           break;
+         case 'warning':
+           color = [245, 158, 11, 1]; // yellow/orange (matching index page idle)
+           break;
+         case 'error':
+           color = [220, 38, 38, 1]; // red for errors
+           break;
+         default:
+           color = [107, 114, 128, 1]; // gray
+       }
+       
+       // Set icon based on device type
+       switch(device.type) {
+         case 'Vehicle Tracking Unit':
+           iconText = '🚛';
+           break;
+         case 'Camera':
+           iconText = '📷';
+           break;
+         case 'SIM Card':
+           iconText = '📱';
+           break;
+         case 'ELD Device':
+           iconText = '📊';
+           break;
+         case 'IoT Device':
+           iconText = '🔗';
+           break;
+         case 'Meter':
+           iconText = '⚡';
+           break;
+         default:
+           iconText = '📡';
+       }
+       
+       return new ol.style.Style({
+         image: new ol.style.Circle({
+           radius: 15, // Matching index page size
+           fill: new ol.style.Fill({
+             color: color
+           }),
+           stroke: new ol.style.Stroke({
+             color: [255, 255, 255, 1], // White border like index page
+             width: 3
+           })
+         }),
+         text: new ol.style.Text({
+           text: iconText,
+           font: '14px sans-serif', // Matching index page font
+           fill: new ol.style.Fill({
+             color: [255, 255, 255, 1] // White text
+           }),
+           stroke: new ol.style.Stroke({
+             color: [0, 0, 0, 0.8],
+             width: 1
+           })
+         })
        });
      }
+     
+     // Function to handle map resize
+     function resizeDeviceMap() {
+       if (deviceMap) {
+         setTimeout(() => {
+           deviceMap.updateSize();
+         }, 100);
+       }
+     }
+     
+     // Add resize listener
+     window.addEventListener('resize', resizeDeviceMap);
+     
+     // Update device statistics
+     function updateDeviceMapStatistics(deviceList) {
+       const stats = {
+         online: deviceList.filter(d => d.status?.toLowerCase() === 'online').length,
+         total: deviceList.length,
+         maintenance: deviceList.filter(d => d.status?.toLowerCase() === 'warning' || d.status?.toLowerCase() === 'error').length,
+         coverage: calculateCoverageArea(deviceList)
+       };
+       
+       document.getElementById('online-devices-count').textContent = stats.online;
+       document.getElementById('total-devices-count').textContent = stats.total;
+       document.getElementById('maintenance-devices-count').textContent = stats.maintenance;
+       document.getElementById('device-coverage-area').textContent = stats.coverage.toFixed(2) + ' km²';
+     }
+     
+     // Calculate coverage area based on device locations
+     function calculateCoverageArea(deviceList) {
+       if (deviceList.length < 3) return 0;
+       
+       const validDevices = deviceList.filter(d => d.location && d.location.lat && d.location.lng);
+       if (validDevices.length < 3) return 0;
+       
+       const lats = validDevices.map(d => d.location.lat);
+       const lngs = validDevices.map(d => d.location.lng);
+       
+       const latRange = Math.max(...lats) - Math.min(...lats);
+       const lngRange = Math.max(...lngs) - Math.min(...lngs);
+       
+       // Rough approximation: 1 degree ≈ 111 km
+       const approxArea = (latRange * 111) * (lngRange * 111);
+       return Math.max(approxArea, 0.1);
+     }
+     
+     // Cluster nearby devices for simplified map view
+     function clusterDevices(devices, clusterDistance = 0.01) {
+       const clusters = [];
+       const processed = new Set();
+       
+       devices.forEach((device, index) => {
+         if (processed.has(index)) return;
+         
+         const cluster = {
+           lat: device.location.lat,
+           lng: device.location.lng,
+           devices: [device],
+           count: 1
+         };
+         
+         // Find nearby devices within cluster distance
+         devices.forEach((otherDevice, otherIndex) => {
+           if (index !== otherIndex && !processed.has(otherIndex)) {
+             const distance = Math.sqrt(
+               Math.pow(device.location.lat - otherDevice.location.lat, 2) +
+               Math.pow(device.location.lng - otherDevice.location.lng, 2)
+             );
+             
+             if (distance < clusterDistance) {
+               cluster.devices.push(otherDevice);
+               cluster.count++;
+               processed.add(otherIndex);
+             }
+           }
+         });
+         
+         // Calculate cluster center
+         if (cluster.count > 1) {
+           cluster.lat = cluster.devices.reduce((sum, d) => sum + d.location.lat, 0) / cluster.count;
+           cluster.lng = cluster.devices.reduce((sum, d) => sum + d.location.lng, 0) / cluster.count;
+         }
+         
+         clusters.push(cluster);
+         processed.add(index);
+       });
+       
+       return clusters;
+     }
+     
+     // Map control event listeners
+     document.addEventListener('DOMContentLoaded', function() {
+       // Center devices button
+       document.getElementById('center-devices')?.addEventListener('click', function() {
+         console.log('Center devices clicked');
+         try {
+           if (deviceMap && deviceMapSource) {
+             const features = deviceMapSource.getFeatures();
+             console.log('Found features:', features.length);
+             
+             if (features.length > 0) {
+               const extent = deviceMapSource.getExtent();
+               console.log('Extent:', extent);
+               deviceMap.getView().fit(extent, { 
+                 padding: [20, 20, 20, 20], 
+                 maxZoom: 15,
+                 duration: 1000 
+               });
+               console.log('Map centered successfully');
+             } else {
+               console.log('No features found to center on');
+               // Fallback to Amman center
+               deviceMap.getView().setCenter(ol.proj.fromLonLat([35.9106, 31.9539]));
+               deviceMap.getView().setZoom(11);
+             }
+           } else {
+             console.log('Map or source not initialized');
+           }
+         } catch (error) {
+           console.error('Error centering devices:', error);
+         }
+       });
+       
+       // Toggle clustering (simplified - adjusts marker spacing)
+       document.getElementById('toggle-device-clustering')?.addEventListener('click', function() {
+         console.log('Clustering toggle clicked');
+         clusteringEnabled = !clusteringEnabled;
+         
+         this.innerHTML = clusteringEnabled ? 
+           '<i class="fas fa-layer-group mr-1"></i>Clustering ON' : 
+           '<i class="fas fa-layer-group mr-1"></i>Clustering OFF';
+         this.className = clusteringEnabled ? 
+           'px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm' :
+           'px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm';
+         
+         // Re-render devices with new clustering setting
+         if (deviceMapSource && typeof devices !== 'undefined') {
+           renderDeviceMap(devices);
+         }
+         
+         console.log('Clustering toggled to:', clusteringEnabled ? 'ON' : 'OFF');
+       });
+       
+       // Satellite view toggle
+       document.getElementById('toggle-satellite-view')?.addEventListener('click', function() {
+         console.log('Satellite toggle clicked');
+         satelliteEnabled = !satelliteEnabled;
+         
+         this.innerHTML = satelliteEnabled ? 
+           '<i class="fas fa-satellite mr-1"></i>Map View' : 
+           '<i class="fas fa-satellite mr-1"></i>Satellite View';
+         this.className = satelliteEnabled ?
+           'px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm' :
+           'px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm';
+           
+         try {
+           toggleSatelliteView();
+           console.log('Satellite view toggled to:', satelliteEnabled ? 'SATELLITE' : 'MAP');
+         } catch (error) {
+           console.error('Error toggling satellite view:', error);
+         }
+       });
+       
+       // Refresh map button
+       document.getElementById('refresh-device-map')?.addEventListener('click', function() {
+         console.log('Refresh button clicked');
+         const button = this;
+         try {
+           // Disable button and add loading state
+           button.disabled = true;
+           button.style.cursor = 'not-allowed';
+           
+           // Add refresh animation
+           const icon = button.querySelector('i');
+           if (icon) {
+             icon.style.transform = 'rotate(0deg)';
+             icon.style.transition = 'transform 1s linear';
+             icon.style.transform = 'rotate(360deg)';
+           }
+           
+           // Re-render the map
+           if (typeof devices !== 'undefined' && devices.length > 0) {
+             renderDeviceMap(devices);
+             updateDeviceMapStatistics(devices);
+             console.log('Map refreshed successfully with', devices.length, 'devices');
+           } else {
+             console.log('No devices data available for refresh, generating new data...');
+             // Trigger device list regeneration if no devices exist
+             if (typeof renderDeviceList === 'function') {
+               renderDeviceList();
+             }
+           }
+           
+           // Force map resize in case container changed
+           if (deviceMap) {
+             setTimeout(() => {
+               deviceMap.updateSize();
+               deviceMap.render();
+             }, 100);
+           }
+           
+         } catch (error) {
+           console.error('Error refreshing map:', error);
+         } finally {
+           // Re-enable button after animation
+           setTimeout(() => {
+             button.disabled = false;
+             button.style.cursor = 'pointer';
+             
+             // Reset icon rotation
+             const icon = button.querySelector('i');
+             if (icon) {
+               icon.style.transform = '';
+               icon.style.transition = '';
+             }
+           }, 1000);
+         }
+       });
+       
+       // Filter by status
+       document.getElementById('filter-by-status')?.addEventListener('click', function() {
+         console.log('Filter by status clicked');
+         // This could open a dropdown or cycle through status filters
+         if (typeof showToast === 'function') {
+           showToast('Status filter feature coming soon!', 'info');
+         } else {
+           alert('Status filter feature coming soon!');
+         }
+       });
+       
+       // Heatmap toggle
+       document.getElementById('toggle-heatmap')?.addEventListener('click', function() {
+         console.log('Heatmap toggle clicked');
+         heatmapEnabled = !heatmapEnabled;
+         
+         this.innerHTML = heatmapEnabled ? 
+           '<i class="fas fa-fire mr-1"></i>Normal View' : 
+           '<i class="fas fa-fire mr-1"></i>Heatmap View';
+         this.className = heatmapEnabled ?
+           'px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm' :
+           'px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm';
+           
+         try {
+           toggleHeatmapView();
+           console.log('Heatmap toggled to:', heatmapEnabled ? 'HEATMAP' : 'NORMAL');
+         } catch (error) {
+           console.error('Error toggling heatmap:', error);
+         }
+       });
+     });
+     
+     // Toggle satellite view
+     function toggleSatelliteView() {
+       if (!deviceMap) {
+         console.error('Device map not initialized');
+         return;
+       }
+       
+       const layers = deviceMap.getLayers();
+       console.log('Current layers count:', layers.getLength());
+       
+       try {
+         if (satelliteEnabled) {
+           // Switch to satellite view
+           console.log('Switching to satellite view');
+           
+           // Remove current base layer (should be OSM)
+           if (layers.getLength() > 0) {
+             layers.removeAt(0);
+           }
+           
+           // Add satellite layer
+           satelliteLayer = new ol.layer.Tile({
+             source: new ol.source.XYZ({
+               url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+               attributions: '© Esri',
+               crossOrigin: 'anonymous'
+             })
+           });
+           layers.insertAt(0, satelliteLayer);
+           console.log('Satellite layer added');
+         } else {
+           // Switch back to OSM view
+           console.log('Switching to OSM view');
+           
+           // Remove satellite layer
+           if (satelliteLayer && layers.getLength() > 0) {
+             layers.removeAt(0);
+             satelliteLayer = null;
+           }
+           
+           // Add OSM layer
+           const osmLayer = new ol.layer.Tile({
+             source: new ol.source.OSM()
+           });
+           layers.insertAt(0, osmLayer);
+           console.log('OSM layer added');
+         }
+         
+         // Force map refresh
+         deviceMap.render();
+         console.log('Map refreshed, satellite enabled:', satelliteEnabled);
+         
+       } catch (error) {
+         console.error('Error in toggleSatelliteView:', error);
+       }
+     }
+     
+     // Toggle heatmap view (simplified implementation)
+     function toggleHeatmapView() {
+       if (heatmapEnabled) {
+         // Show notification for heatmap mode
+         if (typeof showToast === 'function') {
+           showToast('Heatmap view enabled - feature coming soon!', 'info');
+         } else {
+           alert('Heatmap view enabled - feature coming soon!');
+         }
+       } else {
+         // Show notification for normal mode
+         if (typeof showToast === 'function') {
+           showToast('Normal view restored', 'info');
+         } else {
+           alert('Normal view restored');
+         }
+       }
+     }
+     
+     // Add spin animation for refresh button
+     const style = document.createElement('style');
+     style.textContent = `
+       @keyframes spin {
+         from { transform: rotate(0deg); }
+         to { transform: rotate(360deg); }
+       }
+     `;
+     document.head.appendChild(style);
 
          
   </script>
