@@ -116,6 +116,19 @@
     /* Header should be above map controls */
     .header-element {
       z-index: var(--z-header, 35) !important;
+      max-height: 120px; /* Limit header height */
+      overflow: visible;
+    }
+    
+    /* Optimize header buttons for smaller screens */
+    @media (max-width: 1200px) {
+      .header-element .flex.items-center.space-x-2.flex-wrap {
+        gap: 0.25rem;
+      }
+      .header-element button {
+        padding: 0.375rem 0.5rem !important;
+        font-size: 0.875rem;
+      }
     }
     
     .z-20 {
@@ -313,7 +326,7 @@
       </a>
     </nav>
   </aside>
-  <main id="main-content-container" class="flex-1 ml-0 md:ml-64 pt-28 px-4 md:px-8" aria-label="Main Content">
+  <main id="main-content-container" class="flex-1 ml-0 md:ml-64 pt-32 md:pt-36 lg:pt-32 px-4 md:px-8" aria-label="Main Content">
     <!-- Filter Modal -->
     <div id="filter-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden" role="dialog" aria-labelledby="filter-modal-title">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md">
