@@ -173,12 +173,15 @@
       min-height: 384px;
       background: #f8fafc;
       border-radius: 8px;
+      position: relative;
+      z-index: 1;
     }
     .dark #heatmapContainer {
       background: #374151;
     }
     .leaflet-container {
       background: #f8fafc !important;
+      z-index: 1 !important;
     }
     .dark .leaflet-container {
       background: #374151 !important;
@@ -267,9 +270,35 @@
       width: 100%;
       border-radius: 8px;
       border: 2px solid #e5e7eb;
+      position: relative;
+      z-index: 1;
     }
     .dark .evidence-map {
       border-color: #4b5563;
+    }
+    
+    /* Leaflet map z-index fixes */
+    .leaflet-control-container {
+      z-index: 2 !important;
+    }
+    .leaflet-popup {
+      z-index: 3 !important;
+    }
+    .leaflet-tooltip {
+      z-index: 3 !important;
+    }
+    
+    /* Ensure heatmap legend has proper layering */
+    .heatmap-legend {
+      z-index: 10 !important;
+    }
+    
+    /* Modal map container fixes */
+    .modal .leaflet-container {
+      z-index: auto !important;
+    }
+    .modal .evidence-map {
+      z-index: auto;
     }
     .bulk-selection-bar {
       background: linear-gradient(135deg, #3b82f6, #1d4ed8);
@@ -2344,6 +2373,7 @@ Fleet Management System
     const HeatmapDashboard = ({ alerts }) => {
       const mapRef = useRef(null);
       const heatmapRef = useRef(null);
+      const legendRef = useRef(null);
       const [map, setMap] = useState(null);
 
       useEffect(() => {
@@ -2370,11 +2400,24 @@ Fleet Management System
       }, []);
 
       useEffect(() => {
-        if (!map || !alerts || alerts.length === 0) return;
+        if (!map || !alerts || alerts.length === 0) {
+          // Clean up legend if no alerts
+          if (legendRef.current) {
+            map.removeControl(legendRef.current);
+            legendRef.current = null;
+          }
+          return;
+        }
 
         // Clear existing heatmap
         if (heatmapRef.current) {
           map.removeLayer(heatmapRef.current);
+        }
+        
+        // Clear existing legend
+        if (legendRef.current) {
+          map.removeControl(legendRef.current);
+          legendRef.current = null;
         }
 
         // Prepare heatmap data from alert evidence locations
@@ -2433,8 +2476,8 @@ Fleet Management System
           map.fitBounds(bounds, { padding: [20, 20] });
           
           // Add enhanced heatmap legend
-          const legend = L.control({ position: 'bottomright' });
-          legend.onAdd = function() {
+          legendRef.current = L.control({ position: 'bottomright' });
+          legendRef.current.onAdd = function() {
             const div = L.DomUtil.create('div', 'heatmap-legend');
             div.innerHTML = `
               <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-xl border border-gray-200 dark:border-gray-600 backdrop-blur-md">
@@ -2473,7 +2516,7 @@ Fleet Management System
             `;
             return div;
           };
-          legend.addTo(map);
+          legendRef.current.addTo(map);
         }
 
         // Add markers for individual alert locations
