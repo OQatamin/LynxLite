@@ -1,1 +1,1 @@
-# LynxLite-V2.0
+# LynxLite
